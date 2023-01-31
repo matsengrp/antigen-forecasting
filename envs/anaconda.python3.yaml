@@ -1,0 +1,29 @@
+name: flu_forecasting
+channels:
+- bioconda
+- defaults
+dependencies:
+- nomkl
+- conda
+- cvxopt
+- datrie
+- fasttree
+- iqtree
+- jupyter
+- mafft
+- nbconvert
+- opencv
+- openjdk
+- pandas=0.25.*
+- pip
+- psutil
+- python=3.6*
+- raxml
+- scikit-learn
+- seaborn
+- statsmodels
+- pip:
+  - snakemake
+  - drmaa==0.7.9
+  - nextstrain-augur==5.4.1
+  - rethinkdb==2.2.0.post6

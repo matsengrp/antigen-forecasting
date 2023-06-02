@@ -10,20 +10,32 @@ DATA_NATURAL_ROOT_PATH = "data/natural/{sample}/"
 # Rules for simulated datasets
 #
 
+### Rule for running SANTA-SIM
+# rule run_simulation:
+#     input:
+#         simulation_config = ancient(DATA_SIMULATED_ROOT_PATH + "influenza_h3n2_ha.yml")
+#     output:
+#         sequences = DATA_SIMULATED_ROOT_PATH + "simulated_HA_sequences.fasta"
+#     params:
+#         seed = _get_simulation_seed
+#     conda: "../envs/anaconda.python3.yaml"
+#     shell:
+#         """
+#         cd data/simulated/{wildcards.sample} && java -jar {SNAKEMAKE_DIR}/dist/santa.jar -seed={params.seed} {SNAKEMAKE_DIR}/{input.simulation_config}
+#         """
 
+### Rule for running antigen simulations.
 rule run_simulation:
     input:
-        simulation_config = ancient(DATA_SIMULATED_ROOT_PATH + "influenza_h3n2_ha.xml")
+        #simulation_config = ancient(DATA_SIMULATED_ROOT_PATH) + "influenza_h3n2_ha.xml"
+        simulation_config = ancient(DATA_SIMULATED_ROOT_PATH) + "parameters.yml"
     output:
         sequences = DATA_SIMULATED_ROOT_PATH + "simulated_HA_sequences.fasta"
-    params:
-        seed = _get_simulation_seed
     conda: "../envs/anaconda.python3.yaml"
     shell:
         """
-        cd data/simulated/{wildcards.sample} && java -jar {SNAKEMAKE_DIR}/dist/santa.jar -seed={params.seed} {SNAKEMAKE_DIR}/{input.simulation_config}
+        cd data/simulated/{wildcards.sample} && java -jar {SNAKEMAKE_DIR}/dist/antigen.jar -XX:+UseSerialGC -Xmx256G Antigen
         """
-
 
 rule parse_simulated_sequences:
     input:
@@ -32,7 +44,7 @@ rule parse_simulated_sequences:
         sequences = DATA_SIMULATED_ROOT_PATH + "sequences.fasta",
         metadata = DATA_SIMULATED_ROOT_PATH + "metadata.tsv"
     params:
-        fasta_fields = "strain generation fitness"
+        fasta_fields = "strain date"
     conda: "../envs/anaconda.python3.yaml"
     shell:
         """
@@ -71,7 +83,7 @@ rule filter_simulated:
         sequences = DATA_SIMULATED_ROOT_PATH + "filtered_sequences.fasta"
     params:
         # Skip the first 1,000 generations (or 1000 / 100 years) for simulation burn-in.
-        min_date = 2010.0,
+        min_date = 2000.0,
         group_by = "year month",
         viruses_per_month = _get_viruses_per_month
     conda: "../envs/anaconda.python3.yaml"

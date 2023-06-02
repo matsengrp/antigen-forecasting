@@ -133,4 +133,14 @@ results/
 
 logs
 
+# Benchmark files
 benchmarks/
+
+# Antigen outputs
+out_timeseries.csv
+out.*
+*.branches
+*.range
+*.summary
+*.trees
+*.tips

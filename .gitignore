@@ -144,3 +144,6 @@ out.*
 *.summary
 *.trees
 *.tips
+
+# Temp stuff
+notebooks_by_zo

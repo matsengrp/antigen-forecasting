@@ -11,7 +11,7 @@ endDay: 15200                               # number of days to simulate (40yrs 
 deltaT: 0.1                                 # number of days to move forward in a single timestep
 printStep: 100                                # print to out.timeseries every X days
 tipSamplingRate: 0.0002                     # store X samples per deme per day
-tipSamplesPerDeme: 2000                     # cap number of samples per deme
+tipSamplesPerDeme: 5000                     # cap number of samples per deme
 tipSamplingProportional: true               # whether to sample proportional to prevalence
 treeProportion: 0.1                         # proportion of tips to use in tree reconstruction
 diversitySamplingCount: 1000                # how many samples to draw to calculate diversity, netau and serial interval
@@ -61,8 +61,8 @@ waningRate: 0.01                            # rate per day of a host removing a 
 smithConversion: 0.07                        # multiplier to distance to give cross-immunity
 homologousImmunity: 0.95                    # immunity raised to antigenically identical virus
 initialTraitA: -6.                          # value in dimension 1 for initial host immunity
-meanStep: 0.01                               # mean mutation size for non-epitopes
-sdStep: 0.01                                 # standard deviation of mutation size for non-epitopes
+meanStep: 0.00001                               # mean mutation size for non-epitopes
+sdStep: 0.00001                                 # standard deviation of mutation size for non-epitopes
 mut2D: true                                 # whether to mutate in a full 360 degree arc
 fixedStep: false                            # whether to fix step size, i.e. ignore sdStep
 

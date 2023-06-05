@@ -62,7 +62,10 @@
                     "normalized_fitness",
                     "ep_x",
                     "ne_star",
-                    "ep_x-ne_star"
+                    "ep_x-ne_star",
+                    "lbi",
+                    "delta_frequency",
+                    "lbi-ne_star"
                 ],
                 "best_predictor": "results/builds/simulated/simulated_sample_antigen/minimal_models_by_distances/normalized_fitness.json",
                 "validation_predictors": [

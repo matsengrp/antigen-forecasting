@@ -147,3 +147,4 @@ out.*
 
 # Temp stuff
 notebooks_by_zo
+.nfs*

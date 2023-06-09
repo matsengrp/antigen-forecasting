@@ -28,13 +28,14 @@ DATA_NATURAL_ROOT_PATH = "data/natural/{sample}/"
 rule run_simulation:
     input:
         #simulation_config = ancient(DATA_SIMULATED_ROOT_PATH) + "influenza_h3n2_ha.xml"
-        simulation_config = ancient(DATA_SIMULATED_ROOT_PATH) + "parameters.yml"
+        #simulation_config = ancient(DATA_SIMULATED_ROOT_PATH) + "parameters.yml"
+        fasta = ancient(DATA_SIMULATED_ROOT_PATH) + "run-out.fasta"
     output:
         sequences = DATA_SIMULATED_ROOT_PATH + "simulated_HA_sequences.fasta"
     conda: "../envs/anaconda.python3.yaml"
     shell:
         """
-        cd data/simulated/{wildcards.sample} && java -jar {SNAKEMAKE_DIR}/dist/antigen.jar -XX:+UseSerialGC -Xmx256G Antigen
+        mv {input.fasta} {output.sequences}
         """
 
 rule parse_simulated_sequences:

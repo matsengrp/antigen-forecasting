@@ -1,298 +1,298 @@
 model,predictor,timepoint,coefficient
-true fitness,normalized_fitness,2023-10-01,-0.0
-true fitness,normalized_fitness,2024-04-01,-0.0
-true fitness,normalized_fitness,2024-10-01,-0.0
-true fitness,normalized_fitness,2025-04-01,-0.042
-true fitness,normalized_fitness,2025-10-01,-0.0
-true fitness,normalized_fitness,2026-04-01,-0.0
-true fitness,normalized_fitness,2026-10-01,-0.041
-true fitness,normalized_fitness,2027-04-01,-0.012
-true fitness,normalized_fitness,2027-10-01,-0.001
-true fitness,normalized_fitness,2028-04-01,-0.0
-true fitness,normalized_fitness,2028-10-01,-0.001
-true fitness,normalized_fitness,2029-04-01,0.0
-true fitness,normalized_fitness,2029-10-01,-0.023
-true fitness,normalized_fitness,2030-04-01,-0.041
-true fitness,normalized_fitness,2030-10-01,-0.001
-true fitness,normalized_fitness,2031-04-01,-0.03
-true fitness,normalized_fitness,2031-10-01,-0.0
-true fitness,normalized_fitness,2032-04-01,-0.0
-true fitness,normalized_fitness,2032-10-01,-0.0
-true fitness,normalized_fitness,2033-04-01,0.012
-true fitness,normalized_fitness,2033-10-01,-0.0
-true fitness,normalized_fitness,2034-04-01,-0.01
-true fitness,normalized_fitness,2034-10-01,0.559
-true fitness,normalized_fitness,2035-04-01,0.559
-true fitness,normalized_fitness,2035-10-01,0.601
-true fitness,normalized_fitness,2036-04-01,0.132
-true fitness,normalized_fitness,2036-10-01,0.131
-true fitness,normalized_fitness,2037-04-01,0.103
-true fitness,normalized_fitness,2037-10-01,0.099
-true fitness,normalized_fitness,2038-04-01,0.118
-true fitness,normalized_fitness,2038-10-01,0.131
-true fitness,normalized_fitness,2039-04-01,0.051
-true fitness,normalized_fitness,2039-10-01,-0.0
-epitope antigenic novelty,ep_x,2023-10-01,-0.731
-epitope antigenic novelty,ep_x,2024-04-01,-0.277
-epitope antigenic novelty,ep_x,2024-10-01,-0.066
-epitope antigenic novelty,ep_x,2025-04-01,0.0
-epitope antigenic novelty,ep_x,2025-10-01,0.0
-epitope antigenic novelty,ep_x,2026-04-01,-0.0
-epitope antigenic novelty,ep_x,2026-10-01,0.0
-epitope antigenic novelty,ep_x,2027-04-01,0.026
-epitope antigenic novelty,ep_x,2027-10-01,0.043
-epitope antigenic novelty,ep_x,2028-04-01,0.053
-epitope antigenic novelty,ep_x,2028-10-01,0.053
-epitope antigenic novelty,ep_x,2029-04-01,0.053
-epitope antigenic novelty,ep_x,2029-10-01,0.031
-epitope antigenic novelty,ep_x,2030-04-01,0.012
-epitope antigenic novelty,ep_x,2030-10-01,0.04
-epitope antigenic novelty,ep_x,2031-04-01,-0.0
-epitope antigenic novelty,ep_x,2031-10-01,-0.0
-epitope antigenic novelty,ep_x,2032-04-01,-0.001
-epitope antigenic novelty,ep_x,2032-10-01,0.071
-epitope antigenic novelty,ep_x,2033-04-01,0.081
-epitope antigenic novelty,ep_x,2033-10-01,0.06
-epitope antigenic novelty,ep_x,2034-04-01,0.164
-epitope antigenic novelty,ep_x,2034-10-01,0.324
-epitope antigenic novelty,ep_x,2035-04-01,0.356
-epitope antigenic novelty,ep_x,2035-10-01,1.308
-epitope antigenic novelty,ep_x,2036-04-01,1.229
-epitope antigenic novelty,ep_x,2036-10-01,1.145
-epitope antigenic novelty,ep_x,2037-04-01,1.15
-epitope antigenic novelty,ep_x,2037-10-01,1.145
-epitope antigenic novelty,ep_x,2038-04-01,1.145
-epitope antigenic novelty,ep_x,2038-10-01,0.422
-epitope antigenic novelty,ep_x,2039-04-01,0.421
-epitope antigenic novelty,ep_x,2039-10-01,-0.496
-mutational load,ne_star,2023-10-01,-0.095
-mutational load,ne_star,2024-04-01,-0.389
-mutational load,ne_star,2024-10-01,-0.403
-mutational load,ne_star,2025-04-01,-0.479
-mutational load,ne_star,2025-10-01,-0.538
-mutational load,ne_star,2026-04-01,-0.537
-mutational load,ne_star,2026-10-01,-0.593
-mutational load,ne_star,2027-04-01,-0.593
-mutational load,ne_star,2027-10-01,-0.672
-mutational load,ne_star,2028-04-01,-0.672
-mutational load,ne_star,2028-10-01,-0.733
-mutational load,ne_star,2029-04-01,-0.427
-mutational load,ne_star,2029-10-01,-0.469
-mutational load,ne_star,2030-04-01,-0.48
-mutational load,ne_star,2030-10-01,-0.463
-mutational load,ne_star,2031-04-01,-0.425
-mutational load,ne_star,2031-10-01,-0.425
-mutational load,ne_star,2032-04-01,-0.424
-mutational load,ne_star,2032-10-01,-0.369
-mutational load,ne_star,2033-04-01,-0.303
-mutational load,ne_star,2033-10-01,-0.29
-mutational load,ne_star,2034-04-01,-0.506
-mutational load,ne_star,2034-10-01,-0.631
-mutational load,ne_star,2035-04-01,-0.636
-mutational load,ne_star,2035-10-01,-0.844
-mutational load,ne_star,2036-04-01,-0.78
-mutational load,ne_star,2036-10-01,-0.769
-mutational load,ne_star,2037-04-01,-0.729
-mutational load,ne_star,2037-10-01,-1.004
-mutational load,ne_star,2038-04-01,-0.653
-mutational load,ne_star,2038-10-01,-0.666
-mutational load,ne_star,2039-04-01,-0.244
-mutational load,ne_star,2039-10-01,-0.416
-epitope antigenic novelty + mutational load,ep_x,2023-10-01,-0.732
-epitope antigenic novelty + mutational load,ne_star,2023-10-01,-0.0
-epitope antigenic novelty + mutational load,ep_x,2024-04-01,-0.262
-epitope antigenic novelty + mutational load,ne_star,2024-04-01,-0.383
-epitope antigenic novelty + mutational load,ep_x,2024-10-01,-0.085
-epitope antigenic novelty + mutational load,ne_star,2024-10-01,-0.456
-epitope antigenic novelty + mutational load,ep_x,2025-04-01,-0.022
-epitope antigenic novelty + mutational load,ne_star,2025-04-01,-0.461
-epitope antigenic novelty + mutational load,ep_x,2025-10-01,-0.01
-epitope antigenic novelty + mutational load,ne_star,2025-10-01,-0.559
-epitope antigenic novelty + mutational load,ep_x,2026-04-01,-0.008
-epitope antigenic novelty + mutational load,ne_star,2026-04-01,-0.568
-epitope antigenic novelty + mutational load,ep_x,2026-10-01,0.0
-epitope antigenic novelty + mutational load,ne_star,2026-10-01,-0.594
-epitope antigenic novelty + mutational load,ep_x,2027-04-01,0.002
-epitope antigenic novelty + mutational load,ne_star,2027-04-01,-0.609
-epitope antigenic novelty + mutational load,ep_x,2027-10-01,0.008
-epitope antigenic novelty + mutational load,ne_star,2027-10-01,-0.672
-epitope antigenic novelty + mutational load,ep_x,2028-04-01,0.039
-epitope antigenic novelty + mutational load,ne_star,2028-04-01,-0.637
-epitope antigenic novelty + mutational load,ep_x,2028-10-01,0.07
-epitope antigenic novelty + mutational load,ne_star,2028-10-01,-0.671
-epitope antigenic novelty + mutational load,ep_x,2029-04-01,0.019
-epitope antigenic novelty + mutational load,ne_star,2029-04-01,-0.431
-epitope antigenic novelty + mutational load,ep_x,2029-10-01,0.013
-epitope antigenic novelty + mutational load,ne_star,2029-10-01,-0.472
-epitope antigenic novelty + mutational load,ep_x,2030-04-01,0.007
-epitope antigenic novelty + mutational load,ne_star,2030-04-01,-0.465
-epitope antigenic novelty + mutational load,ep_x,2030-10-01,0.001
-epitope antigenic novelty + mutational load,ne_star,2030-10-01,-0.468
-epitope antigenic novelty + mutational load,ep_x,2031-04-01,0.001
-epitope antigenic novelty + mutational load,ne_star,2031-04-01,-0.428
-epitope antigenic novelty + mutational load,ep_x,2031-10-01,0.001
-epitope antigenic novelty + mutational load,ne_star,2031-10-01,-0.428
-epitope antigenic novelty + mutational load,ep_x,2032-04-01,0.0
-epitope antigenic novelty + mutational load,ne_star,2032-04-01,-0.422
-epitope antigenic novelty + mutational load,ep_x,2032-10-01,0.058
-epitope antigenic novelty + mutational load,ne_star,2032-10-01,-0.357
-epitope antigenic novelty + mutational load,ep_x,2033-04-01,0.072
-epitope antigenic novelty + mutational load,ne_star,2033-04-01,-0.281
-epitope antigenic novelty + mutational load,ep_x,2033-10-01,0.072
-epitope antigenic novelty + mutational load,ne_star,2033-10-01,-0.278
-epitope antigenic novelty + mutational load,ep_x,2034-04-01,0.186
-epitope antigenic novelty + mutational load,ne_star,2034-04-01,-0.517
-epitope antigenic novelty + mutational load,ep_x,2034-10-01,0.278
-epitope antigenic novelty + mutational load,ne_star,2034-10-01,-0.564
-epitope antigenic novelty + mutational load,ep_x,2035-04-01,0.313
-epitope antigenic novelty + mutational load,ne_star,2035-04-01,-0.552
-epitope antigenic novelty + mutational load,ep_x,2035-10-01,0.591
-epitope antigenic novelty + mutational load,ne_star,2035-10-01,-0.611
-epitope antigenic novelty + mutational load,ep_x,2036-04-01,0.588
-epitope antigenic novelty + mutational load,ne_star,2036-04-01,-0.615
-epitope antigenic novelty + mutational load,ep_x,2036-10-01,1.145
-epitope antigenic novelty + mutational load,ne_star,2036-10-01,-0.001
-epitope antigenic novelty + mutational load,ep_x,2037-04-01,1.15
-epitope antigenic novelty + mutational load,ne_star,2037-04-01,-0.0
-epitope antigenic novelty + mutational load,ep_x,2037-10-01,1.146
-epitope antigenic novelty + mutational load,ne_star,2037-10-01,0.001
-epitope antigenic novelty + mutational load,ep_x,2038-04-01,1.145
-epitope antigenic novelty + mutational load,ne_star,2038-04-01,-0.001
-epitope antigenic novelty + mutational load,ep_x,2038-10-01,0.4
-epitope antigenic novelty + mutational load,ne_star,2038-10-01,-0.047
-epitope antigenic novelty + mutational load,ep_x,2039-04-01,0.222
-epitope antigenic novelty + mutational load,ne_star,2039-04-01,-0.454
-epitope antigenic novelty + mutational load,ep_x,2039-10-01,-0.738
-epitope antigenic novelty + mutational load,ne_star,2039-10-01,-1.211
-LBI,lbi,2023-10-01,0.524
-LBI,lbi,2024-04-01,0.45
-LBI,lbi,2024-10-01,0.527
-LBI,lbi,2025-04-01,0.545
-LBI,lbi,2025-10-01,0.596
-LBI,lbi,2026-04-01,0.525
-LBI,lbi,2026-10-01,0.527
-LBI,lbi,2027-04-01,0.536
-LBI,lbi,2027-10-01,0.588
-LBI,lbi,2028-04-01,0.663
-LBI,lbi,2028-10-01,0.663
-LBI,lbi,2029-04-01,0.598
-LBI,lbi,2029-10-01,0.815
-LBI,lbi,2030-04-01,0.781
-LBI,lbi,2030-10-01,0.758
-LBI,lbi,2031-04-01,0.655
-LBI,lbi,2031-10-01,0.729
-LBI,lbi,2032-04-01,0.446
-LBI,lbi,2032-10-01,0.509
-LBI,lbi,2033-04-01,0.509
-LBI,lbi,2033-10-01,0.272
-LBI,lbi,2034-04-01,1.091
-LBI,lbi,2034-10-01,0.0
-LBI,lbi,2035-04-01,-0.019
-LBI,lbi,2035-10-01,-0.032
-LBI,lbi,2036-04-01,-0.071
-LBI,lbi,2036-10-01,-0.261
-LBI,lbi,2037-04-01,-0.32
-LBI,lbi,2037-10-01,-0.23
-LBI,lbi,2038-04-01,-0.07
-LBI,lbi,2038-10-01,-0.024
-LBI,lbi,2039-04-01,-0.029
-LBI,lbi,2039-10-01,-0.028
-delta frequency,delta_frequency,2023-10-01,0.566
-delta frequency,delta_frequency,2024-04-01,0.525
-delta frequency,delta_frequency,2024-10-01,0.667
-delta frequency,delta_frequency,2025-04-01,0.665
-delta frequency,delta_frequency,2025-10-01,0.69
-delta frequency,delta_frequency,2026-04-01,0.596
-delta frequency,delta_frequency,2026-10-01,0.568
-delta frequency,delta_frequency,2027-04-01,0.561
-delta frequency,delta_frequency,2027-10-01,0.575
-delta frequency,delta_frequency,2028-04-01,0.902
-delta frequency,delta_frequency,2028-10-01,1.314
-delta frequency,delta_frequency,2029-04-01,1.229
-delta frequency,delta_frequency,2029-10-01,1.108
-delta frequency,delta_frequency,2030-04-01,1.148
-delta frequency,delta_frequency,2030-10-01,1.138
-delta frequency,delta_frequency,2031-04-01,0.905
-delta frequency,delta_frequency,2031-10-01,0.918
-delta frequency,delta_frequency,2032-04-01,0.905
-delta frequency,delta_frequency,2032-10-01,1.08
-delta frequency,delta_frequency,2033-04-01,1.085
-delta frequency,delta_frequency,2033-10-01,0.932
-delta frequency,delta_frequency,2034-04-01,0.735
-delta frequency,delta_frequency,2034-10-01,-0.008
-delta frequency,delta_frequency,2035-04-01,-0.033
-delta frequency,delta_frequency,2035-10-01,-0.372
-delta frequency,delta_frequency,2036-04-01,-0.041
-delta frequency,delta_frequency,2036-10-01,-0.041
-delta frequency,delta_frequency,2037-04-01,-0.039
-delta frequency,delta_frequency,2037-10-01,-0.051
-delta frequency,delta_frequency,2038-04-01,-0.161
-delta frequency,delta_frequency,2038-10-01,-0.04
-delta frequency,delta_frequency,2039-04-01,-0.161
-delta frequency,delta_frequency,2039-10-01,-0.041
-LBI + mutational load,lbi,2023-10-01,0.523
-LBI + mutational load,ne_star,2023-10-01,-0.0
-LBI + mutational load,lbi,2024-04-01,0.448
-LBI + mutational load,ne_star,2024-04-01,-0.048
-LBI + mutational load,lbi,2024-10-01,0.527
-LBI + mutational load,ne_star,2024-10-01,-0.002
-LBI + mutational load,lbi,2025-04-01,0.421
-LBI + mutational load,ne_star,2025-04-01,-0.266
-LBI + mutational load,lbi,2025-10-01,0.483
-LBI + mutational load,ne_star,2025-10-01,-0.283
-LBI + mutational load,lbi,2026-04-01,0.345
-LBI + mutational load,ne_star,2026-04-01,-0.335
-LBI + mutational load,lbi,2026-10-01,0.224
-LBI + mutational load,ne_star,2026-10-01,-0.457
-LBI + mutational load,lbi,2027-04-01,0.257
-LBI + mutational load,ne_star,2027-04-01,-0.473
-LBI + mutational load,lbi,2027-10-01,0.192
-LBI + mutational load,ne_star,2027-10-01,-0.578
-LBI + mutational load,lbi,2028-04-01,0.292
-LBI + mutational load,ne_star,2028-04-01,-0.552
-LBI + mutational load,lbi,2028-10-01,0.445
-LBI + mutational load,ne_star,2028-10-01,-0.552
-LBI + mutational load,lbi,2029-04-01,0.529
-LBI + mutational load,ne_star,2029-04-01,-0.193
-LBI + mutational load,lbi,2029-10-01,0.797
-LBI + mutational load,ne_star,2029-10-01,-0.054
-LBI + mutational load,lbi,2030-04-01,0.729
-LBI + mutational load,ne_star,2030-04-01,-0.101
-LBI + mutational load,lbi,2030-10-01,0.653
-LBI + mutational load,ne_star,2030-10-01,-0.142
-LBI + mutational load,lbi,2031-04-01,0.499
-LBI + mutational load,ne_star,2031-04-01,-0.177
-LBI + mutational load,lbi,2031-10-01,0.504
-LBI + mutational load,ne_star,2031-10-01,-0.179
-LBI + mutational load,lbi,2032-04-01,0.279
-LBI + mutational load,ne_star,2032-04-01,-0.344
-LBI + mutational load,lbi,2032-10-01,0.313
-LBI + mutational load,ne_star,2032-10-01,-0.307
-LBI + mutational load,lbi,2033-04-01,0.347
-LBI + mutational load,ne_star,2033-04-01,-0.26
-LBI + mutational load,lbi,2033-10-01,0.206
-LBI + mutational load,ne_star,2033-10-01,-0.264
-LBI + mutational load,lbi,2034-04-01,1.138
-LBI + mutational load,ne_star,2034-04-01,-0.281
-LBI + mutational load,lbi,2034-10-01,-0.015
-LBI + mutational load,ne_star,2034-10-01,-0.639
-LBI + mutational load,lbi,2035-04-01,-0.13
-LBI + mutational load,ne_star,2035-04-01,-0.632
-LBI + mutational load,lbi,2035-10-01,-0.411
-LBI + mutational load,ne_star,2035-10-01,-1.067
-LBI + mutational load,lbi,2036-04-01,-0.191
-LBI + mutational load,ne_star,2036-04-01,-0.945
-LBI + mutational load,lbi,2036-10-01,-0.538
-LBI + mutational load,ne_star,2036-10-01,-1.656
-LBI + mutational load,lbi,2037-04-01,-0.823
-LBI + mutational load,ne_star,2037-04-01,-3.719
-LBI + mutational load,lbi,2037-10-01,-0.699
-LBI + mutational load,ne_star,2037-10-01,-2.825
-LBI + mutational load,lbi,2038-04-01,-0.793
-LBI + mutational load,ne_star,2038-04-01,-3.51
-LBI + mutational load,lbi,2038-10-01,-0.438
-LBI + mutational load,ne_star,2038-10-01,-1.255
-LBI + mutational load,lbi,2039-04-01,-0.477
-LBI + mutational load,ne_star,2039-04-01,-1.179
-LBI + mutational load,lbi,2039-10-01,-0.374
-LBI + mutational load,ne_star,2039-10-01,-0.927
+true fitness,normalized_fitness,2023-10-01,6.168
+true fitness,normalized_fitness,2024-04-01,5.863
+true fitness,normalized_fitness,2024-10-01,5.025
+true fitness,normalized_fitness,2025-04-01,1.25
+true fitness,normalized_fitness,2025-10-01,4.291
+true fitness,normalized_fitness,2026-04-01,1.159
+true fitness,normalized_fitness,2026-10-01,0.965
+true fitness,normalized_fitness,2027-04-01,0.847
+true fitness,normalized_fitness,2027-10-01,0.895
+true fitness,normalized_fitness,2028-04-01,1.125
+true fitness,normalized_fitness,2028-10-01,1.008
+true fitness,normalized_fitness,2029-04-01,1.056
+true fitness,normalized_fitness,2029-10-01,1.365
+true fitness,normalized_fitness,2030-04-01,1.67
+true fitness,normalized_fitness,2030-10-01,1.017
+true fitness,normalized_fitness,2031-04-01,0.741
+true fitness,normalized_fitness,2031-10-01,0.613
+true fitness,normalized_fitness,2032-04-01,0.574
+true fitness,normalized_fitness,2032-10-01,0.0
+true fitness,normalized_fitness,2033-04-01,0.013
+true fitness,normalized_fitness,2033-10-01,0.162
+true fitness,normalized_fitness,2034-04-01,-0.608
+true fitness,normalized_fitness,2034-10-01,-0.723
+true fitness,normalized_fitness,2035-04-01,-0.696
+true fitness,normalized_fitness,2035-10-01,-0.767
+true fitness,normalized_fitness,2036-04-01,-0.778
+true fitness,normalized_fitness,2036-10-01,-0.785
+true fitness,normalized_fitness,2037-04-01,-0.245
+true fitness,normalized_fitness,2037-10-01,-0.322
+true fitness,normalized_fitness,2038-04-01,-0.288
+true fitness,normalized_fitness,2038-10-01,-0.107
+true fitness,normalized_fitness,2039-04-01,-0.336
+true fitness,normalized_fitness,2039-10-01,-0.341
+epitope antigenic novelty,ep_x,2023-10-01,-1.791
+epitope antigenic novelty,ep_x,2024-04-01,-0.514
+epitope antigenic novelty,ep_x,2024-10-01,-0.255
+epitope antigenic novelty,ep_x,2025-04-01,-0.116
+epitope antigenic novelty,ep_x,2025-10-01,-0.015
+epitope antigenic novelty,ep_x,2026-04-01,0.025
+epitope antigenic novelty,ep_x,2026-10-01,0.059
+epitope antigenic novelty,ep_x,2027-04-01,0.085
+epitope antigenic novelty,ep_x,2027-10-01,0.144
+epitope antigenic novelty,ep_x,2028-04-01,0.129
+epitope antigenic novelty,ep_x,2028-10-01,0.118
+epitope antigenic novelty,ep_x,2029-04-01,0.112
+epitope antigenic novelty,ep_x,2029-10-01,0.118
+epitope antigenic novelty,ep_x,2030-04-01,0.11
+epitope antigenic novelty,ep_x,2030-10-01,0.119
+epitope antigenic novelty,ep_x,2031-04-01,0.085
+epitope antigenic novelty,ep_x,2031-10-01,0.042
+epitope antigenic novelty,ep_x,2032-04-01,0.0
+epitope antigenic novelty,ep_x,2032-10-01,0.149
+epitope antigenic novelty,ep_x,2033-04-01,0.149
+epitope antigenic novelty,ep_x,2033-10-01,0.146
+epitope antigenic novelty,ep_x,2034-04-01,0.195
+epitope antigenic novelty,ep_x,2034-10-01,0.169
+epitope antigenic novelty,ep_x,2035-04-01,0.149
+epitope antigenic novelty,ep_x,2035-10-01,0.073
+epitope antigenic novelty,ep_x,2036-04-01,1.002
+epitope antigenic novelty,ep_x,2036-10-01,1.157
+epitope antigenic novelty,ep_x,2037-04-01,1.036
+epitope antigenic novelty,ep_x,2037-10-01,1.002
+epitope antigenic novelty,ep_x,2038-04-01,1.002
+epitope antigenic novelty,ep_x,2038-10-01,0.477
+epitope antigenic novelty,ep_x,2039-04-01,0.472
+epitope antigenic novelty,ep_x,2039-10-01,-0.58
+mutational load,ne_star,2023-10-01,-0.214
+mutational load,ne_star,2024-04-01,-0.274
+mutational load,ne_star,2024-10-01,-0.358
+mutational load,ne_star,2025-04-01,-0.417
+mutational load,ne_star,2025-10-01,-0.423
+mutational load,ne_star,2026-04-01,-0.729
+mutational load,ne_star,2026-10-01,-0.789
+mutational load,ne_star,2027-04-01,-0.77
+mutational load,ne_star,2027-10-01,-0.355
+mutational load,ne_star,2028-04-01,-0.355
+mutational load,ne_star,2028-10-01,-0.377
+mutational load,ne_star,2029-04-01,-0.355
+mutational load,ne_star,2029-10-01,-0.357
+mutational load,ne_star,2030-04-01,-0.355
+mutational load,ne_star,2030-10-01,-0.33
+mutational load,ne_star,2031-04-01,-0.299
+mutational load,ne_star,2031-10-01,-0.304
+mutational load,ne_star,2032-04-01,-0.328
+mutational load,ne_star,2032-10-01,-0.314
+mutational load,ne_star,2033-04-01,-0.258
+mutational load,ne_star,2033-10-01,-0.298
+mutational load,ne_star,2034-04-01,-1.098
+mutational load,ne_star,2034-10-01,-1.096
+mutational load,ne_star,2035-04-01,-1.034
+mutational load,ne_star,2035-10-01,-1.733
+mutational load,ne_star,2036-04-01,-1.732
+mutational load,ne_star,2036-10-01,-1.932
+mutational load,ne_star,2037-04-01,-0.925
+mutational load,ne_star,2037-10-01,-0.925
+mutational load,ne_star,2038-04-01,-0.925
+mutational load,ne_star,2038-10-01,-0.925
+mutational load,ne_star,2039-04-01,-0.923
+mutational load,ne_star,2039-10-01,-0.761
+epitope antigenic novelty + mutational load,ep_x,2023-10-01,-1.748
+epitope antigenic novelty + mutational load,ne_star,2023-10-01,-0.37
+epitope antigenic novelty + mutational load,ep_x,2024-04-01,-0.564
+epitope antigenic novelty + mutational load,ne_star,2024-04-01,-0.395
+epitope antigenic novelty + mutational load,ep_x,2024-10-01,-0.366
+epitope antigenic novelty + mutational load,ne_star,2024-10-01,-0.477
+epitope antigenic novelty + mutational load,ep_x,2025-04-01,-0.216
+epitope antigenic novelty + mutational load,ne_star,2025-04-01,-0.507
+epitope antigenic novelty + mutational load,ep_x,2025-10-01,-0.123
+epitope antigenic novelty + mutational load,ne_star,2025-10-01,-0.478
+epitope antigenic novelty + mutational load,ep_x,2026-04-01,-0.041
+epitope antigenic novelty + mutational load,ne_star,2026-04-01,-0.762
+epitope antigenic novelty + mutational load,ep_x,2026-10-01,-0.007
+epitope antigenic novelty + mutational load,ne_star,2026-10-01,-0.804
+epitope antigenic novelty + mutational load,ep_x,2027-04-01,0.011
+epitope antigenic novelty + mutational load,ne_star,2027-04-01,-0.769
+epitope antigenic novelty + mutational load,ep_x,2027-10-01,0.19
+epitope antigenic novelty + mutational load,ne_star,2027-10-01,-0.373
+epitope antigenic novelty + mutational load,ep_x,2028-04-01,0.168
+epitope antigenic novelty + mutational load,ne_star,2028-04-01,-0.369
+epitope antigenic novelty + mutational load,ep_x,2028-10-01,0.151
+epitope antigenic novelty + mutational load,ne_star,2028-10-01,-0.397
+epitope antigenic novelty + mutational load,ep_x,2029-04-01,0.119
+epitope antigenic novelty + mutational load,ne_star,2029-04-01,-0.353
+epitope antigenic novelty + mutational load,ep_x,2029-10-01,0.147
+epitope antigenic novelty + mutational load,ne_star,2029-10-01,-0.363
+epitope antigenic novelty + mutational load,ep_x,2030-04-01,0.125
+epitope antigenic novelty + mutational load,ne_star,2030-04-01,-0.355
+epitope antigenic novelty + mutational load,ep_x,2030-10-01,0.122
+epitope antigenic novelty + mutational load,ne_star,2030-10-01,-0.36
+epitope antigenic novelty + mutational load,ep_x,2031-04-01,0.094
+epitope antigenic novelty + mutational load,ne_star,2031-04-01,-0.315
+epitope antigenic novelty + mutational load,ep_x,2031-10-01,0.093
+epitope antigenic novelty + mutational load,ne_star,2031-10-01,-0.316
+epitope antigenic novelty + mutational load,ep_x,2032-04-01,0.061
+epitope antigenic novelty + mutational load,ne_star,2032-04-01,-0.338
+epitope antigenic novelty + mutational load,ep_x,2032-10-01,0.143
+epitope antigenic novelty + mutational load,ne_star,2032-10-01,-0.33
+epitope antigenic novelty + mutational load,ep_x,2033-04-01,0.135
+epitope antigenic novelty + mutational load,ne_star,2033-04-01,-0.257
+epitope antigenic novelty + mutational load,ep_x,2033-10-01,0.163
+epitope antigenic novelty + mutational load,ne_star,2033-10-01,-0.297
+epitope antigenic novelty + mutational load,ep_x,2034-04-01,0.076
+epitope antigenic novelty + mutational load,ne_star,2034-04-01,-1.059
+epitope antigenic novelty + mutational load,ep_x,2034-10-01,0.064
+epitope antigenic novelty + mutational load,ne_star,2034-10-01,-1.133
+epitope antigenic novelty + mutational load,ep_x,2035-04-01,0.07
+epitope antigenic novelty + mutational load,ne_star,2035-04-01,-0.973
+epitope antigenic novelty + mutational load,ep_x,2035-10-01,0.044
+epitope antigenic novelty + mutational load,ne_star,2035-10-01,-1.696
+epitope antigenic novelty + mutational load,ep_x,2036-04-01,0.07
+epitope antigenic novelty + mutational load,ne_star,2036-04-01,-1.765
+epitope antigenic novelty + mutational load,ep_x,2036-10-01,0.071
+epitope antigenic novelty + mutational load,ne_star,2036-10-01,-2.02
+epitope antigenic novelty + mutational load,ep_x,2037-04-01,0.071
+epitope antigenic novelty + mutational load,ne_star,2037-04-01,-0.865
+epitope antigenic novelty + mutational load,ep_x,2037-10-01,0.388
+epitope antigenic novelty + mutational load,ne_star,2037-10-01,-0.581
+epitope antigenic novelty + mutational load,ep_x,2038-04-01,0.255
+epitope antigenic novelty + mutational load,ne_star,2038-04-01,-1.028
+epitope antigenic novelty + mutational load,ep_x,2038-10-01,0.194
+epitope antigenic novelty + mutational load,ne_star,2038-10-01,-0.757
+epitope antigenic novelty + mutational load,ep_x,2039-04-01,0.194
+epitope antigenic novelty + mutational load,ne_star,2039-04-01,-0.757
+epitope antigenic novelty + mutational load,ep_x,2039-10-01,0.07
+epitope antigenic novelty + mutational load,ne_star,2039-10-01,-0.773
+LBI,lbi,2023-10-01,1.044
+LBI,lbi,2024-04-01,1.021
+LBI,lbi,2024-10-01,1.067
+LBI,lbi,2025-04-01,1.117
+LBI,lbi,2025-10-01,1.014
+LBI,lbi,2026-04-01,0.926
+LBI,lbi,2026-10-01,0.937
+LBI,lbi,2027-04-01,0.949
+LBI,lbi,2027-10-01,0.442
+LBI,lbi,2028-04-01,0.481
+LBI,lbi,2028-10-01,0.596
+LBI,lbi,2029-04-01,0.955
+LBI,lbi,2029-10-01,0.948
+LBI,lbi,2030-04-01,0.775
+LBI,lbi,2030-10-01,0.734
+LBI,lbi,2031-04-01,0.646
+LBI,lbi,2031-10-01,0.638
+LBI,lbi,2032-04-01,0.373
+LBI,lbi,2032-10-01,0.338
+LBI,lbi,2033-04-01,0.323
+LBI,lbi,2033-10-01,0.198
+LBI,lbi,2034-04-01,0.99
+LBI,lbi,2034-10-01,0.973
+LBI,lbi,2035-04-01,0.946
+LBI,lbi,2035-10-01,0.948
+LBI,lbi,2036-04-01,0.884
+LBI,lbi,2036-10-01,0.884
+LBI,lbi,2037-04-01,-0.089
+LBI,lbi,2037-10-01,-0.011
+LBI,lbi,2038-04-01,0.008
+LBI,lbi,2038-10-01,-0.049
+LBI,lbi,2039-04-01,-0.085
+LBI,lbi,2039-10-01,-0.094
+delta frequency,delta_frequency,2023-10-01,0.857
+delta frequency,delta_frequency,2024-04-01,0.71
+delta frequency,delta_frequency,2024-10-01,1.115
+delta frequency,delta_frequency,2025-04-01,1.175
+delta frequency,delta_frequency,2025-10-01,1.259
+delta frequency,delta_frequency,2026-04-01,1.311
+delta frequency,delta_frequency,2026-10-01,1.235
+delta frequency,delta_frequency,2027-04-01,1.258
+delta frequency,delta_frequency,2027-10-01,1.444
+delta frequency,delta_frequency,2028-04-01,1.749
+delta frequency,delta_frequency,2028-10-01,1.637
+delta frequency,delta_frequency,2029-04-01,1.734
+delta frequency,delta_frequency,2029-10-01,1.452
+delta frequency,delta_frequency,2030-04-01,1.568
+delta frequency,delta_frequency,2030-10-01,1.528
+delta frequency,delta_frequency,2031-04-01,1.212
+delta frequency,delta_frequency,2031-10-01,1.585
+delta frequency,delta_frequency,2032-04-01,1.438
+delta frequency,delta_frequency,2032-10-01,1.825
+delta frequency,delta_frequency,2033-04-01,1.844
+delta frequency,delta_frequency,2033-10-01,1.069
+delta frequency,delta_frequency,2034-04-01,0.497
+delta frequency,delta_frequency,2034-10-01,0.073
+delta frequency,delta_frequency,2035-04-01,0.073
+delta frequency,delta_frequency,2035-10-01,0.072
+delta frequency,delta_frequency,2036-04-01,-0.051
+delta frequency,delta_frequency,2036-10-01,-0.048
+delta frequency,delta_frequency,2037-04-01,0.073
+delta frequency,delta_frequency,2037-10-01,-0.049
+delta frequency,delta_frequency,2038-04-01,-0.052
+delta frequency,delta_frequency,2038-10-01,-0.051
+delta frequency,delta_frequency,2039-04-01,-0.071
+delta frequency,delta_frequency,2039-10-01,-0.049
+LBI + mutational load,lbi,2023-10-01,1.128
+LBI + mutational load,ne_star,2023-10-01,0.419
+LBI + mutational load,lbi,2024-04-01,2.651
+LBI + mutational load,ne_star,2024-04-01,1.375
+LBI + mutational load,lbi,2024-10-01,3.434
+LBI + mutational load,ne_star,2024-10-01,1.122
+LBI + mutational load,lbi,2025-04-01,1.119
+LBI + mutational load,ne_star,2025-04-01,-0.07
+LBI + mutational load,lbi,2025-10-01,0.983
+LBI + mutational load,ne_star,2025-10-01,-0.132
+LBI + mutational load,lbi,2026-04-01,0.711
+LBI + mutational load,ne_star,2026-04-01,-0.418
+LBI + mutational load,lbi,2026-10-01,0.672
+LBI + mutational load,ne_star,2026-10-01,-0.54
+LBI + mutational load,lbi,2027-04-01,0.727
+LBI + mutational load,ne_star,2027-04-01,-0.469
+LBI + mutational load,lbi,2027-10-01,0.289
+LBI + mutational load,ne_star,2027-10-01,-0.209
+LBI + mutational load,lbi,2028-04-01,0.368
+LBI + mutational load,ne_star,2028-04-01,-0.183
+LBI + mutational load,lbi,2028-10-01,0.459
+LBI + mutational load,ne_star,2028-10-01,-0.185
+LBI + mutational load,lbi,2029-04-01,0.955
+LBI + mutational load,ne_star,2029-04-01,-0.0
+LBI + mutational load,lbi,2029-10-01,0.948
+LBI + mutational load,ne_star,2029-10-01,-0.0
+LBI + mutational load,lbi,2030-04-01,0.757
+LBI + mutational load,ne_star,2030-04-01,-0.046
+LBI + mutational load,lbi,2030-10-01,0.712
+LBI + mutational load,ne_star,2030-10-01,-0.058
+LBI + mutational load,lbi,2031-04-01,0.616
+LBI + mutational load,ne_star,2031-04-01,-0.05
+LBI + mutational load,lbi,2031-10-01,0.603
+LBI + mutational load,ne_star,2031-10-01,-0.059
+LBI + mutational load,lbi,2032-04-01,0.294
+LBI + mutational load,ne_star,2032-04-01,-0.25
+LBI + mutational load,lbi,2032-10-01,0.258
+LBI + mutational load,ne_star,2032-10-01,-0.24
+LBI + mutational load,lbi,2033-04-01,0.252
+LBI + mutational load,ne_star,2033-04-01,-0.21
+LBI + mutational load,lbi,2033-10-01,0.139
+LBI + mutational load,ne_star,2033-10-01,-0.236
+LBI + mutational load,lbi,2034-04-01,0.854
+LBI + mutational load,ne_star,2034-04-01,-1.043
+LBI + mutational load,lbi,2034-10-01,0.829
+LBI + mutational load,ne_star,2034-10-01,-1.023
+LBI + mutational load,lbi,2035-04-01,0.807
+LBI + mutational load,ne_star,2035-04-01,-1.02
+LBI + mutational load,lbi,2035-10-01,0.875
+LBI + mutational load,ne_star,2035-10-01,-1.301
+LBI + mutational load,lbi,2036-04-01,0.873
+LBI + mutational load,ne_star,2036-04-01,-1.305
+LBI + mutational load,lbi,2036-10-01,0.873
+LBI + mutational load,ne_star,2036-10-01,-1.314
+LBI + mutational load,lbi,2037-04-01,-0.058
+LBI + mutational load,ne_star,2037-04-01,-0.868
+LBI + mutational load,lbi,2037-10-01,0.223
+LBI + mutational load,ne_star,2037-10-01,-1.151
+LBI + mutational load,lbi,2038-04-01,0.223
+LBI + mutational load,ne_star,2038-04-01,-1.151
+LBI + mutational load,lbi,2038-10-01,0.207
+LBI + mutational load,ne_star,2038-10-01,-1.135
+LBI + mutational load,lbi,2039-04-01,0.024
+LBI + mutational load,ne_star,2039-04-01,-0.948
+LBI + mutational load,lbi,2039-10-01,-0.097
+LBI + mutational load,ne_star,2039-10-01,-0.732

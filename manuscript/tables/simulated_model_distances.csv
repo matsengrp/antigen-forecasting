@@ -1,232 +1,232 @@
 error_type,model,timepoint,model_distance_to_future,naive_distance_to_future,optimal_distance_to_future
-validation,true fitness,2023-10-01,27.885,27.645,1.351
-validation,true fitness,2024-04-01,13.163,13.137,1.775
-validation,true fitness,2024-10-01,4.97,5.033,1.531
-validation,true fitness,2025-04-01,30.904,30.896,1.17
-validation,true fitness,2025-10-01,23.176,23.207,0.508
-validation,true fitness,2026-04-01,32.09,32.134,0.407
-validation,true fitness,2026-10-01,9.856,9.902,1.307
-validation,true fitness,2027-04-01,26.153,26.181,1.53
-validation,true fitness,2027-10-01,8.93,8.93,1.026
-validation,true fitness,2028-04-01,21.102,21.101,1.809
-validation,true fitness,2028-10-01,12.011,12.011,1.788
-validation,true fitness,2029-04-01,31.31,31.31,1.142
-validation,true fitness,2029-10-01,23.236,23.236,0.366
-validation,true fitness,2030-04-01,36.169,36.169,3.279
-validation,true fitness,2030-10-01,27.412,27.394,25.046
-validation,true fitness,2031-04-01,10.224,9.689,1.682
-validation,true fitness,2031-10-01,7.536,8.806,0.959
-validation,true fitness,2032-04-01,29.876,29.863,2.482
-validation,true fitness,2032-10-01,22.382,21.344,1.284
-validation,true fitness,2033-04-01,14.095,14.272,1.424
-validation,true fitness,2033-10-01,18.01,18.01,15.9
-validation,true fitness,2034-04-01,8.076,8.075,1.144
-validation,true fitness,2034-10-01,3.063,3.063,1.212
-validation,true fitness,2035-04-01,7.489,7.489,0.93
-validation,true fitness,2035-10-01,27.897,27.832,2.176
-validation,true fitness,2036-04-01,19.48,19.769,1.159
-validation,true fitness,2036-10-01,41.6,41.656,2.238
-validation,true fitness,2037-04-01,37.283,36.819,1.376
-validation,true fitness,2037-10-01,25.13,25.148,1.003
-validation,true fitness,2038-04-01,26.768,26.745,1.208
-validation,true fitness,2038-10-01,3.7,2.997,1.103
-validation,true fitness,2039-04-01,12.329,12.4,1.503
-validation,true fitness,2039-10-01,23.517,23.52,1.67
-validation,epitope antigenic novelty,2023-10-01,25.935,27.645,1.351
-validation,epitope antigenic novelty,2024-04-01,11.075,13.137,1.775
-validation,epitope antigenic novelty,2024-10-01,5.925,5.033,1.531
-validation,epitope antigenic novelty,2025-04-01,31.492,30.896,1.17
-validation,epitope antigenic novelty,2025-10-01,24.698,23.207,0.508
-validation,epitope antigenic novelty,2026-04-01,25.338,32.134,0.407
-validation,epitope antigenic novelty,2026-10-01,5.209,9.902,1.307
-validation,epitope antigenic novelty,2027-04-01,26.852,26.181,1.53
-validation,epitope antigenic novelty,2027-10-01,9.564,8.93,1.026
-validation,epitope antigenic novelty,2028-04-01,26.725,21.101,1.809
-validation,epitope antigenic novelty,2028-10-01,5.495,12.011,1.788
-validation,epitope antigenic novelty,2029-04-01,37.101,31.31,1.142
-validation,epitope antigenic novelty,2029-10-01,28.849,23.236,0.366
-validation,epitope antigenic novelty,2030-04-01,37.163,36.169,3.279
-validation,epitope antigenic novelty,2030-10-01,27.659,27.394,25.046
-validation,epitope antigenic novelty,2031-04-01,13.121,9.689,1.682
-validation,epitope antigenic novelty,2031-10-01,18.73,8.806,0.959
-validation,epitope antigenic novelty,2032-04-01,35.021,29.863,2.482
-validation,epitope antigenic novelty,2032-10-01,20.82,21.344,1.284
-validation,epitope antigenic novelty,2033-04-01,14.434,14.272,1.424
-validation,epitope antigenic novelty,2033-10-01,16.901,18.01,15.9
-validation,epitope antigenic novelty,2034-04-01,10.615,8.075,1.144
-validation,epitope antigenic novelty,2034-10-01,11.098,3.063,1.212
-validation,epitope antigenic novelty,2035-04-01,17.996,7.489,0.93
-validation,epitope antigenic novelty,2035-10-01,38.028,27.832,2.176
-validation,epitope antigenic novelty,2036-04-01,26.121,19.769,1.159
-validation,epitope antigenic novelty,2036-10-01,34.42,41.656,2.238
-validation,epitope antigenic novelty,2037-04-01,31.12,36.819,1.376
-validation,epitope antigenic novelty,2037-10-01,25.591,25.148,1.003
-validation,epitope antigenic novelty,2038-04-01,26.601,26.745,1.208
-validation,epitope antigenic novelty,2038-10-01,21.819,2.997,1.103
-validation,epitope antigenic novelty,2039-04-01,25.287,12.4,1.503
-validation,epitope antigenic novelty,2039-10-01,14.209,23.52,1.67
-validation,mutational load,2023-10-01,28.275,27.645,1.351
-validation,mutational load,2024-04-01,20.381,13.137,1.775
-validation,mutational load,2024-10-01,4.782,5.033,1.531
-validation,mutational load,2025-04-01,29.886,30.896,1.17
-validation,mutational load,2025-10-01,24.435,23.207,0.508
-validation,mutational load,2026-04-01,32.159,32.134,0.407
-validation,mutational load,2026-10-01,17.36,9.902,1.307
-validation,mutational load,2027-04-01,26.083,26.181,1.53
-validation,mutational load,2027-10-01,8.937,8.93,1.026
-validation,mutational load,2028-04-01,21.358,21.101,1.809
-validation,mutational load,2028-10-01,10.187,12.011,1.788
-validation,mutational load,2029-04-01,24.639,31.31,1.142
-validation,mutational load,2029-10-01,15.532,23.236,0.366
-validation,mutational load,2030-04-01,33.662,36.169,3.279
-validation,mutational load,2030-10-01,27.585,27.394,25.046
-validation,mutational load,2031-04-01,11.171,9.689,1.682
-validation,mutational load,2031-10-01,10.607,8.806,0.959
-validation,mutational load,2032-04-01,39.12,29.863,2.482
-validation,mutational load,2032-10-01,18.349,21.344,1.284
-validation,mutational load,2033-04-01,14.609,14.272,1.424
-validation,mutational load,2033-10-01,18.2,18.01,15.9
-validation,mutational load,2034-04-01,9.323,8.075,1.144
-validation,mutational load,2034-10-01,2.907,3.063,1.212
-validation,mutational load,2035-04-01,8.939,7.489,0.93
-validation,mutational load,2035-10-01,25.376,27.832,2.176
-validation,mutational load,2036-04-01,19.491,19.769,1.159
-validation,mutational load,2036-10-01,39.701,41.656,2.238
-validation,mutational load,2037-04-01,31.683,36.819,1.376
-validation,mutational load,2037-10-01,25.239,25.148,1.003
-validation,mutational load,2038-04-01,27.731,26.745,1.208
-validation,mutational load,2038-10-01,11.619,2.997,1.103
-validation,mutational load,2039-04-01,15.697,12.4,1.503
-validation,mutational load,2039-10-01,15.767,23.52,1.67
-validation,epitope antigenic novelty + mutational load,2023-10-01,28.56,27.645,1.351
-validation,epitope antigenic novelty + mutational load,2024-04-01,22.978,13.137,1.775
-validation,epitope antigenic novelty + mutational load,2024-10-01,5.934,5.033,1.531
-validation,epitope antigenic novelty + mutational load,2025-04-01,31.183,30.896,1.17
-validation,epitope antigenic novelty + mutational load,2025-10-01,25.022,23.207,0.508
-validation,epitope antigenic novelty + mutational load,2026-04-01,8.562,32.134,0.407
-validation,epitope antigenic novelty + mutational load,2026-10-01,17.54,9.902,1.307
-validation,epitope antigenic novelty + mutational load,2027-04-01,27.03,26.181,1.53
-validation,epitope antigenic novelty + mutational load,2027-10-01,9.09,8.93,1.026
-validation,epitope antigenic novelty + mutational load,2028-04-01,29.256,21.101,1.809
-validation,epitope antigenic novelty + mutational load,2028-10-01,7.164,12.011,1.788
-validation,epitope antigenic novelty + mutational load,2029-04-01,38.662,31.31,1.142
-validation,epitope antigenic novelty + mutational load,2029-10-01,30.386,23.236,0.366
-validation,epitope antigenic novelty + mutational load,2030-04-01,37.254,36.169,3.279
-validation,epitope antigenic novelty + mutational load,2030-10-01,27.69,27.394,25.046
-validation,epitope antigenic novelty + mutational load,2031-04-01,13.187,9.689,1.682
-validation,epitope antigenic novelty + mutational load,2031-10-01,21.751,8.806,0.959
-validation,epitope antigenic novelty + mutational load,2032-04-01,31.108,29.863,2.482
-validation,epitope antigenic novelty + mutational load,2032-10-01,9.074,21.344,1.284
-validation,epitope antigenic novelty + mutational load,2033-04-01,14.563,14.272,1.424
-validation,epitope antigenic novelty + mutational load,2033-10-01,16.745,18.01,15.9
-validation,epitope antigenic novelty + mutational load,2034-04-01,7.722,8.075,1.144
-validation,epitope antigenic novelty + mutational load,2034-10-01,10.299,3.063,1.212
-validation,epitope antigenic novelty + mutational load,2035-04-01,5.509,7.489,0.93
-validation,epitope antigenic novelty + mutational load,2035-10-01,36.168,27.832,2.176
-validation,epitope antigenic novelty + mutational load,2036-04-01,33.555,19.769,1.159
-validation,epitope antigenic novelty + mutational load,2036-10-01,20.292,41.656,2.238
-validation,epitope antigenic novelty + mutational load,2037-04-01,32.057,36.819,1.376
-validation,epitope antigenic novelty + mutational load,2037-10-01,25.988,25.148,1.003
-validation,epitope antigenic novelty + mutational load,2038-04-01,26.069,26.745,1.208
-validation,epitope antigenic novelty + mutational load,2038-10-01,20.153,2.997,1.103
-validation,epitope antigenic novelty + mutational load,2039-04-01,26.546,12.4,1.503
-validation,epitope antigenic novelty + mutational load,2039-10-01,15.664,23.52,1.67
-validation,LBI,2023-10-01,25.505,27.645,1.351
-validation,LBI,2024-04-01,16.603,13.137,1.775
-validation,LBI,2024-10-01,6.188,5.033,1.531
-validation,LBI,2025-04-01,28.133,30.896,1.17
-validation,LBI,2025-10-01,20.635,23.207,0.508
-validation,LBI,2026-04-01,18.499,32.134,0.407
-validation,LBI,2026-10-01,5.361,9.902,1.307
-validation,LBI,2027-04-01,25.097,26.181,1.53
-validation,LBI,2027-10-01,6.621,8.93,1.026
-validation,LBI,2028-04-01,8.77,21.101,1.809
-validation,LBI,2028-10-01,19.312,12.011,1.788
-validation,LBI,2029-04-01,17.884,31.31,1.142
-validation,LBI,2029-10-01,12.027,23.236,0.366
-validation,LBI,2030-04-01,6.964,36.169,3.279
-validation,LBI,2030-10-01,26.496,27.394,25.046
-validation,LBI,2031-04-01,30.999,9.689,1.682
-validation,LBI,2031-10-01,12.785,8.806,0.959
-validation,LBI,2032-04-01,26.563,29.863,2.482
-validation,LBI,2032-10-01,4.198,21.344,1.284
-validation,LBI,2033-04-01,11.198,14.272,1.424
-validation,LBI,2033-10-01,20.026,18.01,15.9
-validation,LBI,2034-04-01,22.916,8.075,1.144
-validation,LBI,2034-10-01,23.831,3.063,1.212
-validation,LBI,2035-04-01,9.175,7.489,0.93
-validation,LBI,2035-10-01,19.401,27.832,2.176
-validation,LBI,2036-04-01,21.05,19.769,1.159
-validation,LBI,2036-10-01,9.114,41.656,2.238
-validation,LBI,2037-04-01,13.518,36.819,1.376
-validation,LBI,2037-10-01,23.253,25.148,1.003
-validation,LBI,2038-04-01,30.207,26.745,1.208
-validation,LBI,2038-10-01,22.539,2.997,1.103
-validation,LBI,2039-04-01,8.473,12.4,1.503
-validation,LBI,2039-10-01,24.365,23.52,1.67
-validation,delta frequency,2023-10-01,25.595,27.645,1.351
-validation,delta frequency,2024-04-01,21.851,13.137,1.775
-validation,delta frequency,2024-10-01,6.824,5.033,1.531
-validation,delta frequency,2025-04-01,30.285,30.896,1.17
-validation,delta frequency,2025-10-01,23.386,23.207,0.508
-validation,delta frequency,2026-04-01,24.058,32.134,0.407
-validation,delta frequency,2026-10-01,14.053,9.902,1.307
-validation,delta frequency,2027-04-01,15.803,26.181,1.53
-validation,delta frequency,2027-10-01,22.655,8.93,1.026
-validation,delta frequency,2028-04-01,9.95,21.101,1.809
-validation,delta frequency,2028-10-01,14.564,12.011,1.788
-validation,delta frequency,2029-04-01,13.402,31.31,1.142
-validation,delta frequency,2029-10-01,35.832,23.236,0.366
-validation,delta frequency,2030-04-01,36.485,36.169,3.279
-validation,delta frequency,2030-10-01,27.497,27.394,25.046
-validation,delta frequency,2031-04-01,22.948,9.689,1.682
-validation,delta frequency,2031-10-01,23.05,8.806,0.959
-validation,delta frequency,2032-04-01,19.478,29.863,2.482
-validation,delta frequency,2032-10-01,35.805,21.344,1.284
-validation,delta frequency,2033-04-01,14.251,14.272,1.424
-validation,delta frequency,2033-10-01,18.439,18.01,15.9
-validation,delta frequency,2034-04-01,13.522,8.075,1.144
-validation,delta frequency,2034-10-01,6.165,3.063,1.212
-validation,delta frequency,2035-04-01,6.969,7.489,0.93
-validation,delta frequency,2035-10-01,27.011,27.832,2.176
-validation,delta frequency,2036-04-01,20.415,19.769,1.159
-validation,delta frequency,2036-10-01,44.503,41.656,2.238
-validation,delta frequency,2037-04-01,36.026,36.819,1.376
-validation,delta frequency,2037-10-01,22.671,25.148,1.003
-validation,delta frequency,2038-04-01,26.269,26.745,1.208
-validation,delta frequency,2038-10-01,7.263,2.997,1.103
-validation,delta frequency,2039-04-01,11.174,12.4,1.503
-validation,delta frequency,2039-10-01,22.701,23.52,1.67
-validation,LBI + mutational load,2023-10-01,27.643,27.645,1.351
-validation,LBI + mutational load,2024-04-01,19.455,13.137,1.775
-validation,LBI + mutational load,2024-10-01,5.619,5.033,1.531
-validation,LBI + mutational load,2025-04-01,26.237,30.896,1.17
-validation,LBI + mutational load,2025-10-01,23.673,23.207,0.508
-validation,LBI + mutational load,2026-04-01,11.19,32.134,0.407
-validation,LBI + mutational load,2026-10-01,8.011,9.902,1.307
-validation,LBI + mutational load,2027-04-01,20.611,26.181,1.53
-validation,LBI + mutational load,2027-10-01,6.577,8.93,1.026
-validation,LBI + mutational load,2028-04-01,9.032,21.101,1.809
-validation,LBI + mutational load,2028-10-01,19.423,12.011,1.788
-validation,LBI + mutational load,2029-04-01,14.147,31.31,1.142
-validation,LBI + mutational load,2029-10-01,15.342,23.236,0.366
-validation,LBI + mutational load,2030-04-01,8.419,36.169,3.279
-validation,LBI + mutational load,2030-10-01,26.979,27.394,25.046
-validation,LBI + mutational load,2031-04-01,30.794,9.689,1.682
-validation,LBI + mutational load,2031-10-01,13.04,8.806,0.959
-validation,LBI + mutational load,2032-04-01,27.083,29.863,2.482
-validation,LBI + mutational load,2032-10-01,4.175,21.344,1.284
-validation,LBI + mutational load,2033-04-01,11.645,14.272,1.424
-validation,LBI + mutational load,2033-10-01,20.035,18.01,15.9
-validation,LBI + mutational load,2034-04-01,23.024,8.075,1.144
-validation,LBI + mutational load,2034-10-01,26.449,3.063,1.212
-validation,LBI + mutational load,2035-04-01,24.838,7.489,0.93
-validation,LBI + mutational load,2035-10-01,6.943,27.832,2.176
-validation,LBI + mutational load,2036-04-01,14.651,19.769,1.159
-validation,LBI + mutational load,2036-10-01,22.171,41.656,2.238
-validation,LBI + mutational load,2037-04-01,17.461,36.819,1.376
-validation,LBI + mutational load,2037-10-01,22.25,25.148,1.003
-validation,LBI + mutational load,2038-04-01,29.786,26.745,1.208
-validation,LBI + mutational load,2038-10-01,22.365,2.997,1.103
-validation,LBI + mutational load,2039-04-01,12.243,12.4,1.503
-validation,LBI + mutational load,2039-10-01,25.478,23.52,1.67
+validation,true fitness,2023-10-01,2.712,2.712,1.454
+validation,true fitness,2024-04-01,1.953,1.953,0.786
+validation,true fitness,2024-10-01,1.914,1.914,1.343
+validation,true fitness,2025-04-01,2.361,2.36,1.088
+validation,true fitness,2025-10-01,1.804,1.804,0.537
+validation,true fitness,2026-04-01,4.638,4.638,2.254
+validation,true fitness,2026-10-01,4.233,4.225,2.479
+validation,true fitness,2027-04-01,1.513,1.514,1.271
+validation,true fitness,2027-10-01,1.646,1.646,1.239
+validation,true fitness,2028-04-01,1.81,1.81,0.929
+validation,true fitness,2028-10-01,2.358,2.358,1.01
+validation,true fitness,2029-04-01,2.475,2.475,0.523
+validation,true fitness,2029-10-01,1.739,1.742,1.169
+validation,true fitness,2030-04-01,1.761,1.761,0.947
+validation,true fitness,2030-10-01,2.651,2.651,1.492
+validation,true fitness,2031-04-01,3.397,3.403,1.969
+validation,true fitness,2031-10-01,3.18,3.18,1.425
+validation,true fitness,2032-04-01,4.338,4.338,0.557
+validation,true fitness,2032-10-01,4.428,4.428,0.868
+validation,true fitness,2033-04-01,7.293,7.276,1.291
+validation,true fitness,2033-10-01,2.681,2.68,0.521
+validation,true fitness,2034-04-01,6.415,6.416,2.925
+validation,true fitness,2034-10-01,8.083,8.417,1.574
+validation,true fitness,2035-04-01,4.519,3.891,1.044
+validation,true fitness,2035-10-01,6.434,6.119,1.095
+validation,true fitness,2036-04-01,7.101,6.963,1.199
+validation,true fitness,2036-10-01,5.113,5.055,0.636
+validation,true fitness,2037-04-01,4.107,4.104,1.166
+validation,true fitness,2037-10-01,6.453,6.453,1.236
+validation,true fitness,2038-04-01,16.612,16.585,1.149
+validation,true fitness,2038-10-01,8.859,8.722,0.993
+validation,true fitness,2039-04-01,19.463,19.474,1.462
+validation,true fitness,2039-10-01,18.811,18.811,0.459
+validation,epitope antigenic novelty,2023-10-01,3.85,2.712,1.454
+validation,epitope antigenic novelty,2024-04-01,2.145,1.953,0.786
+validation,epitope antigenic novelty,2024-10-01,1.93,1.914,1.343
+validation,epitope antigenic novelty,2025-04-01,2.36,2.36,1.088
+validation,epitope antigenic novelty,2025-10-01,1.804,1.804,0.537
+validation,epitope antigenic novelty,2026-04-01,4.638,4.638,2.254
+validation,epitope antigenic novelty,2026-10-01,4.225,4.225,2.479
+validation,epitope antigenic novelty,2027-04-01,1.517,1.514,1.271
+validation,epitope antigenic novelty,2027-10-01,1.65,1.646,1.239
+validation,epitope antigenic novelty,2028-04-01,1.823,1.81,0.929
+validation,epitope antigenic novelty,2028-10-01,2.404,2.358,1.01
+validation,epitope antigenic novelty,2029-04-01,2.454,2.475,0.523
+validation,epitope antigenic novelty,2029-10-01,1.718,1.742,1.169
+validation,epitope antigenic novelty,2030-04-01,1.76,1.761,0.947
+validation,epitope antigenic novelty,2030-10-01,2.654,2.651,1.492
+validation,epitope antigenic novelty,2031-04-01,3.403,3.403,1.969
+validation,epitope antigenic novelty,2031-10-01,3.18,3.18,1.425
+validation,epitope antigenic novelty,2032-04-01,4.338,4.338,0.557
+validation,epitope antigenic novelty,2032-10-01,4.433,4.428,0.868
+validation,epitope antigenic novelty,2033-04-01,7.119,7.276,1.291
+validation,epitope antigenic novelty,2033-10-01,2.448,2.68,0.521
+validation,epitope antigenic novelty,2034-04-01,6.58,6.416,2.925
+validation,epitope antigenic novelty,2034-10-01,8.827,8.417,1.574
+validation,epitope antigenic novelty,2035-04-01,3.717,3.891,1.044
+validation,epitope antigenic novelty,2035-10-01,3.732,6.119,1.095
+validation,epitope antigenic novelty,2036-04-01,1.721,6.963,1.199
+validation,epitope antigenic novelty,2036-10-01,6.07,5.055,0.636
+validation,epitope antigenic novelty,2037-04-01,7.348,4.104,1.166
+validation,epitope antigenic novelty,2037-10-01,12.538,6.453,1.236
+validation,epitope antigenic novelty,2038-04-01,20.806,16.585,1.149
+validation,epitope antigenic novelty,2038-10-01,12.474,8.722,0.993
+validation,epitope antigenic novelty,2039-04-01,16.723,19.474,1.462
+validation,epitope antigenic novelty,2039-10-01,20.265,18.811,0.459
+validation,mutational load,2023-10-01,2.607,2.712,1.454
+validation,mutational load,2024-04-01,1.858,1.953,0.786
+validation,mutational load,2024-10-01,1.711,1.914,1.343
+validation,mutational load,2025-04-01,2.163,2.36,1.088
+validation,mutational load,2025-10-01,1.599,1.804,0.537
+validation,mutational load,2026-04-01,4.518,4.638,2.254
+validation,mutational load,2026-10-01,4.454,4.225,2.479
+validation,mutational load,2027-04-01,1.372,1.514,1.271
+validation,mutational load,2027-10-01,1.588,1.646,1.239
+validation,mutational load,2028-04-01,2.466,1.81,0.929
+validation,mutational load,2028-10-01,1.977,2.358,1.01
+validation,mutational load,2029-04-01,2.248,2.475,0.523
+validation,mutational load,2029-10-01,1.5,1.742,1.169
+validation,mutational load,2030-04-01,1.694,1.761,0.947
+validation,mutational load,2030-10-01,2.572,2.651,1.492
+validation,mutational load,2031-04-01,3.129,3.403,1.969
+validation,mutational load,2031-10-01,3.215,3.18,1.425
+validation,mutational load,2032-04-01,4.325,4.338,0.557
+validation,mutational load,2032-10-01,4.355,4.428,0.868
+validation,mutational load,2033-04-01,6.898,7.276,1.291
+validation,mutational load,2033-10-01,2.016,2.68,0.521
+validation,mutational load,2034-04-01,6.369,6.416,2.925
+validation,mutational load,2034-10-01,8.117,8.417,1.574
+validation,mutational load,2035-04-01,3.901,3.891,1.044
+validation,mutational load,2035-10-01,5.955,6.119,1.095
+validation,mutational load,2036-04-01,6.994,6.963,1.199
+validation,mutational load,2036-10-01,3.119,5.055,0.636
+validation,mutational load,2037-04-01,5.914,4.104,1.166
+validation,mutational load,2037-10-01,6.022,6.453,1.236
+validation,mutational load,2038-04-01,18.687,16.585,1.149
+validation,mutational load,2038-10-01,8.257,8.722,0.993
+validation,mutational load,2039-04-01,19.436,19.474,1.462
+validation,mutational load,2039-10-01,19.062,18.811,0.459
+validation,epitope antigenic novelty + mutational load,2023-10-01,3.852,2.712,1.454
+validation,epitope antigenic novelty + mutational load,2024-04-01,1.961,1.953,0.786
+validation,epitope antigenic novelty + mutational load,2024-10-01,1.707,1.914,1.343
+validation,epitope antigenic novelty + mutational load,2025-04-01,2.162,2.36,1.088
+validation,epitope antigenic novelty + mutational load,2025-10-01,1.595,1.804,0.537
+validation,epitope antigenic novelty + mutational load,2026-04-01,4.513,4.638,2.254
+validation,epitope antigenic novelty + mutational load,2026-10-01,4.454,4.225,2.479
+validation,epitope antigenic novelty + mutational load,2027-04-01,1.371,1.514,1.271
+validation,epitope antigenic novelty + mutational load,2027-10-01,1.588,1.646,1.239
+validation,epitope antigenic novelty + mutational load,2028-04-01,2.444,1.81,0.929
+validation,epitope antigenic novelty + mutational load,2028-10-01,2.01,2.358,1.01
+validation,epitope antigenic novelty + mutational load,2029-04-01,2.239,2.475,0.523
+validation,epitope antigenic novelty + mutational load,2029-10-01,1.495,1.742,1.169
+validation,epitope antigenic novelty + mutational load,2030-04-01,1.695,1.761,0.947
+validation,epitope antigenic novelty + mutational load,2030-10-01,2.572,2.651,1.492
+validation,epitope antigenic novelty + mutational load,2031-04-01,3.128,3.403,1.969
+validation,epitope antigenic novelty + mutational load,2031-10-01,3.214,3.18,1.425
+validation,epitope antigenic novelty + mutational load,2032-04-01,4.325,4.338,0.557
+validation,epitope antigenic novelty + mutational load,2032-10-01,4.346,4.428,0.868
+validation,epitope antigenic novelty + mutational load,2033-04-01,6.783,7.276,1.291
+validation,epitope antigenic novelty + mutational load,2033-10-01,1.806,2.68,0.521
+validation,epitope antigenic novelty + mutational load,2034-04-01,6.511,6.416,2.925
+validation,epitope antigenic novelty + mutational load,2034-10-01,8.59,8.417,1.574
+validation,epitope antigenic novelty + mutational load,2035-04-01,3.457,3.891,1.044
+validation,epitope antigenic novelty + mutational load,2035-10-01,4.32,6.119,1.095
+validation,epitope antigenic novelty + mutational load,2036-04-01,3.625,6.963,1.199
+validation,epitope antigenic novelty + mutational load,2036-10-01,6.069,5.055,0.636
+validation,epitope antigenic novelty + mutational load,2037-04-01,7.348,4.104,1.166
+validation,epitope antigenic novelty + mutational load,2037-10-01,12.54,6.453,1.236
+validation,epitope antigenic novelty + mutational load,2038-04-01,20.806,16.585,1.149
+validation,epitope antigenic novelty + mutational load,2038-10-01,12.222,8.722,0.993
+validation,epitope antigenic novelty + mutational load,2039-04-01,18.67,19.474,1.462
+validation,epitope antigenic novelty + mutational load,2039-10-01,20.531,18.811,0.459
+validation,LBI,2023-10-01,2.072,2.712,1.454
+validation,LBI,2024-04-01,1.876,1.953,0.786
+validation,LBI,2024-10-01,1.746,1.914,1.343
+validation,LBI,2025-04-01,2.169,2.36,1.088
+validation,LBI,2025-10-01,1.653,1.804,0.537
+validation,LBI,2026-04-01,4.53,4.638,2.254
+validation,LBI,2026-10-01,4.39,4.225,2.479
+validation,LBI,2027-04-01,1.378,1.514,1.271
+validation,LBI,2027-10-01,1.512,1.646,1.239
+validation,LBI,2028-04-01,2.006,1.81,0.929
+validation,LBI,2028-10-01,2.019,2.358,1.01
+validation,LBI,2029-04-01,2.262,2.475,0.523
+validation,LBI,2029-10-01,1.433,1.742,1.169
+validation,LBI,2030-04-01,1.516,1.761,0.947
+validation,LBI,2030-10-01,2.395,2.651,1.492
+validation,LBI,2031-04-01,3.885,3.403,1.969
+validation,LBI,2031-10-01,2.91,3.18,1.425
+validation,LBI,2032-04-01,4.323,4.338,0.557
+validation,LBI,2032-10-01,4.589,4.428,0.868
+validation,LBI,2033-04-01,6.799,7.276,1.291
+validation,LBI,2033-10-01,3.584,2.68,0.521
+validation,LBI,2034-04-01,6.803,6.416,2.925
+validation,LBI,2034-10-01,8.417,8.417,1.574
+validation,LBI,2035-04-01,3.853,3.891,1.044
+validation,LBI,2035-10-01,6.026,6.119,1.095
+validation,LBI,2036-04-01,6.691,6.963,1.199
+validation,LBI,2036-10-01,6.404,5.055,0.636
+validation,LBI,2037-04-01,4.618,4.104,1.166
+validation,LBI,2037-10-01,7.293,6.453,1.236
+validation,LBI,2038-04-01,16.329,16.585,1.149
+validation,LBI,2038-10-01,8.8,8.722,0.993
+validation,LBI,2039-04-01,19.462,19.474,1.462
+validation,LBI,2039-10-01,18.744,18.811,0.459
+validation,delta frequency,2023-10-01,2.083,2.712,1.454
+validation,delta frequency,2024-04-01,1.924,1.953,0.786
+validation,delta frequency,2024-10-01,1.789,1.914,1.343
+validation,delta frequency,2025-04-01,1.952,2.36,1.088
+validation,delta frequency,2025-10-01,1.721,1.804,0.537
+validation,delta frequency,2026-04-01,4.475,4.638,2.254
+validation,delta frequency,2026-10-01,4.402,4.225,2.479
+validation,delta frequency,2027-04-01,1.465,1.514,1.271
+validation,delta frequency,2027-10-01,1.513,1.646,1.239
+validation,delta frequency,2028-04-01,1.129,1.81,0.929
+validation,delta frequency,2028-10-01,1.929,2.358,1.01
+validation,delta frequency,2029-04-01,1.789,2.475,0.523
+validation,delta frequency,2029-10-01,1.326,1.742,1.169
+validation,delta frequency,2030-04-01,1.814,1.761,0.947
+validation,delta frequency,2030-10-01,2.693,2.651,1.492
+validation,delta frequency,2031-04-01,3.435,3.403,1.969
+validation,delta frequency,2031-10-01,2.119,3.18,1.425
+validation,delta frequency,2032-04-01,4.354,4.338,0.557
+validation,delta frequency,2032-10-01,4.898,4.428,0.868
+validation,delta frequency,2033-04-01,8.555,7.276,1.291
+validation,delta frequency,2033-10-01,6.624,2.68,0.521
+validation,delta frequency,2034-04-01,6.51,6.416,2.925
+validation,delta frequency,2034-10-01,8.413,8.417,1.574
+validation,delta frequency,2035-04-01,3.799,3.891,1.044
+validation,delta frequency,2035-10-01,6.764,6.119,1.095
+validation,delta frequency,2036-04-01,7.157,6.963,1.199
+validation,delta frequency,2036-10-01,4.895,5.055,0.636
+validation,delta frequency,2037-04-01,3.951,4.104,1.166
+validation,delta frequency,2037-10-01,6.758,6.453,1.236
+validation,delta frequency,2038-04-01,15.457,16.585,1.149
+validation,delta frequency,2038-10-01,9.011,8.722,0.993
+validation,delta frequency,2039-04-01,19.383,19.474,1.462
+validation,delta frequency,2039-10-01,18.778,18.811,0.459
+validation,LBI + mutational load,2023-10-01,2.073,2.712,1.454
+validation,LBI + mutational load,2024-04-01,1.866,1.953,0.786
+validation,LBI + mutational load,2024-10-01,1.745,1.914,1.343
+validation,LBI + mutational load,2025-04-01,2.117,2.36,1.088
+validation,LBI + mutational load,2025-10-01,1.604,1.804,0.537
+validation,LBI + mutational load,2026-04-01,4.509,4.638,2.254
+validation,LBI + mutational load,2026-10-01,4.443,4.225,2.479
+validation,LBI + mutational load,2027-04-01,1.354,1.514,1.271
+validation,LBI + mutational load,2027-10-01,1.543,1.646,1.239
+validation,LBI + mutational load,2028-04-01,2.388,1.81,0.929
+validation,LBI + mutational load,2028-10-01,1.912,2.358,1.01
+validation,LBI + mutational load,2029-04-01,2.191,2.475,0.523
+validation,LBI + mutational load,2029-10-01,1.422,1.742,1.169
+validation,LBI + mutational load,2030-04-01,1.519,1.761,0.947
+validation,LBI + mutational load,2030-10-01,2.449,2.651,1.492
+validation,LBI + mutational load,2031-04-01,3.505,3.403,1.969
+validation,LBI + mutational load,2031-10-01,3.004,3.18,1.425
+validation,LBI + mutational load,2032-04-01,4.326,4.338,0.557
+validation,LBI + mutational load,2032-10-01,4.479,4.428,0.868
+validation,LBI + mutational load,2033-04-01,6.72,7.276,1.291
+validation,LBI + mutational load,2033-10-01,2.777,2.68,0.521
+validation,LBI + mutational load,2034-04-01,6.706,6.416,2.925
+validation,LBI + mutational load,2034-10-01,8.106,8.417,1.574
+validation,LBI + mutational load,2035-04-01,3.612,3.891,1.044
+validation,LBI + mutational load,2035-10-01,4.487,6.119,1.095
+validation,LBI + mutational load,2036-04-01,6.168,6.963,1.199
+validation,LBI + mutational load,2036-10-01,4.592,5.055,0.636
+validation,LBI + mutational load,2037-04-01,6.232,4.104,1.166
+validation,LBI + mutational load,2037-10-01,8.386,6.453,1.236
+validation,LBI + mutational load,2038-04-01,17.347,16.585,1.149
+validation,LBI + mutational load,2038-10-01,9.434,8.722,0.993
+validation,LBI + mutational load,2039-04-01,18.749,19.474,1.462
+validation,LBI + mutational load,2039-10-01,18.361,18.811,0.459

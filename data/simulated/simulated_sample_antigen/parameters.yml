@@ -7,7 +7,7 @@ inPath: "input/"                            # path to directory containing relev
 outPath: ""                                 # path to write output files
 outPrefix: "simulated_HA_sequences"         # Name for the output files
 burnin: 3650                                   # days to wait before logging output
-endDay: 18250                              # number of days to simulate (40yrs - burnin = 15200
+endDay: 18250                              # number of days to simulate (40yrs + burnin = 18250)
 deltaT: 0.1                                 # number of days to move forward in a single timestep
 printStep: 100                                # print to out.timeseries every X days
 tipSamplingRate: 0.0002                     # store X samples per deme per day

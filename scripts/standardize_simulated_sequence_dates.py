@@ -37,9 +37,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     df = pd.read_csv(args.metadata, sep="\t")
-    nrows = len(df)
-    if "fitness" not in df.columns:
-        df["fitness"] = np.random.uniform(low=-2.0, high=8.0, size=nrows) # assign random fitness for now
     df["sim_date"] = df["date"]
     df["num_date"] = args.start_year + df['sim_date'] # (df["generation"] / args.generations_per_year)
     df["date"] = df["num_date"].apply(float_to_datestring)

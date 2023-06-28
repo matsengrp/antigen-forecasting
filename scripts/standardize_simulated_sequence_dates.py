@@ -37,6 +37,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     df = pd.read_csv(args.metadata, sep="\t")
+    df["fitness"] = pd.to_numeric(df["fitness"])
     df["sim_date"] = df["date"]
     df["num_date"] = args.start_year + df['sim_date'] # (df["generation"] / args.generations_per_year)
     df["date"] = df["num_date"].apply(float_to_datestring)

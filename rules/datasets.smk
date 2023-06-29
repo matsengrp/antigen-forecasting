@@ -45,7 +45,7 @@ rule parse_simulated_sequences:
         sequences = DATA_SIMULATED_ROOT_PATH + "sequences.fasta",
         metadata = DATA_SIMULATED_ROOT_PATH + "metadata.tsv"
     params:
-        fasta_fields = "strain date country fitness"
+        fasta_fields = "strain date fitness"
     conda: "../envs/anaconda.python3.yaml"
     shell:
         """

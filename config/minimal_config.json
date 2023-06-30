@@ -101,9 +101,13 @@
     "predictors_simulated": [
         "naive",
         "fitness",
+        "lbi",
         "ep_x",
+        "delta_frequency",
         "ne_star",
-        "ep_x-ne_star"
+        "ep_x-ne_star",
+        "lbi-ne_star",
+        "lbi-ep_x-ne_star"
     ],
     "frequencies": {
         "narrow_bandwidth": 0.1667,

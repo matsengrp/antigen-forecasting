@@ -3,4 +3,4 @@
 results/**/slurm/
 
 # For now, ignore time-stamped files
-data/**/time-stamped/
+data/**/antigen-outputs/*.csv

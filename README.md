@@ -30,6 +30,13 @@ mamba activate antigen
 pip install .
 ```
 
+### Extracting the included simulated data
+The relevant files used in this analysis 
+
+```bash
+tar xzf data/flu-simulated-150k-samples/antigen-outputs/viruses.tar.gz
+```
+
 ## Usage
 
 ### 1. Prepare Antigen Data

@@ -1,0 +1,16 @@
+name: antigen
+channels:
+  - conda-forge
+dependencies:
+  - pyyaml
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - ipython
+  - ipykernel
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - biopython
+  - pytest

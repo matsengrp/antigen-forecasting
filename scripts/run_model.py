@@ -240,6 +240,95 @@ def get_time_varying_rt(samples: dict, variant_data: ef.VariantFrequencies, ps: 
     rt.to_csv(f'{filepath}/rt_{country}_{date}.tsv', sep="\t", index = False, header = True)
     return None
 
+def get_mlr_rt(samples: dict, variant_data: ef.VariantFrequencies, ps: list, country: str, date: str, filepath: str, model_name: str="MLR", tau: float=3.0) -> None:
+    """
+    Calculate and save effective reproductive number (Rt) from MLR model parameters.
+    
+    For MLR models, Rt is calculated as exp(β_v * τ), where β_v is the growth rate
+    parameter and τ is the fixed generation time.
+
+    Parameters
+    ----------
+    samples : dict
+        Samples from the posterior.
+    variant_data : ef.VariantFrequencies
+        The variant frequency data.
+    ps : list
+        List of quantiles to compute.
+    country : str
+        Name of the location to consider.
+    date : str
+        Date of the analysis.
+    filepath : str
+        Path to save the output file.
+    model_name : str, optional
+        Name of the model used for forecasting, defaults to "MLR".
+    tau : float, optional
+        Fixed generation time, default is 3.0.
+
+    Returns
+    -------
+    None
+    """
+    # Get variant names
+    v_names = variant_data.var_names
+    
+    # Get beta values from MLR model
+    betas = samples["beta"]
+    
+    # Calculate Rt for each variant and sample
+    rt_values = {}
+    for i, v in enumerate(v_names):
+        # Beta values are stored as [sample, variant]
+        beta_v = betas[:, i]
+        # Calculate Rt = exp(β_v * τ)
+        rt_v = np.exp(beta_v * tau)
+        
+        # Store in format matching other Rt functions
+        for q_idx, q in enumerate(ps):
+            q_label = f"{int(q*100)}"
+            
+            # Calculate quantiles
+            lower = np.quantile(rt_v, (1-q)/2)
+            median = np.median(rt_v)
+            upper = np.quantile(rt_v, 1-(1-q)/2)
+            
+            # Store values in dictionary with proper keys
+            if v not in rt_values:
+                rt_values[v] = {}
+            
+            rt_values[v][f"R_lower_{q_label}"] = lower
+            rt_values[v]["median_R"] = median
+            rt_values[v][f"R_upper_{q_label}"] = upper
+    
+    # Convert to dataframe format similar to other Rt functions
+    rt_rows = []
+    for v in v_names:
+        for day in variant_data.dates:
+            row = {
+                "variant": v,
+                "date": day,
+                "location": country,
+                "median_R": rt_values[v]["median_R"],
+            }
+            
+            # Add quantile values
+            for q in ps:
+                q_label = f"{int(q*100)}"
+                row[f"R_lower_{q_label}"] = rt_values[v][f"R_lower_{q_label}"]
+                row[f"R_upper_{q_label}"] = rt_values[v][f"R_upper_{q_label}"]
+            
+            rt_rows.append(row)
+    
+    # Create dataframe and add model name and analysis date
+    rt_df = pd.DataFrame(rt_rows)
+    rt_df['model'] = model_name
+    rt_df["analysis_date"] = date
+    
+    # Save to file
+    rt_df.to_csv(f'{filepath}/rt_{country}_{date}.tsv', sep="\t", index=False, header=True)
+    return None
+
 def naive_forecast(seq_count_date, pivot, n_days_to_average=7, period=30):
     """
     Naive forecast of the frequency of a variant.
@@ -391,6 +480,7 @@ def main(args) -> None:
     if model_type == "MLR":
         model_posterior.samples['freq_forecast'] = forecast_frequencies(model_posterior.samples, model, forecast_L=forecast_L)
         get_fixed_growth_advantage(model_posterior.samples, variant_data, ps, country, analysis_date, filepath, model_name=model_type)
+        get_mlr_rt(model_posterior.samples, variant_data, ps, country, analysis_date, filepath, model_name=model_type)
     elif model_type in ["FGA", "GARW"]:
         get_time_varying_rt(model_posterior.samples, variant_data, ps, country, analysis_date, filepath, model_name=model_type)
     else:

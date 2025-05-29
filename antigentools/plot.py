@@ -1153,6 +1153,8 @@ def plot_growth_rate_dynamics(
     growth_rates_df: pd.DataFrame,
     location: str,
     color_map: Dict[str, str],
+    r_data_col: str = 'growth_rate_r_data',
+    r_model_col: str = 'growth_rate_r',
     model: Optional[str] = None,
     analysis_date: Optional[str] = None,
     max_variants: Optional[int] = None,
@@ -1329,11 +1331,11 @@ def plot_growth_rate_dynamics(
         )
         
         # Skip if no valid growth rate data for this variant
-        if not variant_data['growth_rate_r_data'].isna().all():
+        if not variant_data[r_data_col].isna().all():
             # Plot empirical growth rates (r_data)
             axs[1].plot(
                 variant_data['t'], 
-                variant_data['growth_rate_r_data'], 
+                variant_data[r_data_col], 
                 'o-',  # Circles with connecting lines
                 color=variant_color,
                 linewidth=2.5,
@@ -1342,11 +1344,11 @@ def plot_growth_rate_dynamics(
             )
         
         # Skip if no valid model growth rate data for this variant
-        if not variant_data['growth_rate_r'].isna().all():
+        if not variant_data[r_model_col].isna().all():
             # Plot model growth rates (r_model)
             axs[2].plot(
                 variant_data['t'], 
-                variant_data['growth_rate_r'], 
+                variant_data[r_model_col], 
                 lw=4.5,
                 color=variant_color
             )

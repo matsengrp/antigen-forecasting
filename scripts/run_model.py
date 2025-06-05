@@ -233,7 +233,10 @@ def get_time_varying_rt(samples: dict, variant_data: ef.VariantFrequencies, ps: 
     """
     rt = pd.DataFrame(ef.posterior.get_site_by_variant(samples, variant_data, ps, name=country, site='R', forecast=False))
     rt_forecast = pd.DataFrame(ef.posterior.get_site_by_variant(samples, variant_data, ps, name=country, site='R', forecast=False))
-    rt = pd.concat([rt, rt_forecast])
+    # Grab growth rates as well
+    growth_rates = pd.DataFrame(ef.posterior.get_site_by_variant(samples, variant_data, ps, name=country, site='r', forecast=False))
+    growth_rates_forecast = pd.DataFrame(ef.posterior.get_site_by_variant(samples, variant_data, ps, name=country, site='r', forecast=False))
+    rt = pd.concat([rt, rt_forecast, growth_rates, growth_rates_forecast], axis=1)
     if model_name is not None:
         rt['model'] = model_name
     rt["analysis_date"] = date

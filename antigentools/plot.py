@@ -57,6 +57,39 @@ def make_color_map(v_names: list, palette: list) -> dict:
     color_map = dict(zip(v_names, v_colors))
     return color_map
 
+def plot_antigenic_space_by_clade(tips_df, color_map, figsize=(10,10), variant_col='variant'):
+    """ Plot antigenic space colored by clade.
+
+    Parameters:
+    ---------------
+        tips_df (pd.DataFrame): Tips dataframe
+        color_map (dict): Dictionary mapping clades to colors
+        figsize (tuple): Figure size
+        variant_col (str): Column name for variant
+    
+    Returns:
+    ---------------
+        None
+    """
+    fig, ax = plt.subplots(figsize=figsize)
+    n_variants = tips_df[variant_col].nunique()
+
+    # Now plot each variant in the antigenic space
+    for var_id in range(n_variants):
+        variant_df = tips_df.query(f"{variant_col} == {var_id}")
+        ax.scatter(variant_df['ag1'], variant_df['ag2'], color=color_map[var_id], s=40, edgecolors='black', alpha=0.8, label=var_id)
+    ax.set_xlabel("ag1")
+    ax.set_ylabel("ag2")
+    ax.set_title("Antigenic space")
+
+    # Create a legend
+    patches = [Patch(color=c, label=l) for l, c in color_map.items()]
+    legend = fig.legend(patches, list(color_map.keys()), ncol=10, bbox_to_anchor=(0.5, -0.15), 
+                       loc="lower center", title="Variant")  
+    legend.get_frame().set_linewidth(2.)
+    legend.get_frame().set_edgecolor("k")
+    fig.tight_layout()
+    plt.show()
 
 def plot_observed_cases(ax, flu_data, deme, pivot_idx=None):
     """ Plot observed cases.
@@ -460,8 +493,8 @@ def plot_r_model(
             legend_obj.get_frame().set_edgecolor("k")
 
 
-def plot_variant_counts_histogram(ax, ef_data, deme, color_map):
-    """ Plot histogram of variant sequence counts.
+def plot_variant_counts(ax, ef_data, deme, color_map, pivot_idx=None):
+    """ Plot histogram of variant sequence counts with optional pivot lines.
 
     Parameters:
     ---------------
@@ -469,6 +502,7 @@ def plot_variant_counts_histogram(ax, ef_data, deme, color_map):
         ef_data (dict): Dictionary of `evofr` data
         deme (str): Deme to plot
         color_map (dict): Dictionary mapping variant names to colors
+        pivot_idx (list, optional): List of pivot indices to draw vertical lines at. Defaults to None.
 
     Returns:
     ---------------
@@ -485,18 +519,74 @@ def plot_variant_counts_histogram(ax, ef_data, deme, color_map):
     # Create a stacked bar plot
     bottom = np.zeros(len(t))
     
-    for variant in range(n_variant):
-        v_name = v_names[variant]
+    for variant_idx in range(n_variant):
+        v_name = v_names[variant_idx]
         # Plot sequence counts for this variant on top of previous variants
-        ax.bar(t, seq_counts[:, variant], bottom=bottom, width=5.0, 
-               color=color_map[v_name], label=v_name, alpha=0.8, edgecolor='black', linewidth=0.5)
+        ax.bar(t, seq_counts[:, variant_idx], bottom=bottom, width=5.0, 
+               color=color_map.get(v_name, 'gray'), # Use gray if variant not in color_map
+               label=v_name, alpha=0.8, edgecolor='black', linewidth=0.5)
         # Update the bottom for the next variant
-        bottom += seq_counts[:, variant]
+        bottom += seq_counts[:, variant_idx]
     
+    if pivot_idx:
+        for idx in pivot_idx:
+            ax.axvline(x=idx, color='black', linestyle='--', lw=2.0)
+            
     ax.set_ylabel("Sampled Sequences")
     ax.set_xlabel("")
 
 
+def plot_observed_dynamics(ef_data, fitness_df, deme, color_map, figsize=(30, 15), pivot_date=None):
+    """ Plot observed dynamics.
+
+    Parameters:
+    ---------------
+        ef_data (dict): Dictionary of evofr data
+        fitness_df (pd.DataFrame): Fitness dataframe
+        deme (str): Deme name
+        color_map (dict): Dictionary mapping variant names to colors
+        figsize (tuple): Size of the figure
+        pivot_date (str, optional): Date string for the title. Defaults to None.
+
+    Returns:
+    ---------------
+        None
+    """
+    # Setup figure and grid with shared x-axis
+    fig, axs = plt.subplots(nrows=3, ncols=1, figsize=figsize, sharex=True)
+    
+    # Add a title
+    if pivot_date:
+        fig.suptitle(f"Observed dynamics {deme} deme for {pivot_date}", fontsize=30)
+    else:
+        fig.suptitle(f"Observed dynamics {deme} deme", fontsize=30)
+    
+    # Subset color map to only include variants present in the deme
+    available_variants = ef_data[deme].var_names
+    color_map = {k: v for k, v in color_map.items() if k in available_variants}
+
+    # Sort color map by variant name
+    color_map = {k: color_map[k] for k in sorted(color_map.keys())}
+
+    # Plot cases
+    plot_observed_cases(axs[0], ef_data, deme)
+
+    # Plot variant counts histogram
+    plot_variant_counts(axs[1], ef_data, deme, color_map)
+
+    # Plot observed frequencies
+    plot_observed_freqs(axs[2], ef_data, deme, color_map)
+
+    # Add x-axis label
+    axs[-1].set_xlabel("Date")
+
+    # Create a legend
+    patches = [matplotlib.patches.Patch(color=c, label=l) for l, c in color_map.items()]
+    legend = fig.legend(patches, list(color_map.keys()), ncol=10, bbox_to_anchor=(0.5, -0.15), loc="lower center", title="Variant")  
+    legend.get_frame().set_linewidth(2.)
+    legend.get_frame().set_edgecolor("k")
+    fig.tight_layout()
+    
 def plot_dynamics(ef_data, freq, ga, fitness, model, deme, color_map, p=50, sep=1825, pivot_idx=None, save_path=None, pivot_date=None):
     """ Plot the dynamics of a single deme.
 
@@ -689,6 +779,43 @@ def plot_analysis_window(pivot_date:str, location: str, model: str, build: str,
     plot_dynamics(evo_dict, small_freqs_df, small_rt_df, small_fitness_df, model, location, color_map, p=50, sep=30, pivot_idx=[pivot_idx], pivot_date=pivot_date)
 
 
+def plot_observed_dynamics_window(pivot_date: str, location: str, build: str, 
+                       pruned_variant_fitness_df: pd.DataFrame, color_map: dict, fig_size: tuple = (30,15)) -> None:
+    """ Plot observed dynamics for a given location and analysis window.
+    
+    This function serves as a wrapper for plot_observed_dynamics(), creating the necessary
+    data structures internally. It reads the evofr data for the specified pivot date and
+    filters the fitness dataframe to the appropriate time window.
+
+    Parameters:
+    ---------------
+        pivot_date : str
+            Pivot date for analysis window (YYYY-MM-DD format)
+        location : str
+            Location of interest
+        build : str
+            Build name where data resides
+        pruned_variant_fitness_df : pd.DataFrame
+            Pruned fitness dataframe with assigned datetimes
+        color_map : dict
+            Dictionary mapping variant names to colors
+        fig_size : tuple
+            Size of the figure (default is (30, 15))
+
+    Returns:
+    ---------------
+        None
+    """
+    # Use the existing get_analysis_window function to create data structures
+    evo_dict, _, _, small_fitness_df = get_analysis_window(pivot_date, build, pruned_variant_fitness_df)
+    
+    # Print window stats for information
+    print_window_stats(evo_dict, location)
+    
+    # Call the main plot_observed_dynamics function with the prepared data
+    plot_observed_dynamics(evo_dict, small_fitness_df, location, color_map, figsize=fig_size, pivot_date=pivot_date)
+
+
 def plot_analysis_window_with_variant_counts(pivot_date:str, location: str, model: str, build: str, 
                        pruned_variant_fitness_df: pd.DataFrame, color_map: dict) -> None:
     """ Plot analysis window for a given location and model with variant counts histogram.
@@ -746,7 +873,7 @@ def plot_analysis_window_with_variant_counts(pivot_date:str, location: str, mode
     plot_observed_cases(axs[0], evo_dict, location, pivot_idx=[pivot_idx])
     
     # Plot variant counts histogram
-    plot_variant_counts_histogram(axs[1], evo_dict, location, filtered_color_map)
+    plot_variant_counts(axs[1], evo_dict, location, filtered_color_map, pivot_idx=[pivot_idx])
     
     # Plot frequencies
     plot_frequencies(axs[2], evo_dict, small_freqs_df, location, model, filtered_color_map, p=50, pivot_idx=[pivot_idx])
@@ -1121,12 +1248,6 @@ def plot_r_data(
             min_y -= 0.1
             max_y += 0.1
             
-        # Ensure 0 is included in the range
-        if min_y > 0:
-            min_y = -0.05
-        if max_y < 0:
-            max_y = 0.05
-            
         ax.set_ylim(min_y, max_y)
     
     # Add legend if requested
@@ -1203,7 +1324,7 @@ def plot_growth_rate_dynamics(
     df_processed = growth_rates_df.copy()
     
     # Ensure required columns exist
-    required_cols = ['country', 'variant', 'date', 'sequences', 'smoothed_sequences', 'growth_rate_r_data', 'growth_rate_r']
+    required_cols = ['country', 'variant', 'date', 'sequences', 'smoothed_sequences', r_data_col, r_model_col]
     missing_cols = [col for col in required_cols if col not in df_processed.columns]
     if missing_cols:
         raise ValueError(f"Input DataFrame missing required columns: {missing_cols}")
@@ -1409,7 +1530,7 @@ def plot_growth_rate_dynamics(
     axs[2].set_xlabel("Date")
     
     # Calculate and set appropriate y-axis limits for the growth rate plots
-    for i, col in [(1, 'growth_rate_r_data'), (2, 'growth_rate_r')]:
+    for i, col in [(1, r_data_col), (2, r_model_col)]:
         valid_data = location_data[col].dropna()
         if not valid_data.empty:
             min_y = valid_data.min()

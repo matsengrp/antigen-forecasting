@@ -11,27 +11,40 @@ import random
 import pandas as pd
 import numpy as np
 import evofr as ef
+
+# Plotting imports
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.patches import Patch
-from antigentools.utils import read_estimates
+
+# Antigentools imports
+from antigentools.utils import (
+    read_estimates
+)
+from antigentools.analysis import (
+    get_top_variants,
+    filter_growth_rates
+)
+
 # Mute warnings
 import warnings
 warnings.filterwarnings('ignore')
 
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
-def get_distinct_colors(n):
+def get_distinct_colors(n: int) -> List[str]:
     """Generates n distinct colors in hex format.
 
     Parameters:
-    ---------------
-        n (int): Number of colors to generate
+    -----------
+    n : int
+        Number of colors to generate
 
     Returns:
-    ---------------
-        list: List of hex colors
+    --------
+    List[str]
+        List of hex colors
     """
     cmap = plt.get_cmap('hsv')  # Use a colormap like 'hsv' or 'rainbow'
     colors = [cmap(i / n) for i in range(n)]
@@ -41,35 +54,47 @@ def get_distinct_colors(n):
     return hex_colors
 
 
-def make_color_map(v_names: list, palette: list) -> dict:
-    """ Create a color map for variants.
+def make_color_map(v_names: List[str], palette: List[str]) -> Dict[str, str]:
+    """Create a color map for variants.
 
     Parameters:
-    ---------------
-        v_names (list): List of variant names
-        palette (list): List of colors to use for variants
+    -----------
+    v_names : List[str]
+        List of variant names
+    palette : List[str]
+        List of colors to use for variants
 
     Returns:
-    ---------------
-        dict: A dictionary mapping variant names to colors
+    --------
+    Dict[str, str]
+        A dictionary mapping variant names to colors
     """
     v_colors = palette[:len(v_names)]
     color_map = dict(zip(v_names, v_colors))
     return color_map
 
-def plot_antigenic_space_by_clade(tips_df, color_map, figsize=(10,10), variant_col='variant'):
-    """ Plot antigenic space colored by clade.
+def plot_antigenic_space_by_clade(
+    tips_df: pd.DataFrame, 
+    color_map: Dict[str, str], 
+    figsize: Tuple[int, int] = (10, 10), 
+    variant_col: str = 'variant'
+) -> None:
+    """Plot antigenic space colored by clade.
 
     Parameters:
-    ---------------
-        tips_df (pd.DataFrame): Tips dataframe
-        color_map (dict): Dictionary mapping clades to colors
-        figsize (tuple): Figure size
-        variant_col (str): Column name for variant
+    -----------
+    tips_df : pd.DataFrame
+        Tips dataframe containing antigenic coordinates and variant information
+    color_map : Dict[str, str]
+        Dictionary mapping clades to colors
+    figsize : Tuple[int, int], default=(10, 10)
+        Figure size as (width, height)
+    variant_col : str, default='variant'
+        Column name for variant
     
     Returns:
-    ---------------
-        None
+    --------
+    None
     """
     fig, ax = plt.subplots(figsize=figsize)
     n_variants = tips_df[variant_col].nunique()
@@ -91,19 +116,28 @@ def plot_antigenic_space_by_clade(tips_df, color_map, figsize=(10,10), variant_c
     fig.tight_layout()
     plt.show()
 
-def plot_observed_cases(ax, flu_data, deme, pivot_idx=None):
-    """ Plot observed cases.
+def plot_observed_cases(
+    ax: plt.Axes, 
+    flu_data: Dict[str, Any], 
+    deme: str, 
+    pivot_idx: Optional[List[int]] = None
+) -> None:
+    """Plot observed cases.
 
     Parameters:
-    ---------------
-        ax (matplotlib.axes.Axes): Axis to plot on
-        flu_data (dict): Dictionary of `evofr` data
-        deme (str): Deme to plot
-        pivot_idx (list): List of pivot indices to draw vertical lines at
-
+    -----------
+    ax : plt.Axes
+        Axis to plot on
+    flu_data : Dict[str, Any]
+        Dictionary of `evofr` data
+    deme : str
+        Location/deme name (e.g., 'north', 'tropics', 'south')
+    pivot_idx : Optional[List[int]], default=None
+        List of time indices to mark with vertical lines
+        
     Returns:
-    ---------------
-        None
+    --------
+    None
     """
     t = np.arange(0, flu_data[deme].cases.shape[0])
     ax.bar(t, flu_data[deme].cases, width=5.0, color='black', alpha=0.5)
@@ -113,7 +147,7 @@ def plot_observed_cases(ax, flu_data, deme, pivot_idx=None):
     ax.set_ylabel("Cases")
 
 
-def plot_observed_freqs(ax, ef_data, deme, color_map):
+def plot_observed_freqs(ax: plt.Axes, ef_data: Dict[str, Any], deme: str, color_map: Dict[str, str]) -> None:
     """ Plot observed frequencies of variants.
     
     Parameters:
@@ -144,7 +178,16 @@ def plot_observed_freqs(ax, ef_data, deme, color_map):
     ax.set_ylabel("Frequency")
 
 
-def plot_frequencies(ax, ef_data, freqs, deme, model, color_map, p=50, pivot_idx=None):
+def plot_frequencies(
+    ax: plt.Axes, 
+    ef_data: Dict[str, Any], 
+    freqs: pd.DataFrame, 
+    deme: str, 
+    model: str, 
+    color_map: Dict[str, str], 
+    p: int = 50, 
+    pivot_idx: Optional[List[int]] = None
+) -> None:
     """ Plot observed and predicted frequencies of variants.
 
     Parameters:
@@ -190,7 +233,15 @@ def plot_frequencies(ax, ef_data, freqs, deme, model, color_map, p=50, pivot_idx
     ax.set_ylabel("Frequency")
 
 
-def plot_rt(ax, inferred_rt, deme, model, color_map, p=95, pivot_idx=None):
+def plot_rt(
+    ax: plt.Axes, 
+    inferred_rt: pd.DataFrame, 
+    deme: str, 
+    model: str, 
+    color_map: Dict[str, str], 
+    p: int = 95, 
+    pivot_idx: Optional[List[int]] = None
+) -> None:
     """ Plot posteriors of inferred variant growth advantages.
 
     Parameters:
@@ -274,7 +325,13 @@ def plot_rt(ax, inferred_rt, deme, model, color_map, p=95, pivot_idx=None):
         ax.set_ylim(min_y, max_y)
 
 
-def plot_fitness(ax, fitness_df, deme, color_map, pivot_idx=None):
+def plot_fitness(
+    ax: plt.Axes, 
+    fitness_df: pd.DataFrame, 
+    deme: str, 
+    color_map: Dict[str, str], 
+    pivot_idx: Optional[List[int]] = None
+) -> None:
     """ Plot simulated fitness of variants.
 
     Parameters:
@@ -493,7 +550,13 @@ def plot_r_model(
             legend_obj.get_frame().set_edgecolor("k")
 
 
-def plot_variant_counts(ax, ef_data, deme, color_map, pivot_idx=None):
+def plot_variant_counts(
+    ax: plt.Axes, 
+    ef_data: Dict[str, Any], 
+    deme: str, 
+    color_map: Dict[str, str], 
+    pivot_idx: Optional[List[int]] = None
+) -> None:
     """ Plot histogram of variant sequence counts with optional pivot lines.
 
     Parameters:
@@ -536,7 +599,14 @@ def plot_variant_counts(ax, ef_data, deme, color_map, pivot_idx=None):
     ax.set_xlabel("")
 
 
-def plot_observed_dynamics(ef_data, fitness_df, deme, color_map, figsize=(30, 15), pivot_date=None):
+def plot_observed_dynamics(
+    ef_data: Dict[str, Any], 
+    fitness_df: pd.DataFrame, 
+    deme: str, 
+    color_map: Dict[str, str], 
+    figsize: Tuple[int, int] = (30, 15), 
+    pivot_date: Optional[str] = None
+) -> None:
     """ Plot observed dynamics.
 
     Parameters:
@@ -587,7 +657,20 @@ def plot_observed_dynamics(ef_data, fitness_df, deme, color_map, figsize=(30, 15
     legend.get_frame().set_edgecolor("k")
     fig.tight_layout()
     
-def plot_dynamics(ef_data, freq, ga, fitness, model, deme, color_map, p=50, sep=1825, pivot_idx=None, save_path=None, pivot_date=None):
+def plot_dynamics(
+    ef_data: Dict[str, Any], 
+    freq: pd.DataFrame, 
+    ga: pd.DataFrame, 
+    fitness: pd.DataFrame, 
+    model: str, 
+    deme: str, 
+    color_map: Dict[str, str], 
+    p: int = 50, 
+    sep: int = 1825, 
+    pivot_idx: Optional[List[int]] = None, 
+    save_path: Optional[str] = None, 
+    pivot_date: Optional[str] = None
+) -> None:
     """ Plot the dynamics of a single deme.
 
     Parameters:
@@ -1059,7 +1142,7 @@ def plot_smoothed_variant_counts(
     # Set labels and formatting
     ax.set_ylabel("Sequence Count")
     ax.set_xlabel("")  # Usually the x-label will be set by the multi-panel plot
-    ax.grid(alpha=0.3)
+    #ax.grid(alpha=0.3)
     
     # Add legend if requested
     if plot_legend and plotted_variants:
@@ -1230,7 +1313,7 @@ def plot_r_data(
     # Set labels and formatting
     ax.set_ylabel("$r_{\\text{data}}$")
     ax.set_xlabel("")  # Usually the x-label will be set by the multi-panel plot
-    ax.grid(alpha=0.3)
+    #ax.grid(alpha=0.3)
     
     # Calculate and set appropriate y-axis limits based on data range if there's data to plot
     valid_data = location_data['growth_rate_r_data'].dropna()
@@ -1270,6 +1353,267 @@ def plot_r_data(
         legend_obj.get_frame().set_linewidth(2.0)
         legend_obj.get_frame().set_edgecolor("k")
 
+def plot_variant_incidence(
+    growth_rates_df: pd.DataFrame,
+    location: str,
+    color_map: Dict[str, str],
+    model: Optional[str] = None,
+    analysis_date: Optional[str] = None,
+    max_variants: Optional[int] = None,
+    figsize: tuple = (20, 10),
+    save_path: Optional[str] = None
+) -> None:
+    """Plot variant incidence (case counts * variant frequency) over time.
+    
+    This creates a two-panel plot showing:
+    1. Smoothed variant incidence
+    2. Total case counts for reference
+    
+    Parameters:
+    -----------
+        growth_rates_df (pd.DataFrame): A consolidated DataFrame containing:
+                                       - 'country' and 'variant' columns for filtering
+                                       - 'date' column for x-axis plotting
+                                       - 'variant_incidence_smoothed' for smoothed incidence plot (required)
+                                       - 'cases' for total case counts plot
+        location (str): Location (country) to plot data for.
+        color_map (Dict[str, str]): Dictionary mapping variant names to hex color codes.
+        model (Optional[str]): Model name, used for title. Defaults to None.
+        analysis_date (Optional[str]): Date string (e.g., YYYY-MM-DD) to draw a vertical line at.
+                                      Defaults to None.
+        max_variants (Optional[int]): Maximum number of variants to plot, prioritizing 
+                                     those with the highest incidence.
+                                     If None, all variants are plotted. Defaults to None.
+        figsize (tuple): Figure size (width, height) in inches. Defaults to (20, 10).
+        save_path (Optional[str]): Path to save the figure to. If None, figure is not saved.
+                                  Defaults to None.
+                                  
+    Returns:
+    --------
+        None
+    """
+    # Make a copy to avoid modifying input DataFrame
+    df_processed = growth_rates_df.copy()
+    
+    # Ensure required columns exist
+    required_cols = ['country', 'variant', 'date', 'variant_incidence_smoothed', 'cases']
+    missing_cols = [col for col in required_cols if col not in df_processed.columns]
+    if missing_cols:
+        raise ValueError(f"Input DataFrame missing required columns: {missing_cols}")
+    
+    # Filter for the specified location
+    location_data = df_processed[df_processed['country'] == location]
+    if len(location_data) == 0:
+        raise ValueError(f"No data found for location '{location}'")
+    
+    # Ensure 'date' column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(location_data['date']):
+        try:
+            location_data['date'] = pd.to_datetime(location_data['date'])
+        except Exception as e:
+            raise ValueError(f"Could not convert 'date' column to datetime: {e}")
+    
+    # Add 't' column if it doesn't exist
+    if 't' not in location_data.columns:
+        location_data['date_normalized_for_t_mapping'] = location_data['date'].dt.normalize()
+        unique_dates = sorted(location_data['date_normalized_for_t_mapping'].unique())
+        date_to_t_mapping = {date_val: i for i, date_val in enumerate(unique_dates)}
+        location_data['t'] = location_data['date_normalized_for_t_mapping'].map(date_to_t_mapping)
+        location_data.drop(columns=['date_normalized_for_t_mapping'], inplace=True)
+    
+    # Convert analysis_date to t-value if provided
+    analysis_t = None
+    if analysis_date is not None:
+        try:
+            analysis_dt = pd.to_datetime(analysis_date).normalize()
+            matching_rows = location_data[location_data['date'].dt.normalize() == analysis_dt]
+            if not matching_rows.empty:
+                analysis_t = matching_rows['t'].iloc[0]
+        except Exception as e:
+            print(f"Warning: Could not convert analysis_date '{analysis_date}' to t-value: {e}")
+    
+    # Optionally limit to top variants by incidence
+    if max_variants is not None:
+        top_variants = location_data.groupby('variant')['variant_incidence_smoothed'].sum().sort_values(
+            ascending=False).head(max_variants).index
+        location_data = location_data[location_data['variant'].isin(top_variants)]
+    
+    # Setup figure and grid with shared x-axis
+    fig, axs = plt.subplots(nrows=2, ncols=1, figsize=figsize, sharex=True)
+    
+    # Add a title
+    title = f"Variant incidence dynamics for"
+    
+    # If model is provided, use it; otherwise, try to get the first unique model from the dataframe
+    if model:
+        title += f" {model} model"
+    elif 'model' in location_data.columns and not location_data['model'].isna().all():
+        first_model = location_data['model'].dropna().unique()[0] if len(location_data['model'].dropna().unique()) > 0 else "Unknown"
+        title += f" {first_model} model"
+    else:
+        title += " model"
+    
+    # Add location
+    title += f" in {location} deme"
+    
+    # Add analysis date if provided
+    if analysis_date:
+        title += f" for {analysis_date}"
+    elif 'date' in location_data.columns:
+        first_date = location_data['date'].sort_values().iloc[0]
+        if pd.api.types.is_datetime64_any_dtype(first_date):
+            first_date = first_date.strftime('%Y-%m-%d')
+        title += f" for {first_date}"
+    
+    fig.suptitle(title, fontsize=20)
+    
+    # Create an integer-keyed version of the color map for integer variant IDs
+    int_color_map = {}
+    for k, v in color_map.items():
+        try:
+            int_key = int(k)
+            int_color_map[int_key] = v
+        except (ValueError, TypeError):
+            pass
+    
+    # Create a consolidated color map that works with both string and integer keys
+    combined_color_map = {**color_map, **int_color_map}
+    
+    # Plot each variant's incidence
+    for variant in location_data['variant'].unique():
+        # Filter data for this variant
+        variant_data = location_data[location_data['variant'] == variant].sort_values('t')
+        
+        # Skip if no data
+        if len(variant_data) == 0:
+            continue
+            
+        # Get variant as string for label and color
+        variant_str = str(variant)
+        
+        # Try to find color for this variant
+        variant_color = None
+        if variant_str in combined_color_map:
+            variant_color = combined_color_map[variant_str]
+        elif variant in combined_color_map:
+            variant_color = combined_color_map[variant]
+        
+        # Plot smoothed variant incidence
+        valid_smoothed_data = variant_data[~variant_data['variant_incidence_smoothed'].isna()]
+        if len(valid_smoothed_data) > 0:
+            axs[0].plot(
+                valid_smoothed_data['t'], 
+                valid_smoothed_data['variant_incidence_smoothed'], 
+                '-', 
+                color=variant_color,
+                linewidth=3.0,
+                label=f'Variant {variant_str}'
+            )
+    
+    # Plot total case counts in the second panel
+    case_data = location_data[['t', 'cases']].drop_duplicates().sort_values('t')
+    axs[1].plot(
+        case_data['t'], 
+        case_data['cases'], 
+        'k-', 
+        linewidth=3.0,
+        alpha=0.7
+    )
+    
+    # Plot vertical line for analysis date if converted successfully
+    if analysis_t is not None:
+        for ax in axs:
+            ax.axvline(x=analysis_t, color='black', linestyle='--', lw=2.0)
+    
+    # Set labels and formatting
+    axs[0].set_ylabel("Variant Incidence\n(Cases × Frequency)")
+    axs[1].set_ylabel("Total Cases")
+    
+    # Set x-ticks using date information
+    if len(location_data) > 0:
+        # Create mapping from t to date for x-tick labels
+        t_values = sorted(location_data['t'].unique())
+        t_to_date = {}
+        for t in t_values:
+            matching_dates = location_data[location_data['t'] == t]['date']
+            if not matching_dates.empty:
+                t_to_date[t] = matching_dates.iloc[0]
+        
+        # Select a reasonable number of ticks
+        if len(t_values) > 10:
+            tick_indices = np.linspace(0, len(t_values) - 1, 10, dtype=int)
+            t_ticks = [t_values[i] for i in tick_indices]
+        else:
+            t_ticks = t_values
+        
+        # Format dates for tick labels
+        date_labels = []
+        for t in t_ticks:
+            if t in t_to_date:
+                date_str = t_to_date[t].strftime('%Y-%m-%d')
+                date_labels.append(date_str)
+            else:
+                date_labels.append('')
+        
+        # Set ticks on x-axis of bottom subplot
+        axs[1].set_xticks(t_ticks)
+        axs[1].set_xticklabels(date_labels, rotation=45)
+    
+    # Add x-axis label to bottom subplot
+    axs[1].set_xlabel("Date")
+    
+    # Get unique variants that are present in the data and color map
+    all_variants = set()
+    
+    # Add variants from the consolidated dataframe
+    location_data_filtered = growth_rates_df[growth_rates_df['country'] == location]
+    if max_variants is not None:
+        top_variants = location_data_filtered.groupby('variant')['variant_incidence_smoothed'].sum().sort_values(
+            ascending=False).head(max_variants).index
+        all_variants.update(top_variants)
+    else:
+        all_variants.update(location_data_filtered['variant'].unique())
+    
+    # Filter color map to only include variants present in the data
+    filtered_color_map = {}
+    for variant in all_variants:
+        variant_str = str(variant)
+        if variant_str in color_map:
+            filtered_color_map[variant_str] = color_map[variant_str]
+        elif variant in color_map:
+            filtered_color_map[variant_str] = color_map[variant]
+    
+    # Create a legend if we have variants with colors
+    if filtered_color_map:
+        # Create patches for legend
+        patches = [Patch(color=color, label=variant) for variant, color in filtered_color_map.items()]
+        
+        # Sort by variant label for consistent ordering
+        sorted_patches = sorted(patches, key=lambda patch: patch.get_label())
+        
+        # Add legend at the bottom of the figure
+        legend_obj = fig.legend(
+            sorted_patches, 
+            [patch.get_label() for patch in sorted_patches],
+            ncol=min(10, len(sorted_patches)),
+            bbox_to_anchor=(0.5, -0.05),
+            loc="lower center",
+            title="Variant"
+        )
+        legend_obj.get_frame().set_linewidth(2.0)
+        legend_obj.get_frame().set_edgecolor("k")
+    
+    # Tight layout for better spacing
+    fig.tight_layout()
+    
+    # Save the figure if a save path is provided
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
+    
+    # Show the figure
+    plt.show()
+
+
 def plot_growth_rate_dynamics(
     growth_rates_df: pd.DataFrame,
     location: str,
@@ -1280,14 +1624,18 @@ def plot_growth_rate_dynamics(
     analysis_date: Optional[str] = None,
     max_variants: Optional[int] = None,
     figsize: tuple = (20, 15),
-    save_path: Optional[str] = None
+    save_path: Optional[str] = None,
+    connect_gaps: bool = False,
+    min_segment_length: Optional[int] = None,
+    plot_incidence: bool = True
 ) -> None:
-    """Plot a three-panel figure showing sequence counts and growth rates for variants in a location.
+    """Plot a four-panel figure showing sequence counts, variant frequencies/incidence, and growth rates for variants in a location.
     
-    This creates a three-panel plot including:
+    This creates a four-panel plot including:
     1. Original and smoothed sequence counts
-    2. Empirical growth rates (r_data)
-    3. Model-derived growth rates (r_model)
+    2. Variant incidence (smoothed) OR variant frequencies (original and smoothed) - controlled by plot_incidence parameter
+    3. Empirical growth rates (r_data)
+    4. Model-derived growth rates (r_model)
     
     All plots use a consistent time coordinate system ('t') derived from dates for 
     consistency across panels. The x-axis displays formatted dates, but internally
@@ -1301,6 +1649,8 @@ def plot_growth_rate_dynamics(
                                        - 'date' column for x-axis plotting (automatically 
                                           converted to 't' internally)
                                        - 'sequences' and 'smoothed_sequences' for variant counts plot
+                                       - 'variant_incidence_smoothed' for incidence plot (required if plot_incidence=True)
+                                       - 'variant_frequency' and 'variant_frequency_smoothed' for frequency plot (required if plot_incidence=False)
                                        - 'growth_rate_r_data' for empirical growth rates plot
                                        - 'growth_rate_r' for model growth rates plot
         location (str): Location (country) to plot data for.
@@ -1315,6 +1665,16 @@ def plot_growth_rate_dynamics(
         figsize (tuple): Figure size (width, height) in inches. Defaults to (20, 15).
         save_path (Optional[str]): Path to save the figure to. If None, figure is not saved.
                                   Defaults to None.
+        connect_gaps (bool): If True, connects all non-NaN points in r_data plots, 
+                            ignoring gaps. If False, gaps are shown where data is missing.
+                            Defaults to False.
+        min_segment_length (Optional[int]): Minimum number of consecutive non-NaN points 
+                                           required to plot a segment. Segments shorter than 
+                                           this are discarded. If None, all segments are plotted.
+                                           Only applies when connect_gaps=False. Defaults to None.
+        plot_incidence (bool): If True, plots variant incidence (smoothed) in panel 2.
+                              If False, plots variant frequencies (original and smoothed) in panel 2.
+                              Defaults to True.
                                   
     Returns:
     --------
@@ -1324,7 +1684,12 @@ def plot_growth_rate_dynamics(
     df_processed = growth_rates_df.copy()
     
     # Ensure required columns exist
-    required_cols = ['country', 'variant', 'date', 'sequences', 'smoothed_sequences', r_data_col, r_model_col]
+    base_required_cols = ['country', 'variant', 'date', 'sequences', 'smoothed_sequences', r_data_col, r_model_col]
+    if plot_incidence:
+        required_cols = base_required_cols + ['variant_incidence_smoothed']
+    else:
+        required_cols = base_required_cols + ['variant_frequency', 'variant_frequency_smoothed']
+    
     missing_cols = [col for col in required_cols if col not in df_processed.columns]
     if missing_cols:
         raise ValueError(f"Input DataFrame missing required columns: {missing_cols}")
@@ -1368,7 +1733,7 @@ def plot_growth_rate_dynamics(
         location_data = location_data[location_data['variant'].isin(top_variants)]
     
     # Setup figure and grid with shared x-axis
-    fig, axs = plt.subplots(nrows=3, ncols=1, figsize=figsize, sharex=True)
+    fig, axs = plt.subplots(nrows=4, ncols=1, figsize=figsize, sharex=True)
     
     # Add a title with required format
     title = f"Variant growth rate dynamics for"
@@ -1394,7 +1759,7 @@ def plot_growth_rate_dynamics(
             first_date = first_date.strftime('%Y-%m-%d')
         title += f" for {first_date}"
     
-    fig.suptitle(title, fontsize=20)
+    fig.suptitle(title, fontsize=18)
     
     # Create an integer-keyed version of the color map for integer variant IDs
     int_color_map = {}
@@ -1411,6 +1776,10 @@ def plot_growth_rate_dynamics(
     
     # Dictionary to track which variants were successfully plotted with a color
     plotted_variants = {}
+    
+    # Lists to track actually plotted values for y-axis range calculation
+    plotted_r_data_values = []
+    plotted_r_model_values = []
     
     # Plot each variant's sequence counts
     for variant in location_data['variant'].unique():
@@ -1451,28 +1820,88 @@ def plot_growth_rate_dynamics(
             linewidth=3.0
         )
         
-        # Skip if no valid growth rate data for this variant
-        if not variant_data[r_data_col].isna().all():
-            # Plot empirical growth rates (r_data)
-            axs[1].plot(
-                variant_data['t'], 
-                variant_data[r_data_col], 
-                'o-',  # Circles with connecting lines
-                color=variant_color,
-                linewidth=2.5,
-                markersize=5,
-                alpha=0.8
-            )
+        # Plot variant incidence or frequencies based on flag
+        if plot_incidence:
+            # Plot variant incidence (smoothed)
+            valid_incidence_data = variant_data[~variant_data['variant_incidence_smoothed'].isna()]
+            if len(valid_incidence_data) > 0:
+                axs[1].plot(
+                    valid_incidence_data['t'], 
+                    valid_incidence_data['variant_incidence_smoothed'], 
+                    '-', 
+                    color=variant_color,
+                    linewidth=3.0
+                )
+        else:
+            # Plot variant frequencies - always plot observed frequencies
+            valid_freq_data = variant_data[~variant_data['variant_frequency'].isna()]
+            if len(valid_freq_data) > 0:
+                axs[1].plot(
+                    valid_freq_data['t'], 
+                    valid_freq_data['variant_frequency'], 
+                    'o', 
+                    color=variant_color,
+                    alpha=0.6,
+                    markersize=5
+                )
+            
+            # Plot smoothed frequencies if available
+            if 'variant_frequency_smoothed' in variant_data.columns:
+                valid_smoothed_freq_data = variant_data[~variant_data['variant_frequency_smoothed'].isna()]
+                if len(valid_smoothed_freq_data) > 0:
+                    axs[1].plot(
+                        valid_smoothed_freq_data['t'], 
+                        valid_smoothed_freq_data['variant_frequency_smoothed'], 
+                        '-', 
+                        color=variant_color,
+                        linewidth=3.0
+                    )
         
-        # Skip if no valid model growth rate data for this variant
-        if not variant_data[r_model_col].isna().all():
-            # Plot model growth rates (r_model)
-            axs[2].plot(
-                variant_data['t'], 
-                variant_data[r_model_col], 
-                lw=4.5,
-                color=variant_color
-            )
+        # Plot r_data - filter using the same logic as evaluate_growth_rate_performance
+        valid_r_data = variant_data[~variant_data[r_data_col].isna()]
+        if len(valid_r_data) > 0:
+            # Apply segment filtering if specified
+            if min_segment_length is not None:
+                # Create a temporary DataFrame for this variant to apply filtering
+                temp_df = variant_data.copy()
+                temp_df['variant'] = variant  # Ensure variant column exists for filtering
+                filtered_variant_data = filter_growth_rates(
+                    temp_df, 
+                    r_data_col=r_data_col, 
+                    connect_gaps=connect_gaps, 
+                    min_segment_length=min_segment_length
+                )
+                valid_r_data = filtered_variant_data[~filtered_variant_data[r_data_col].isna()]
+            
+            if len(valid_r_data) > 0:
+                axs[2].plot(
+                    valid_r_data['t'], 
+                    valid_r_data[r_data_col], 
+                    'o-',  # Circles with connecting lines
+                    color=variant_color,
+                    linewidth=2.5,
+                    markersize=5,
+                    alpha=0.8
+                )
+                # Track the plotted values
+                plotted_r_data_values.extend(valid_r_data[r_data_col].dropna().tolist())
+        
+        # Plot r_model using the same filtered data for consistency
+        if len(valid_r_data) > 0 and not valid_r_data[r_model_col].isna().all():
+            # Filter out points where r_model is also NaN
+            valid_model_data = valid_r_data[~valid_r_data[r_model_col].isna()]
+            if len(valid_model_data) > 0:
+                axs[3].plot(
+                    valid_model_data['t'], 
+                    valid_model_data[r_model_col], 
+                    'o-',  # Circles with connecting lines
+                    color=variant_color,
+                    linewidth=2.5,
+                    markersize=5,
+                    alpha=0.8
+                )
+                # Track the plotted values
+                plotted_r_model_values.extend(valid_model_data[r_model_col].dropna().tolist())
         
         # Track plotted variants with their colors for legend
         if variant_color is not None:
@@ -1484,17 +1913,22 @@ def plot_growth_rate_dynamics(
             ax.axvline(x=analysis_t, color='black', linestyle='--', lw=2.0)
     
     # Add horizontal lines at y=0 for growth rate plots
-    axs[1].axhline(y=0.0, color='red', linestyle='--', lw=1.5)  # r_data
-    axs[2].axhline(y=0.0, color='red', linestyle='--', lw=1.5)  # r_model
+    axs[2].axhline(y=0.0, color='red', linestyle='--', lw=1.5)  # r_data
+    axs[3].axhline(y=0.0, color='red', linestyle='--', lw=1.5)  # r_model
     
     # Set labels and formatting
-    axs[0].set_ylabel("Sequence Count")
-    axs[1].set_ylabel("$r_{\\text{data}}$")
-    axs[2].set_ylabel("$r_{\\text{model}}$")
+    axs[0].set_ylabel("Sequence Count", fontsize=14)
+    axs[1].set_ylabel("Variant Incidence" if plot_incidence else "Variant Frequency", fontsize=14)
+    axs[2].set_ylabel("$r_{\\text{data}}$", fontsize=14)
+    axs[3].set_ylabel("$r_{\\text{model}}$", fontsize=14)
+    
+    # Set tick label font sizes for all axes
+    for ax in axs:
+        ax.tick_params(axis='both', which='major', labelsize=12)
     
     # Add grid to all plots
-    for ax in axs:
-        ax.grid(alpha=0.3)
+    # for ax in axs:
+    #     ax.grid(alpha=0.3)
     
     # Set x-ticks using date information
     if len(location_data) > 0:
@@ -1523,36 +1957,37 @@ def plot_growth_rate_dynamics(
                 date_labels.append('')
         
         # Set ticks on x-axis of bottom subplot
-        axs[2].set_xticks(t_ticks)
-        axs[2].set_xticklabels(date_labels, rotation=45)
+        axs[3].set_xticks(t_ticks)
+        axs[3].set_xticklabels(date_labels, rotation=45, fontsize=12)
     
     # Add x-axis label to bottom subplot
-    axs[2].set_xlabel("Date")
+    axs[3].set_xlabel("Date", fontsize=14)
     
-    # Calculate and set appropriate y-axis limits for the growth rate plots
-    for i, col in [(1, r_data_col), (2, r_model_col)]:
-        valid_data = location_data[col].dropna()
-        if not valid_data.empty:
-            min_y = valid_data.min()
-            max_y = valid_data.max()
+    # Calculate and set synchronized y-axis limits based on actually plotted values
+    if plotted_r_data_values or plotted_r_model_values:
+        # Combine all plotted values
+        all_plotted_values = plotted_r_data_values + plotted_r_model_values
+        
+        if all_plotted_values:
+            overall_min = min(all_plotted_values)
+            overall_max = max(all_plotted_values)
             
-            # Add some padding (5% of the range)
-            if min_y != max_y:  # Avoid division by zero if all values are the same
-                padding = 0.05 * (max_y - min_y)
-                min_y -= padding
-                max_y += padding
-            else:
-                # If all values are the same, add a small absolute padding
-                min_y -= 0.1
-                max_y += 0.1
+            # No padding - use exact range
+            # Just ensure we don't have identical min/max
+            if overall_min == overall_max:
+                # If all values are the same, add a tiny margin
+                overall_min -= 0.001
+                overall_max += 0.001
+            
+            # Ensure 0 is included in the range if it's close
+            if overall_min > -0.001 and overall_min < 0:
+                overall_min = 0
+            if overall_max < 0.001 and overall_max > 0:
+                overall_max = 0
                 
-            # Ensure 0 is included in the range
-            if min_y > 0:
-                min_y = -0.05
-            if max_y < 0:
-                max_y = 0.05
-                
-            axs[i].set_ylim(min_y, max_y)
+            # Apply the same limits to both growth rate plots
+            axs[2].set_ylim(overall_min, overall_max)  # r_data
+            axs[3].set_ylim(overall_min, overall_max)  # r_model
     
     # Get unique variants that are present in the data and color map
     all_variants = set()
@@ -1590,7 +2025,9 @@ def plot_growth_rate_dynamics(
             ncol=min(10, len(sorted_patches)),
             bbox_to_anchor=(0.5, -0.05),
             loc="lower center",
-            title="Variant"
+            title="Variant",
+            fontsize=12,
+            title_fontsize=14
         )
         legend_obj.get_frame().set_linewidth(2.0)
         legend_obj.get_frame().set_edgecolor("k")
@@ -1603,4 +2040,204 @@ def plot_growth_rate_dynamics(
     
     
     # Show the figure
+    plt.show()
+
+def plot_top_variant_correlations(
+    growth_rates_df: pd.DataFrame, 
+    color_map: Dict[str, str], 
+    location: str = 'tropics', 
+    n: int = 4, 
+    min_points: int = 3, 
+    r_model_col: str = 'median_r', 
+    r_data_col: str = 'growth_rate_r_data',
+    figsize: tuple = (16, 14) 
+) -> None:
+    """
+    Plot the top n variants with the highest correlation between model growth rate and empirical growth rate.
+    
+    Parameters:
+    -----------
+    growth_rates_df : pd.DataFrame
+        DataFrame containing growth rate data with columns 'country', 'variant', 
+        'growth_rate_r' (model), and 'growth_rate_r_data' (empirical).
+    color_map : dict
+        Dictionary mapping variant names to colors.
+    location : str, default='tropics'
+        The location to filter the data by (e.g., 'tropics').
+    n : int, default=4
+        The number of top variants to plot based on correlation.
+    min_points : int, default=3
+        Minimum number of data points required for a variant to be considered.
+    r_model_col : str, default='growth_rate_r'
+        The column name for the model growth rate.
+    r_data_col : str, default='growth_rate_r_data'
+        The column name for the empirical growth rate.
+    figsize : tuple, default=(16, 14)
+        Size of the figure to create.
+    
+    Returns:
+    --------
+    None
+    """
+    #fig, axes = plt.subplots(2, 2, figsize=figsize)
+    growth_rates_df = growth_rates_df.copy()
+    growth_rates_df['variant'] = growth_rates_df['variant'].astype(str)
+    top_variants = get_top_variants(growth_rates_df, location, n, min_points, r_model_col, r_data_col)
+    
+    if not top_variants:
+        print(f"No variants found with at least {min_points} data points in {location}.")
+        return
+    else:
+        # Create subplots for the top variants (2 columns per row)
+        num_variants = len(top_variants)
+        num_rows = (num_variants + 1) // 2  # Two plots per row
+        if num_rows == 0:
+            num_rows = 1   
+        # Create a grid of subplots
+        if num_variants == 1:
+            fig, axes = plt.subplots(1, 1, figsize=figsize)
+            axes = [axes]
+        elif num_variants == 2:
+            fig, axes = plt.subplots(1, 2, figsize=figsize)
+        elif num_variants == 3:
+            fig, axes = plt.subplots(2, 2, figsize=figsize)
+            axes = axes.flatten()
+            axes[3].axis('off')
+        else:
+            # For more than 3 variants, create a grid of subplots
+            if num_rows * 2 < num_variants:
+                num_rows = (num_variants + 1) // 2
+            if num_rows * 2 == num_variants:
+                fig, axes = plt.subplots(num_rows, 2, figsize=figsize)
+            else:
+                num_rows += 1
+                fig, axes = plt.subplots(num_rows, 2, figsize=figsize)
+        axes = axes.flatten()
+        
+    
+    for i, (variant, corr, p_value, n_points) in enumerate(top_variants):
+        if i >= len(axes):
+            break
+            
+        # Get data for this variant (variant is already a string from get_top_variants)
+        variant_data = growth_rates_df[
+            (growth_rates_df['country'] == 'tropics') & 
+            (growth_rates_df['variant'] == variant)
+        ].dropna(subset=[r_data_col, r_model_col])
+        
+        color = color_map[int(variant)]
+        
+        # Create scatter plot
+        axes[i].scatter(
+            variant_data[r_model_col], 
+            variant_data[r_data_col],
+            color=color, s=80, alpha=0.7, edgecolor='black', linewidth=0.5
+        )
+        
+        # Add reference line (y=x)
+        min_val = min(variant_data[r_model_col].min(), variant_data[r_data_col].min())
+        max_val = max(variant_data[r_model_col].max(), variant_data[r_data_col].max())
+        axes[i].plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.5)
+        
+        # Add zero lines
+        axes[i].axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+        axes[i].axvline(x=0, color='gray', linestyle='--', alpha=0.5)
+        
+        # Set title and labels
+        axes[i].set_title(rf"Variant {variant}: $r$ = {corr:.3f}, p = {p_value:.3e}, n = {n_points}")
+        axes[i].set_xlabel(r"$r_{\text{model}}$")
+        axes[i].set_ylabel(r"$r_{\text{data}}$")
+    
+    plt.xlabel(r"$r_{\text{model}}$")
+    plt.ylabel(r"$r_{\text{data}}$")
+    fig.suptitle(f'Top {n} Variants Correlation in {location}')
+    plt.axhline(0, color='k', linestyle='--', alpha=0.5)
+    plt.axvline(0, color='k', linestyle='--', alpha=0.5)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+def plot_smoothed_frequencies(growth_rates_df: pd.DataFrame, location: str, pivot_date: str,
+                              color_map: Dict[str, str], fig_size: Tuple[int, int] = (10, 6)) -> None:
+    """
+    Plot smoothed variant frequencies over time.
+    
+    Parameters
+    ----------
+    growth_rates_df : pd.DataFrame
+        DataFrame containing growth rates and variant frequencies. Needs to have columns:
+        - 'week_id': The week identifier.
+        - 'variant_frequency': The frequency of the variant.
+        - 'variant_frequency_smoothed': The smoothed frequency of the variant.
+        - 'variant': The variant identifier.
+    location : str
+        The location for which the data is being plotted.
+    pivot_date : str
+        The date to pivot the data around, used in the plot title.
+    color_map : Dict[str, str]
+        Dictionary mapping variant names to colors.
+    fig_size : Tuple[int, int], optional
+        Size of the figure to create, by default (10, 6).
+
+    Returns
+    -------
+    None
+    -----------
+    Displays a plot of variant frequencies over time.
+    -----------
+    
+    """
+    # Create a figure
+    plt.figure(figsize=fig_size)
+
+    # Get unique variants for plotting
+    variants = growth_rates_df['variant'].unique()
+
+    # Plot each variant with its own color
+    for variant in variants:
+        variant_data = growth_rates_df[growth_rates_df['variant'] == variant]
+        
+        # Convert variant to string for color mapping
+        variant_str = str(variant)
+        
+        # Plot scatter points for the variant frequency
+        plt.scatter(
+            variant_data['week_id'], 
+            variant_data['variant_frequency'],
+            color=color_map[variant_str],
+            label=f'Variant {variant}',
+            alpha=0.7,
+            s=50
+        )
+        
+        # Plot smoothed line
+        valid_data = variant_data.dropna(subset=['variant_frequency_smoothed'])
+        if not valid_data.empty:
+            plt.plot(
+                valid_data['week_id'], 
+                valid_data['variant_frequency_smoothed'],
+                color=color_map[variant_str],
+                linestyle='-',
+                linewidth=2
+            )
+
+    # Customize the plot
+    plt.xlabel('Week ID', fontsize=12)
+    plt.ylabel('Variant Frequency', fontsize=12)
+    plt.title(f'Variant Frequencies Over Time - {location} ({pivot_date})', fontsize=14)
+    plt.grid(True, linestyle='--', alpha=0.7)
+
+    # Create a custom legend that doesn't include duplicated entries
+    handles, labels = plt.gca().get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+    plt.legend(
+        by_label.values(), 
+        by_label.keys(), 
+        loc='center left', 
+        bbox_to_anchor=(1, 0.5),
+        ncol=1
+    )
+
+    plt.tight_layout()
     plt.show()

@@ -7,3 +7,9 @@ data/**/antigen-outputs/*.csv
 
 # Ignore compiled Python files
 **/*.pyc
+
+# Claude files
+CLAUDE.md
+
+# VSCode settings
+settings.local.json

@@ -425,7 +425,7 @@ def filter_growth_rates(
         return df.iloc[0:0].copy()
 
 
-def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: str = 'growth_rate_r_data', r_model_col: str = 'median_r', overestimation_tol: float = 1e-3, connect_gaps: bool = False, min_segment_length: Optional[int] = None) -> dict:
+def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: str = 'growth_rate_r_data', r_model_col: str = 'median_r', overestimation_tol: float = 1e-3, connect_gaps: bool = False, min_segment_length: Optional[int] = None, min_sequence_count: Optional[float] = None, min_variant_frequency: Optional[float] = None) -> dict:
     """
     Evaluate the performance of growth rate predictions by comparing model and empirical values.
     
@@ -446,6 +446,12 @@ def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: 
     min_segment_length : Optional[int], default=None
         Minimum number of consecutive non-NaN points required for a segment to be valid.
         If None, no minimum length is enforced.
+    min_sequence_count : Optional[float], default=None
+        Minimum smoothed sequence count to trust growth rate calculations.
+        If provided, filters out points below this threshold.
+    min_variant_frequency : Optional[float], default=None
+        Minimum variant frequency to trust growth rate calculations.
+        If provided, filters out points below this threshold.
 
     Returns:
     --------
@@ -458,9 +464,25 @@ def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: 
         - 'overestimation_rate': Rate at which model overestimates growth rates
         - 'n_points': Number of valid data points used in the evaluation
     """
+    # First apply sequence count and frequency filters if provided
+    clean_data = growth_rates_df.copy()
+    
+    if min_sequence_count is not None or min_variant_frequency is not None:
+        # Build filter mask
+        filter_mask = pd.Series(True, index=clean_data.index)
+        
+        if min_sequence_count is not None and 'smoothed_sequences' in clean_data.columns:
+            filter_mask &= clean_data['smoothed_sequences'] >= min_sequence_count
+            
+        if min_variant_frequency is not None and 'variant_frequency_smoothed' in clean_data.columns:
+            filter_mask &= clean_data['variant_frequency_smoothed'] >= min_variant_frequency
+            
+        # Apply the filter
+        clean_data = clean_data[filter_mask]
+    
     # Apply the same filtering logic as used in plotting
     clean_data = filter_growth_rates(
-        growth_rates_df, 
+        clean_data, 
         r_data_col=r_data_col, 
         connect_gaps=connect_gaps, 
         min_segment_length=min_segment_length
@@ -498,7 +520,9 @@ def calculate_variant_mae(
     growth_rates_df: pd.DataFrame,
     r_data_col: str = 'growth_rate_r_data',
     r_model_col: str = 'median_r',
-    overestimation_tol: float = 1e-3
+    overestimation_tol: float = 1e-3,
+    min_sequence_count: Optional[float] = None,
+    min_variant_frequency: Optional[float] = None
 ) -> pd.DataFrame:
     """
     Calculate MAE and max r_data value for each variant in the growth rates dataframe.
@@ -527,6 +551,12 @@ def calculate_variant_mae(
         Column name for model growth rates
     overestimation_tol : float, default=1e-3
         Tolerance for overestimation rate calculation
+    min_sequence_count : Optional[float], default=None
+        Minimum smoothed sequence count to trust growth rate calculations.
+        If provided, filters out points below this threshold.
+    min_variant_frequency : Optional[float], default=None
+        Minimum variant frequency to trust growth rate calculations.
+        If provided, filters out points below this threshold.
         
     Returns:
     --------
@@ -544,8 +574,24 @@ def calculate_variant_mae(
         - overestimation_rate: Fraction of times model overestimates
         - n_points: Number of data points used in calculations
     """
+    # First apply sequence count and frequency filters if provided
+    clean_df = growth_rates_df.copy()
+    
+    if min_sequence_count is not None or min_variant_frequency is not None:
+        # Build filter mask
+        filter_mask = pd.Series(True, index=clean_df.index)
+        
+        if min_sequence_count is not None and 'smoothed_sequences' in clean_df.columns:
+            filter_mask &= clean_df['smoothed_sequences'] >= min_sequence_count
+            
+        if min_variant_frequency is not None and 'variant_frequency_smoothed' in clean_df.columns:
+            filter_mask &= clean_df['variant_frequency_smoothed'] >= min_variant_frequency
+            
+        # Apply the filter
+        clean_df = clean_df[filter_mask]
+    
     # Filter out rows with NaN values in either growth rate column
-    clean_df = growth_rates_df.dropna(subset=[r_data_col, r_model_col])
+    clean_df = clean_df.dropna(subset=[r_data_col, r_model_col])
     
     # Group by variant and calculate metrics
     variant_metrics = []

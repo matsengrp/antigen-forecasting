@@ -10,6 +10,4 @@ data/**/antigen-outputs/*.csv
 
 # Claude files
 CLAUDE.md
-
-# VSCode settings
-settings.local.json
+.claude

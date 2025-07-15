@@ -573,6 +573,12 @@ def calculate_variant_mae(
         - sign_disagreement_rate: Fraction of times signs disagree
         - overestimation_rate: Fraction of times model overestimates
         - n_points: Number of data points used in calculations
+        - total_sequences: Sum of raw sequence counts across all timepoints
+        - total_smoothed_sequences: Sum of smoothed sequence counts across all timepoints
+        - mean_variant_frequency: Mean of variant frequencies across timepoints
+        - mean_smoothed_variant_frequency: Mean of smoothed variant frequencies across timepoints
+        - max_variant_frequency: Maximum variant frequency achieved
+        - max_smoothed_variant_frequency: Maximum smoothed variant frequency achieved
     """
     # First apply sequence count and frequency filters if provided
     clean_df = growth_rates_df.copy()
@@ -634,6 +640,14 @@ def calculate_variant_mae(
             variant_data, r_data_col, r_model_col, tol=overestimation_tol
         )
         
+        # Calculate sequence and frequency summaries
+        total_sequences = variant_data['sequences'].sum() if 'sequences' in variant_data.columns else np.nan
+        total_smoothed_sequences = variant_data['smoothed_sequences'].sum() if 'smoothed_sequences' in variant_data.columns else np.nan
+        mean_variant_frequency = variant_data['variant_frequency'].mean() if 'variant_frequency' in variant_data.columns else np.nan
+        mean_smoothed_variant_frequency = variant_data['variant_frequency_smoothed'].mean() if 'variant_frequency_smoothed' in variant_data.columns else np.nan
+        max_variant_frequency = variant_data['variant_frequency'].max() if 'variant_frequency' in variant_data.columns else np.nan
+        max_smoothed_variant_frequency = variant_data['variant_frequency_smoothed'].max() if 'variant_frequency_smoothed' in variant_data.columns else np.nan
+        
         # Get metadata (these should be consistent within a variant)
         country = variant_data['country'].iloc[0]
         model = variant_data['model'].iloc[0] if 'model' in variant_data.columns else None
@@ -650,7 +664,13 @@ def calculate_variant_mae(
             'correlation': correlation,
             'sign_disagreement_rate': sign_disagreement_rate,
             'overestimation_rate': overestimation_rate,
-            'n_points': len(variant_data)
+            'n_points': len(variant_data),
+            'total_sequences': total_sequences,
+            'total_smoothed_sequences': total_smoothed_sequences,
+            'mean_variant_frequency': mean_variant_frequency,
+            'mean_smoothed_variant_frequency': mean_smoothed_variant_frequency,
+            'max_variant_frequency': max_variant_frequency,
+            'max_smoothed_variant_frequency': max_smoothed_variant_frequency
         })
     
     # Convert to DataFrame

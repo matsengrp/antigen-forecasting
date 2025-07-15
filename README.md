@@ -190,12 +190,12 @@ python calc_variant_fitness.py -t data/prepped/tips.csv -i data/immunity.csv -o 
 python make_training_data.py -s data/prepped/sequences.csv -c data/prepped/cases.csv -o data/training/ --window-size 90
 
 # 4. Run models (individual or batch)
-python run_model.py -d data/training/ -c US -m RandomForest -o results/forecasts/
+python run_model.py -d data/training/ -c US -m FGA -o results/estimates/
 # Or with SLURM
 python sbatch_models.py -b antigen_h3n2_sim -c config/model_config.yaml
 
 # 5. Score models
-python score_models.py --config config/scoring_config.yaml --truth-set data/true_values.csv --estimates-path results/forecasts/ --output-path results/scores/
+python score_models.py --config config/scoring_config.yaml --truth-set data/true_values.csv --estimates-path results/estimates/ --output-path results/scores/
 ```
 
 ## Notes

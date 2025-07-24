@@ -1,3 +1,0 @@
-location	variant	median_ga	ga_upper_95	ga_lower_95	ga_upper_80	ga_lower_80	ga_upper_50	ga_lower_50	analysis_date	model
-tropics	2	0.93428457	0.9655605	0.9006023	0.9563819	0.90929246	0.9461631	0.9214591	2031-10-01	MLR
-tropics	8	1.0199386	1.055041	0.98954415	1.0429457	0.9990988	1.0324446	1.0092553	2031-10-01	MLR

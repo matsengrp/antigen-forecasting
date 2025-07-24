@@ -1,0 +1,27 @@
+{
+  "model": "MLR",
+  "location": "south",
+  "analysis_date": "2054-10-01",
+  "inference_method": "InferFullRank",
+  "inference_settings": {
+    "iterations": 50000,
+    "learning_rate": null,
+    "num_samples": 500
+  },
+  "convergence_diagnostics": {
+    "elbo_trajectory": {
+      "num_iterations": 50000,
+      "initial_loss": 66048.625,
+      "final_loss": 93.46589660644531,
+      "min_loss": 85.12195587158203,
+      "total_improvement": 65955.15625
+    },
+    "convergence": {
+      "converged": true,
+      "relative_change": 0.009767049923539162,
+      "threshold": 0.01,
+      "window": 100,
+      "final_iteration": 50000
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "model": "FGA",
+  "location": "north",
+  "analysis_date": "2054-04-01",
+  "inference_method": "InferFullRank",
+  "inference_settings": {
+    "iterations": 50000,
+    "learning_rate": null,
+    "num_samples": 500
+  },
+  "convergence_diagnostics": {
+    "elbo_trajectory": {
+      "num_iterations": 50000,
+      "initial_loss": 26503.166015625,
+      "final_loss": 855.5675659179688,
+      "min_loss": 824.40966796875,
+      "total_improvement": 25647.59765625
+    },
+    "convergence": {
+      "converged": false,
+      "relative_change": 0.029531342908740044,
+      "threshold": 0.01,
+      "window": 100,
+      "final_iteration": 50000
+    }
+  }
+}

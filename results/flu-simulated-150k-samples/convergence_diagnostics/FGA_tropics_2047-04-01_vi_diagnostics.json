@@ -1,0 +1,27 @@
+{
+  "model": "FGA",
+  "location": "tropics",
+  "analysis_date": "2047-04-01",
+  "inference_method": "InferFullRank",
+  "inference_settings": {
+    "iterations": 50000,
+    "learning_rate": null,
+    "num_samples": 500
+  },
+  "convergence_diagnostics": {
+    "elbo_trajectory": {
+      "num_iterations": 50000,
+      "initial_loss": 20088.55859375,
+      "final_loss": 198.83135986328125,
+      "min_loss": 188.80447387695312,
+      "total_improvement": 19889.7265625
+    },
+    "convergence": {
+      "converged": false,
+      "relative_change": 0.02539048157632351,
+      "threshold": 0.01,
+      "window": 100,
+      "final_iteration": 50000
+    }
+  }
+}

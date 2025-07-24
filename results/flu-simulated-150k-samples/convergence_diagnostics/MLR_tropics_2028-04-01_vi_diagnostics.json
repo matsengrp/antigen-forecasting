@@ -1,0 +1,27 @@
+{
+  "model": "MLR",
+  "location": "tropics",
+  "analysis_date": "2028-04-01",
+  "inference_method": "InferFullRank",
+  "inference_settings": {
+    "iterations": 50000,
+    "learning_rate": null,
+    "num_samples": 500
+  },
+  "convergence_diagnostics": {
+    "elbo_trajectory": {
+      "num_iterations": 50000,
+      "initial_loss": 184105.15625,
+      "final_loss": 315.6541748046875,
+      "min_loss": 303.78631591796875,
+      "total_improvement": 183789.5
+    },
+    "convergence": {
+      "converged": false,
+      "relative_change": 0.018983900547027588,
+      "threshold": 0.01,
+      "window": 100,
+      "final_iteration": 50000
+    }
+  }
+}

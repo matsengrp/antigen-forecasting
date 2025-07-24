@@ -54,6 +54,10 @@ from jax.nn import softmax
 import matplotlib.pyplot as plt
 import numpy as np
 from pandas.tseries.offsets import Day, BDay
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from antigentools.utils import save_vi_convergence_diagnostics
 
 def load_data(data_path: str, country: str) -> pd.DataFrame:
     """ Load variant or case count data from a path, and filter to the desired location.
@@ -478,6 +482,31 @@ def main(args) -> None:
     except:
         print("Model fitting failed.")
         return None
+    
+    # Save VI convergence diagnostics if using VI inference
+    if hasattr(inference_method, '__class__') and inference_method.__class__.__name__ in ['InferSVI', 'InferFullRank', 'InferMAP']:
+        print("Saving VI convergence diagnostics...")
+        try:
+            # Extract inference settings
+            inference_settings = {
+                'iterations': getattr(inference_method, 'iters', None),
+                'learning_rate': getattr(inference_method, 'lr', None),
+                'num_samples': getattr(inference_method, 'num_samples', None)
+            }
+            
+            # Save diagnostics
+            diagnostics_path = save_vi_convergence_diagnostics(
+                posterior=model_posterior,
+                model_name=model_type,
+                location=country,
+                analysis_date=analysis_date,
+                inference_method=inference_method.__class__.__name__,
+                inference_settings=inference_settings,
+                output_dir=f"{output_dir}/convergence_diagnostics"
+            )
+            print(f"VI diagnostics saved to: {diagnostics_path}")
+        except Exception as e:
+            print(f"Warning: Failed to save VI convergence diagnostics: {e}")
     
     print("Sampling posterior and saving to file...")
     if model_type == "MLR":

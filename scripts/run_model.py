@@ -46,6 +46,7 @@ import os
 import pandas as pd
 import jax.numpy as jnp
 import evofr as ef
+from evofr.infer import InferSVI, InferFullRank, InferMAP
 from numpyro.infer.autoguide import AutoDelta, AutoMultivariateNormal
 from pathlib import Path
 from jax import vmap

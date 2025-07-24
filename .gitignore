@@ -11,3 +11,15 @@ data/**/antigen-outputs/*.csv
 # Claude files
 CLAUDE.md
 .claude
+
+# Temp stuff for repo cleanup
+*_tree.json
+*_data.json
+*.nwk
+*.fasta.log
+*.iqtree.log
+
+# Ignore tests for now.
+antigentools/tests/
+run_tests.py
+pytest.ini

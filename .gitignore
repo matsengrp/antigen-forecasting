@@ -1,6 +1,7 @@
 **/*histories*
 **/histories.txt
 results/**/slurm/
+antigentools.egg-info/
 
 # For now, ignore time-stamped files
 data/**/antigen-outputs/*.csv

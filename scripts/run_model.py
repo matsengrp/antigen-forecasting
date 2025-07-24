@@ -56,7 +56,7 @@ import numpy as np
 from pandas.tseries.offsets import Day, BDay
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append('..')  # Adjust path to import antigentools
 from antigentools.utils import save_vi_convergence_diagnostics
 
 def load_data(data_path: str, country: str) -> pd.DataFrame:

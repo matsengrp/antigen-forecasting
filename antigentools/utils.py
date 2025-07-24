@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import linregress, gamma, entropy
 from typing import Optional, Tuple, Dict, Any
 from scipy.interpolate import UnivariateSpline
+import json
 
 
 def read_estimates(paths: list) -> pd.DataFrame:
@@ -717,3 +718,146 @@ def calculate_overestimation_rate(growth_rates_df: pd.DataFrame,
     overestimation_count = (valid_data[r_model_col] >= valid_data[r_data_col] + tol).sum()
     
     return overestimation_count / len(valid_data)
+
+
+def compute_vi_convergence_diagnostics(posterior, window=100, threshold=1e-2):
+    """
+    Compute convergence diagnostics for variational inference.
+    
+    Parameters
+    ----------
+    posterior : PosteriorHandler
+        Posterior object from evofr containing samples and losses
+    window : int, default=100
+        Number of iterations to use for computing relative change
+    threshold : float, default=1e-2
+        Threshold for relative change to consider converged
+        
+    Returns
+    -------
+    dict
+        Dictionary containing convergence diagnostics with keys:
+        - 'elbo_trajectory': Dict with basic ELBO statistics
+        - 'convergence': Dict with convergence status and metrics
+        - 'error': Error message if losses not found
+    """
+    diagnostics_results = {}
+    
+    # Extract ELBO losses (negative ELBO values)
+    if 'losses' in posterior.samples:
+        losses = posterior.samples['losses']
+        
+        # Convert to numpy array if needed
+        if hasattr(losses, 'numpy'):
+            losses = losses.numpy()
+        
+        # Basic statistics
+        diagnostics_results['elbo_trajectory'] = {
+            'num_iterations': len(losses),
+            'initial_loss': float(losses[0]),
+            'final_loss': float(losses[-1]),
+            'min_loss': float(np.min(losses)),
+            'total_improvement': float(losses[0] - losses[-1])
+        }
+        
+        # Convergence check using relative change
+        if len(losses) >= window:
+            epsilon = 1e-10  # Small value to prevent division by zero
+            relative_change = abs(losses[-1] - losses[-window]) / (abs(losses[-window]) + epsilon)
+            converged = relative_change < threshold
+            
+            diagnostics_results['convergence'] = {
+                'converged': bool(converged),
+                'relative_change': float(relative_change),
+                'threshold': threshold,
+                'window': window,
+                'final_iteration': len(losses)
+            }
+        else:
+            diagnostics_results['convergence'] = {
+                'converged': False,
+                'message': f'Not enough iterations ({len(losses)}) for window size ({window})'
+            }
+    else:
+        diagnostics_results['error'] = 'No losses found in posterior.samples'
+    
+    return diagnostics_results
+
+
+def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_date, 
+                                   inference_method, inference_settings, 
+                                   output_dir="results/convergence_diagnostics",
+                                   window=100, threshold=1e-2):
+    """
+    Compute and save VI convergence diagnostics to JSON file.
+    
+    Parameters
+    ----------
+    posterior : PosteriorHandler
+        Posterior object from evofr containing samples and losses
+    model_name : str
+        Name of the model (e.g., 'FGA', 'MLR', 'GARW')
+    location : str
+        Location/deme name (e.g., 'tropics', 'north', 'south')
+    analysis_date : str
+        Analysis date in format YYYY-MM-DD
+    inference_method : str
+        Name of inference method (e.g., 'InferFullRank')
+    inference_settings : dict
+        Dictionary containing inference settings (iterations, lr, num_samples)
+    output_dir : str, default="results/convergence_diagnostics"
+        Directory to save diagnostics files
+    window : int, default=100
+        Number of iterations to use for computing relative change
+    threshold : float, default=1e-2
+        Threshold for relative change to consider converged
+        
+    Returns
+    -------
+    str
+        Path to the saved diagnostics file
+    """
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Compute convergence diagnostics
+    convergence_stats = compute_vi_convergence_diagnostics(posterior, window, threshold)
+    
+    # Prepare output structure
+    diagnostics_output = {
+        'model': model_name,
+        'location': location,
+        'analysis_date': analysis_date,
+        'inference_method': inference_method,
+        'inference_settings': inference_settings,
+        'convergence_diagnostics': convergence_stats
+    }
+    
+    # Convert numpy types to Python types for JSON serialization
+    def convert_to_serializable(obj):
+        if isinstance(obj, (np.integer, np.int64, np.int32)):
+            return int(obj)
+        elif isinstance(obj, (np.floating, np.float64, np.float32)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray)):
+            return obj.tolist()
+        elif isinstance(obj, dict):
+            return {k: convert_to_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_to_serializable(v) for v in obj]
+        elif isinstance(obj, tuple):
+            return tuple(convert_to_serializable(v) for v in obj)
+        return obj
+    
+    # Convert to serializable format
+    diagnostics_output = convert_to_serializable(diagnostics_output)
+    
+    # Create filename
+    filename = f"{model_name}_{location}_{analysis_date}_vi_diagnostics.json"
+    filepath = os.path.join(output_dir, filename)
+    
+    # Save to JSON file
+    with open(filepath, 'w') as f:
+        json.dump(diagnostics_output, f, indent=2)
+    
+    return filepath

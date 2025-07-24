@@ -467,7 +467,7 @@ def main(args) -> None:
 
     # Fit model
     print("Fitting model...")
-    filepath = f"{output_dir}/{model_type}"
+    filepath = f"{output_dir}/estimates/{model_type}"
     os.makedirs(filepath, exist_ok=True)
     if model_type == "NAIVE":
         model_posterior = naive_forecast(seq_counts, pivot=analysis_date, n_days_to_average=7, period=forecast_L)

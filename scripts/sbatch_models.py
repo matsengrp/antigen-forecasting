@@ -93,7 +93,7 @@ def create_slurm_script(build: str, analysis_date: str, country: str, model_type
     parent_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
     data_dir = f"data/{build}/time-stamped/{analysis_date}/"
     slurm_dir = f"results/{build}/slurm/"
-    output_dir = f"results/{build}/estimates/"
+    output_dir = f"results/{build}/"
 
     # Make sure the output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -104,8 +104,8 @@ def create_slurm_script(build: str, analysis_date: str, country: str, model_type
     # Slurm script template
     slurm_script = f"""#!/bin/bash
 #SBATCH --job-name=run_model_{model_type}_{country}_{analysis_date}
-#SBATCH --output={slurm_dir}/job_{country}_{analysis_date}.out
-#SBATCH --error={slurm_dir}/job_{country}_{analysis_date}.err
+#SBATCH --output={slurm_dir}/{model_type}_{country}_{analysis_date}.out
+#SBATCH --error={slurm_dir}/{model_type}_{country}_{analysis_date}.err
 #SBATCH --time=02:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4

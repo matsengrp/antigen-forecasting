@@ -484,7 +484,7 @@ def main(args) -> None:
         return None
     
     # Save VI convergence diagnostics if using VI inference
-    if hasattr(inference_method, '__class__') and inference_method.__class__.__name__ in ['InferSVI', 'InferFullRank', 'InferMAP']:
+    if isinstance(inference_method, (InferSVI, InferFullRank, InferMAP)):
         print("Saving VI convergence diagnostics...")
         try:
             # Extract inference settings

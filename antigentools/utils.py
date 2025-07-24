@@ -762,7 +762,8 @@ def compute_vi_convergence_diagnostics(posterior, window=100, threshold=1e-2):
         
         # Convergence check using relative change
         if len(losses) >= window:
-            relative_change = abs(losses[-1] - losses[-window]) / abs(losses[-window])
+            epsilon = 1e-10  # Small value to prevent division by zero
+            relative_change = abs(losses[-1] - losses[-window]) / (abs(losses[-window]) + epsilon)
             converged = relative_change < threshold
             
             diagnostics_results['convergence'] = {

@@ -18,6 +18,7 @@ CLAUDE.md
 *.nwk
 *.fasta.log
 *.iqtree.log
+notebooks/scratch-work.ipynb
 
 # Ignore tests for now.
 antigentools/tests/

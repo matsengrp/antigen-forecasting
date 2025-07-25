@@ -494,7 +494,6 @@ def main(args) -> None:
     country = args.country
     model_type = args.model
     output_dir = args.output_dir
-    model_args = args.model_args
     forecast_L = args.forecast_L
     seed_L = args.seed_L
     
@@ -513,7 +512,6 @@ def main(args) -> None:
         else:
             print(f"Using default parameters for {model_type}")
     
-    # TODO: Implement model_args
     ps = [0.95, 0.8, 0.5]
 
     # Load data
@@ -675,7 +673,6 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output_dir", type=str, help="Directory to save the model results.")
 
     # Optional arguments
-    parser.add_argument("--model_args", type=str, help="Additional arguments to pass to the model.")
     parser.add_argument("--forecast_L", type=int, default=366, help="Number of days to forecast.")
     parser.add_argument("--seed_L", type=int, default=14, help="Number of days to seed the forecast with.")
     parser.add_argument("--config", type=str, help="Path to JSON configuration file with model parameters.")

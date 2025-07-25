@@ -1,0 +1,60 @@
+{
+  "inference": {
+    "method": "InferFullRank",
+    "settings": {
+      "iters": 50000,
+      "lr": 0.01,
+      "num_samples": 500
+    }
+  },
+  "basis_function": {
+    "type": "Spline",
+    "parameters": {
+      "order": 4,
+      "k": 10
+    }
+  },
+  "generation_time": {
+    "distribution": "gamma",
+    "parameters": {
+      "mean": 3.0,
+      "std": 1.2
+    }
+  },
+  "delay_distribution": {
+    "distribution": "lognorm",
+    "parameters": {
+      "mean": 3.1,
+      "std": 1.0
+    }
+  },
+  "model_specific": {
+    "MLR": {
+      "tau": 3.0
+    },
+    "FGA": {
+      "ga_prior": 0.1,
+      "case_likelihood": {
+        "type": "ZINegBinomCases",
+        "concentration": 0.05
+      },
+      "seq_likelihood": {
+        "type": "DirMultinomialSeq",
+        "concentration": 100
+      }
+    },
+    "GARW": {
+      "ga_prior_mean": 0.1,
+      "ga_prior_std": 0.01,
+      "prior_family": "Normal",
+      "case_likelihood": {
+        "type": "ZINegBinomCases",
+        "concentration": 0.05
+      },
+      "seq_likelihood": {
+        "type": "DirMultinomialSeq",
+        "concentration": 100
+      }
+    }
+  }
+}

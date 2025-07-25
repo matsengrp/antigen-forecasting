@@ -90,7 +90,6 @@ def create_slurm_script(build: str, analysis_date: str, country: str, model_type
         The path to the saved Slurm script.
     """
     # Define paths
-    parent_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
     data_dir = f"data/{build}/time-stamped/{analysis_date}/"
     slurm_dir = f"results/{build}/slurm/"
     output_dir = f"results/{build}/"

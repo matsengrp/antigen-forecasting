@@ -106,7 +106,7 @@ python make_training_data.py -s path/to/sequences.csv -c path/to/cases.csv -o ou
 #### Example:
 
 ```bash
-python make_training_data.py -s data/antigen_h3n2_sim/time-stamped/truth/sequences.csv -c data/antigen_h3n2_sim/time-stamped/truth/cases.csv -o data/antigen_h3n2_sim/training/ --window-size 90 --buffer-size 14 --config-path config/antigen_h3n2_sim/training_config.yaml
+python make_training_data.py -s data/antigen_h3n2_sim/time-stamped/truth/sequences.csv -c data/antigen_h3n2_sim/time-stamped/truth/cases.csv -o data/antigen_h3n2_sim/training/ --window-size 90 --buffer-size 14 --config-path configs/training_config.yaml
 ```
 
 ### 4. Run Forecasting Models
@@ -140,7 +140,7 @@ python run_model.py -d data/antigen_h3n2_sim/time-stamped/2025-10-01/ -c north -
 The `sbatch_models.py` script submits forecasting model inference jobs via SLURM.
 
 ```bash
-python sbatch_models.py -b build_name -c path/to/config.yaml
+python sbatch_models.py -b build_name -c configs/benchmark_config.yaml
 ```
 
 #### Options:
@@ -151,7 +151,7 @@ python sbatch_models.py -b build_name -c path/to/config.yaml
 #### Example:
 
 ```bash
-python sbatch_models.py -b antigen_h3n2_sim -c config/model_config.yaml
+python sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
 ```
 
 ### 5. Evaluate Model Performance
@@ -159,7 +159,7 @@ python sbatch_models.py -b antigen_h3n2_sim -c config/model_config.yaml
 The `score_models.py` script computes model scores.
 
 ```bash
-python score_models.py --config path/to/config.yaml --truth-set path/to/truth.csv --estimates-path path/to/estimates/ --output-path results/scores/
+python score_models.py --config configs/benchmark_config.yaml --truth-set path/to/truth.csv --estimates-path path/to/estimates/ --output-path results/scores/
 ```
 
 #### Options:
@@ -172,7 +172,7 @@ python score_models.py --config path/to/config.yaml --truth-set path/to/truth.cs
 #### Example:
 
 ```bash
-python score_models.py --config config/antigen_h3n2_sim/scoring_config.yaml --truth-set data/antigen_h3n2_sim/time-stamped/truth/true_values.csv --estimates-path results/antigen_h3n2_sim/estimates/ --output-path results/antigen_h3n2_sim/scores/
+python score_models.py --config configs/benchmark_config.yaml --truth-set data/antigen_h3n2_sim/time-stamped/truth/true_values.csv --estimates-path results/antigen_h3n2_sim/estimates/ --output-path results/antigen_h3n2_sim/scores/
 ```
 
 ## Complete Pipeline Example
@@ -192,10 +192,10 @@ python make_training_data.py -s data/prepped/sequences.csv -c data/prepped/cases
 # 4. Run models (individual or batch)
 python run_model.py -d data/training/ -c US -m FGA -o results/estimates/
 # Or with SLURM
-python sbatch_models.py -b antigen_h3n2_sim -c config/model_config.yaml
+python sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
 
 # 5. Score models
-python score_models.py --config config/scoring_config.yaml --truth-set data/true_values.csv --estimates-path results/estimates/ --output-path results/scores/
+python score_models.py --config configs/benchmark_config.yaml --truth-set data/true_values.csv --estimates-path results/estimates/ --output-path results/scores/
 ```
 
 ## Notes

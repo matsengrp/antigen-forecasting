@@ -389,7 +389,7 @@ def prep_frequency_data(df: pd.DataFrame) -> tuple:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute model scores.')
 
-    parser.add_argument('--config', type=str, default="../config/config.yaml", help='Path to the configuration file.')
+    parser.add_argument('--config', type=str, default="../configs/benchmark_config.yaml", help='Path to the configuration file.')
     parser.add_argument('--truth-set', type=str, help='Path to the truth set of sequences.')
     parser.add_argument('--estimates-path', type=str, help='Path to the estimates.')
     parser.add_argument('--output-path', type=str, help='Path to save the output.')

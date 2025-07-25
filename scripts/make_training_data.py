@@ -8,7 +8,7 @@ the processed datasets to an output directory. Additionally, it generates a conf
 file specifying estimation dates, locations, and models.
 
 Usage:
-    python make_training_data.py -s sequences.tsv -c cases.tsv -o output_dir [--window-size 365] [--buffer-size 0] [--config-path config.yaml] [-n] [--deme_population_size 30000000]
+    python make_training_data.py -s sequences.tsv -c cases.tsv -o output_dir [--window-size 365] [--buffer-size 0] [--config-path configs/benchmark_config.yaml] [-n] [--deme_population_size 30000000]
 
 Required Arguments:
     -s, --sequences        Path to the variant counts file (TSV format).
@@ -18,7 +18,7 @@ Required Arguments:
 Optional Arguments:
     --window-size          Size of the training window in days (default: 365).
     --buffer-size          Number of days to remove from the training set before the analysis date (default: 0).
-    --config-path          Path to save the configuration YAML file (default: 'config.yaml').
+    --config-path          Path to save the configuration YAML file (default: 'configs/benchmark_config.yaml').
     -n, --normalize_cases  Normalize case counts to report cases per 100k hosts.
     --deme_population_size Population size of the deme (default: 30,000,000).
 
@@ -31,7 +31,7 @@ Processing Steps:
 
 Outputs:
     - Processed sequence counts (`seq_counts.tsv`) and case counts (`case_counts.tsv`) per training window.
-    - A configuration file (`config.yaml`) defining estimation dates, locations, and models.
+    - A configuration file (`configs/benchmark_config.yaml`) defining estimation dates, locations, and models.
 
 Dependencies:
     - Python 3.x
@@ -177,7 +177,7 @@ if __name__ == "__main__":
     # Optional arguments
     parser.add_argument("--window-size", type=int, default=365, help="Size of the training window in days.")
     parser.add_argument("--buffer-size", type=int, default=0, help="Number of days to remove from the training set before the analysis date.")
-    parser.add_argument("--config-path", type=str, default='config.yaml', help="Path to dump the training configuration file.")
+    parser.add_argument("--config-path", type=str, default='configs/benchmark_config.yaml', help="Path to dump the training configuration file.")
 
     
     # Parse the arguments and run program

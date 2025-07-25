@@ -24,3 +24,6 @@ CLAUDE.md
 antigentools/tests/
 run_tests.py
 pytest.ini
+
+# Ignore generated model config files
+config_*.json

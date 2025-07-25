@@ -69,3 +69,4 @@ main:
   - MLR
   - FGA
   - GARW
+  model_config: 'configs/default_config.json'

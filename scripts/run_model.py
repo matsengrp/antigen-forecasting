@@ -42,7 +42,9 @@ Date: 2025-02-06
 """
 # Import packages
 import argparse
+import json
 import os
+import shutil
 import pandas as pd
 import jax.numpy as jnp
 import evofr as ef
@@ -394,6 +396,98 @@ def naive_forecast(seq_count_date, pivot, n_days_to_average=7, period=30):
     sc.loc[sc.date.isin(nowcast_dates),'median_freq_forecast'] = np.nan
     return sc.reset_index(drop=True)
 
+def load_config(config_path: str) -> dict:
+    """Load and validate JSON configuration file.
+    
+    Parameters
+    ----------
+    config_path : str
+        Path to the JSON configuration file.
+        
+    Returns
+    -------
+    config : dict
+        Parsed configuration dictionary, empty if file doesn't exist.
+    """
+    if config_path and os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            print(f"Loaded configuration from: {config_path}")
+            return config
+        except json.JSONDecodeError as e:
+            print(f"Error parsing JSON config file: {e}")
+            return {}
+    elif config_path:
+        print(f"Warning: Config file not found: {config_path}")
+    return {}
+
+def get_config_value(config: dict, keys: list, default):
+    """Safely get nested configuration value with default fallback.
+    
+    Parameters
+    ----------
+    config : dict
+        Configuration dictionary.
+    keys : list
+        List of keys to traverse (e.g., ['inference', 'settings', 'iters']).
+    default : any
+        Default value to return if key path doesn't exist.
+        
+    Returns
+    -------
+    any
+        Configuration value or default.
+    """
+    value = config
+    for key in keys:
+        if isinstance(value, dict) and key in value:
+            value = value[key]
+        else:
+            return default
+    return value
+
+def validate_config_for_model(config: dict, model_type: str) -> dict:
+    """Validate that config contains appropriate sections for the specified model.
+    
+    Parameters
+    ----------
+    config : dict
+        Configuration dictionary.
+    model_type : str
+        Model type (MLR, FGA, GARW, NAIVE).
+        
+    Returns
+    -------
+    config : dict
+        Validated configuration dictionary.
+    """
+    if not config:
+        return config
+    
+    print(f"Validating config for model type: {model_type}")
+    
+    # Check if model-specific config exists
+    if 'model_specific' in config and model_type in config['model_specific']:
+        model_config = config['model_specific'][model_type]
+        print(f"Found model-specific config for {model_type}")
+        
+        if model_type == "MLR":
+            # MLR requires tau parameter
+            if 'tau' not in model_config:
+                print(f"Warning: MLR config missing 'tau' parameter, using default")
+        
+        elif model_type in ["FGA", "GARW"]:
+            # FGA/GARW require likelihood configs
+            required_keys = ['case_likelihood', 'seq_likelihood']
+            for key in required_keys:
+                if key not in model_config:
+                    print(f"Warning: {model_type} config missing '{key}', using default")
+    else:
+        print(f"No model-specific config found for {model_type}, using defaults")
+    
+    return config
+
 def main(args) -> None:
     # Load arguments
     data_path = args.data_path
@@ -403,6 +497,22 @@ def main(args) -> None:
     model_args = args.model_args
     forecast_L = args.forecast_L
     seed_L = args.seed_L
+    
+    # Load and validate configuration
+    config = load_config(args.config) if args.config else {}
+    config = validate_config_for_model(config, model_type)
+    
+    # Configuration logging and reproduction
+    if args.config:
+        print(f"Using config file: {args.config}")
+        print(f"Model type: {model_type}")
+        
+        # Log which config sections are being used
+        if 'model_specific' in config and model_type in config['model_specific']:
+            print(f"Found model-specific config for {model_type}")
+        else:
+            print(f"Using default parameters for {model_type}")
+    
     # TODO: Implement model_args
     ps = [0.95, 0.8, 0.5]
 
@@ -425,37 +535,61 @@ def main(args) -> None:
     print("Creating variant frequency data...")
     variant_data = make_variant_frequency_data(seq_counts, v_names, case_counts)
 
-    # Define basis function and inference method.
-    basis_fn = ef.Spline(order=4, k=10)
-    # TODO: Allow these to change with model args.
-    inference_method = ef.InferFullRank(iters=50_000, lr=0.01, num_samples=500)
+    # Define basis function and inference method from config
+    basis_order = get_config_value(config, ['basis_function', 'parameters', 'order'], 4)
+    basis_k = get_config_value(config, ['basis_function', 'parameters', 'k'], 10)
+    basis_fn = ef.Spline(order=basis_order, k=basis_k)
     
-    # Create delay padding embeddings for each variant
+    # Get inference settings from config
+    iters = get_config_value(config, ['inference', 'settings', 'iters'], 50_000)
+    lr = get_config_value(config, ['inference', 'settings', 'lr'], 0.01)
+    num_samples = get_config_value(config, ['inference', 'settings', 'num_samples'], 500)
+    inference_method = ef.InferFullRank(iters=iters, lr=lr, num_samples=num_samples)
+    
+    # Create delay padding embeddings for each variant from config
+    gen_mean = get_config_value(config, ['generation_time', 'parameters', 'mean'], 3.0)
+    gen_std = get_config_value(config, ['generation_time', 'parameters', 'std'], 1.2)
     gen = ef.pad_delays(
         [
-            ef.discretise_gamma(mn=3.0, std=1.2) for _ in v_names
+            ef.discretise_gamma(mn=gen_mean, std=gen_std) for _ in v_names
         ]
     )
-    delays = ef.pad_delays([ef.discretise_lognorm(mn=3.1, std=1.0)])
     
-    # Setup the model
+    delay_mean = get_config_value(config, ['delay_distribution', 'parameters', 'mean'], 3.1)
+    delay_std = get_config_value(config, ['delay_distribution', 'parameters', 'std'], 1.0)
+    delays = ef.pad_delays([ef.discretise_lognorm(mn=delay_mean, std=delay_std)])
+    
+    # Setup the model with config-driven parameters
     if model_type == "MLR":
-        model = ef.MultinomialLogisticRegression(tau=3.0)
+        tau = get_config_value(config, ['model_specific', 'MLR', 'tau'], 3.0)
+        model = ef.MultinomialLogisticRegression(tau=tau)
     elif model_type == "FGA":
+        # Get FGA-specific parameters from config
+        ga_prior = get_config_value(config, ['model_specific', 'FGA', 'ga_prior'], 0.1)
+        case_conc = get_config_value(config, ['model_specific', 'FGA', 'case_likelihood', 'concentration'], 0.05)
+        seq_conc = get_config_value(config, ['model_specific', 'FGA', 'seq_likelihood', 'concentration'], 100)
+        
         model = ef.RenewalModel(
             gen, delays, seed_L=seed_L, forecast_L=forecast_L,
-            RLik=ef.FixedGA(0.1), # Likelihood on effective reproduction number
-            CLik=ef.ZINegBinomCases(0.05), # Case counts likelihood
-            SLik = ef.DirMultinomialSeq(100), # Sequence counts likelihood
+            RLik=ef.FixedGA(ga_prior), # Likelihood on effective reproduction number
+            CLik=ef.ZINegBinomCases(case_conc), # Case counts likelihood
+            SLik = ef.DirMultinomialSeq(seq_conc), # Sequence counts likelihood
             v_names=v_names,
             basis_fn=basis_fn
         )
     elif model_type == "GARW":
+        # Get GARW-specific parameters from config
+        ga_prior_mean = get_config_value(config, ['model_specific', 'GARW', 'ga_prior_mean'], 0.1)
+        ga_prior_std = get_config_value(config, ['model_specific', 'GARW', 'ga_prior_std'], 0.01)
+        prior_family = get_config_value(config, ['model_specific', 'GARW', 'prior_family'], 'Normal')
+        case_conc = get_config_value(config, ['model_specific', 'GARW', 'case_likelihood', 'concentration'], 0.05)
+        seq_conc = get_config_value(config, ['model_specific', 'GARW', 'seq_likelihood', 'concentration'], 100)
+        
         model = ef.RenewalModel(
             gen, delays, seed_L=seed_L, forecast_L=forecast_L,
-            RLik=ef.GARW(0.1,0.01, prior_family='Normal'), # Likelihood on effective reproduction number (GARW depend on R and gen time
-            CLik=ef.ZINegBinomCases(0.05), # Case counts likelihood
-            SLik = ef.DirMultinomialSeq(100), # Sequence counts likelihood
+            RLik=ef.GARW(ga_prior_mean, ga_prior_std, prior_family=prior_family), 
+            CLik=ef.ZINegBinomCases(case_conc), # Case counts likelihood
+            SLik = ef.DirMultinomialSeq(seq_conc), # Sequence counts likelihood
             v_names=v_names,
             basis_fn=basis_fn
         )
@@ -509,6 +643,15 @@ def main(args) -> None:
         except Exception as e:
             print(f"Warning: Failed to save VI convergence diagnostics: {e}")
     
+    # Copy config to output directory for reproducibility
+    if args.config:
+        try:
+            config_copy_path = f"{output_dir}/config_{model_type}_{country}_{analysis_date}.json"
+            shutil.copy2(args.config, config_copy_path)
+            print(f"Config copied to: {config_copy_path}")
+        except Exception as e:
+            print(f"Warning: Failed to copy config file: {e}")
+    
     print("Sampling posterior and saving to file...")
     if model_type == "MLR":
         model_posterior.samples['freq_forecast'] = forecast_frequencies(model_posterior.samples, model, forecast_L=forecast_L)
@@ -535,6 +678,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_args", type=str, help="Additional arguments to pass to the model.")
     parser.add_argument("--forecast_L", type=int, default=366, help="Number of days to forecast.")
     parser.add_argument("--seed_L", type=int, default=14, help="Number of days to seed the forecast with.")
+    parser.add_argument("--config", type=str, help="Path to JSON configuration file with model parameters.")
     
 
 

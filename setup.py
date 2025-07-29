@@ -10,5 +10,6 @@ setup(
         "matplotlib",
         "seaborn",
         "scipy",
+        "biopython",
     ],
 )

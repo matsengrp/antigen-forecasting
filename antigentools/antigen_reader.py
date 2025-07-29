@@ -8,6 +8,11 @@ import json
 import Bio.Phylo as bp
 import pandas as pd
 import numpy as np
+from Bio import SeqIO
+from Bio.Seq import Seq
+from collections import Counter
+from typing import Dict, List, Optional, Tuple
+from antigentools.utils import translate_dna_to_aa
 
 
 def process_file_path(path: str) -> dict:
@@ -660,6 +665,125 @@ class AntigenReader:
                     memory = self.parse_host(sample)
                     host_memories[date][deme].append(memory)
         return (host_memories, contact_rates)
+    
+    def read_fasta(self, fasta_file: str) -> List[Tuple[str, str]]:
+        """
+        Read sequences from a FASTA file.
+        
+        Args:
+            fasta_file: Path to FASTA file
+            
+        Returns:
+            List of tuples (sequence_id, sequence)
+        """
+        sequences = []
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            sequences.append((record.id, str(record.seq)))
+        return sequences
+    
+    def get_consensus_sequence(self, sequences: List[str]) -> str:
+        """
+        Calculate consensus amino acid sequence from aligned sequences.
+        
+        Args:
+            sequences: List of aligned amino acid sequences
+            
+        Returns:
+            Consensus sequence string
+        """
+        if not sequences:
+            raise ValueError("No sequences provided")
+            
+        seq_length = len(sequences[0])
+        consensus = []
+        
+        for position in range(seq_length):
+            # Get amino acids at this position across all sequences
+            position_aas = [seq[position] for seq in sequences if position < len(seq)]
+            # Find most common amino acid
+            if position_aas:
+                most_common = Counter(position_aas).most_common(1)[0][0]
+                consensus.append(most_common)
+            else:
+                consensus.append('-')
+                
+        return ''.join(consensus)
+    
+    def calculate_mutation_frequencies(self, sequences: List[str], reference: str) -> pd.DataFrame:
+        """
+        Calculate mutation frequencies at each position compared to reference.
+        
+        Args:
+            sequences: List of aligned amino acid sequences
+            reference: Reference amino acid sequence
+            
+        Returns:
+            DataFrame with columns: position, reference_aa, variant_aa, count, frequency
+        """
+        if not sequences:
+            raise ValueError("No sequences provided")
+            
+        mutations = []
+        total_sequences = len(sequences)
+        
+        # Count mutations at each position
+        for pos in range(len(reference)):
+            ref_aa = reference[pos]
+            mutation_counts = Counter()
+            
+            for seq in sequences:
+                if pos < len(seq) and seq[pos] != ref_aa:
+                    mutation_counts[seq[pos]] += 1
+            
+            # Add mutation data for this position
+            for variant_aa, count in mutation_counts.items():
+                mutations.append({
+                    'position': pos + 1,  # 1-indexed
+                    'reference_aa': ref_aa,
+                    'variant_aa': variant_aa,
+                    'count': count,
+                    'frequency': count / total_sequences
+                })
+        
+        return pd.DataFrame(mutations)
+    
+    def fasta_to_aa_mutations(self, fasta_file: str, reference_seq: Optional[str] = None) -> pd.DataFrame:
+        """
+        Main pipeline: Read FASTA file and calculate amino acid mutation frequencies.
+        
+        Args:
+            fasta_file: Path to FASTA file containing DNA sequences
+            reference_seq: Optional reference amino acid sequence. If None, uses consensus.
+            
+        Returns:
+            DataFrame with mutation frequencies per position
+        """
+        # Read sequences from FASTA
+        sequences = self.read_fasta(fasta_file)
+        
+        # Translate DNA to amino acids
+        aa_sequences = []
+        for seq_id, dna_seq in sequences:
+            # Ensure sequence length is multiple of 3
+            if len(dna_seq) % 3 != 0:
+                dna_seq = dna_seq[:-(len(dna_seq) % 3)]
+            aa_seq = translate_dna_to_aa(dna_seq)
+            aa_sequences.append(aa_seq)
+        
+        # Determine reference sequence
+        if reference_seq is not None:
+            reference = reference_seq
+        else:
+            reference = self.get_consensus_sequence(aa_sequences)
+        
+        # Calculate mutation frequencies
+        mutation_df = self.calculate_mutation_frequencies(aa_sequences, reference)
+        
+        # Add metadata
+        mutation_df['n_sequences'] = len(aa_sequences)
+        mutation_df['reference_type'] = 'provided' if reference_seq else 'consensus'
+        
+        return mutation_df
 
 
 def read_model_estimates(paths: list) -> pd.DataFrame:

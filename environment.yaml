@@ -18,3 +18,5 @@ dependencies:
   - augur
   - auspice
   - importlib_resources
+  - pip:
+    - -e .

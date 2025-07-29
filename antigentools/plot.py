@@ -17,6 +17,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.patches import Patch
+import seaborn as sns
 
 # Antigentools imports
 from antigentools.utils import (
@@ -759,6 +760,210 @@ def plot_tree(tree):
     """
     import Bio.Phylo as bp
     bp.draw(tree, lambda node: None)
+
+
+def plot_mutation_heatmap(
+    mutation_df: pd.DataFrame,
+    figsize: Tuple[int, int] = (20, 8),
+    cmap: str = 'Blues',
+    min_frequency: float = 0.0,
+    show_only_variable: bool = True,
+    positions: Optional[List[int]] = None,
+    title: Optional[str] = None,
+    save_path: Optional[str] = None,
+    plot_counts: bool = False,
+    min_count: int = 0,
+    highlight_positions: Optional[List[int]] = None
+) -> None:
+    """
+    Create static heatmap of amino acid mutation frequencies or counts.
+    
+    Args:
+        mutation_df: DataFrame from fasta_to_aa_mutations with columns:
+                    position, reference_aa, variant_aa, count, frequency
+        figsize: Figure size as (width, height)
+        cmap: Colormap for heatmap
+        min_frequency: Minimum frequency threshold to display (ignored if plot_counts=True)
+        show_only_variable: If True, only show positions with mutations
+        positions: Optional list of positions to focus on
+        title: Optional title for the plot
+        save_path: Optional path to save the figure
+        plot_counts: If True, plot mutation counts instead of frequencies
+        min_count: Minimum count threshold to display (only used if plot_counts=True)
+        highlight_positions: Optional list of positions to highlight with black stars (e.g., epitope sites)
+        
+    Returns:
+        None
+    """
+    import seaborn as sns
+    
+    # Filter by minimum threshold
+    if plot_counts:
+        filtered_df = mutation_df[mutation_df['count'] >= min_count].copy()
+    else:
+        filtered_df = mutation_df[mutation_df['frequency'] >= min_frequency].copy()
+    
+    # Filter by positions if specified
+    if positions is not None:
+        filtered_df = filtered_df[filtered_df['position'].isin(positions)]
+    
+    # Get variable positions if requested
+    if show_only_variable:
+        variable_positions = filtered_df['position'].unique()
+        if len(variable_positions) == 0:
+            print("No variable positions found with given filters")
+            return
+    else:
+        # Include all positions in range
+        if positions is None:
+            all_positions = range(1, mutation_df['position'].max() + 1)
+        else:
+            all_positions = positions
+        variable_positions = all_positions
+    
+    # Create matrix for heatmap
+    # Get all amino acids present
+    all_aas = sorted(set(filtered_df['variant_aa'].unique()) | set(filtered_df['reference_aa'].unique()))
+    
+    # Initialize matrix
+    matrix = pd.DataFrame(
+        0.0,
+        index=all_aas,
+        columns=sorted(variable_positions)
+    )
+    
+    # Fill matrix with frequencies or counts
+    value_col = 'count' if plot_counts else 'frequency'
+    for _, row in filtered_df.iterrows():
+        matrix.loc[row['variant_aa'], row['position']] = row[value_col]
+    
+    # Add reference amino acids
+    ref_positions = filtered_df.groupby('position')['reference_aa'].first()
+    if plot_counts:
+        # For counts, calculate reference count from total sequences minus mutation counts
+        n_sequences = mutation_df['n_sequences'].iloc[0] if len(mutation_df) > 0 else 0
+        for pos in variable_positions:
+            if pos in ref_positions.index:
+                ref_aa = ref_positions[pos]
+                total_mut_count = filtered_df[filtered_df['position'] == pos]['count'].sum()
+                matrix.loc[ref_aa, pos] = n_sequences - total_mut_count
+    else:
+        # For frequencies, reference frequency is 1 - sum(mutation frequencies)
+        for pos in variable_positions:
+            if pos in ref_positions.index:
+                ref_aa = ref_positions[pos]
+                total_mut_freq = filtered_df[filtered_df['position'] == pos]['frequency'].sum()
+                matrix.loc[ref_aa, pos] = 1.0 - total_mut_freq
+    
+    # Create plot
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Create heatmap
+    if plot_counts:
+        sns.heatmap(
+            matrix,
+            cmap=cmap,
+            cbar_kws={'label': 'Count'},
+            ax=ax,
+            vmin=0,
+            linewidths=0.5,
+            linecolor='lightgray',
+            fmt='d'
+        )
+    else:
+        sns.heatmap(
+            matrix,
+            cmap=cmap,
+            cbar_kws={'label': 'Frequency'},
+            ax=ax,
+            vmin=0,
+            vmax=1,
+            linewidths=0.5,
+            linecolor='lightgray'
+        )
+    
+    # Customize plot
+    ax.set_xlabel('Position', fontsize=12)
+    ax.set_ylabel('Amino Acid', fontsize=12)
+    
+    if title:
+        ax.set_title(title, fontsize=14, pad=20)
+    else:
+        default_title = 'Amino Acid Mutation Counts' if plot_counts else 'Amino Acid Mutation Frequencies'
+        ax.set_title(default_title, fontsize=14, pad=20)
+    
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)
+    
+    # Add position markers - show every other position if many positions
+    if len(variable_positions) > 20:
+        # Show every other position
+        sorted_pos = sorted(variable_positions)
+        tick_positions = [i + 0.5 for i in range(0, len(sorted_pos), 2)]  # Every other index, centered
+        tick_labels = [sorted_pos[i] for i in range(0, len(sorted_pos), 2)]
+        ax.set_xticks(tick_positions)
+        ax.set_xticklabels(tick_labels)
+    
+    # Highlight specific positions if requested
+    if highlight_positions is not None:
+        sorted_positions = sorted(variable_positions)
+        
+        # Add stars at the top of the heatmap
+        for highlight_pos in highlight_positions:
+            if highlight_pos in sorted_positions:
+                # Find the index in the sorted positions
+                x_idx = sorted_positions.index(highlight_pos)
+                # Add a star at the top of the heatmap
+                ax.text(x_idx + 0.5, -0.8, '★', 
+                       ha='center', va='top', fontsize=14, 
+                       color='black', weight='bold')
+        
+        # Color epitope site labels red on x-axis
+        current_labels = ax.get_xticklabels()
+        new_labels = []
+        for label in current_labels:
+            try:
+                pos_num = int(label.get_text())
+                if pos_num in highlight_positions:
+                    label.set_color('red')
+                    label.set_weight('bold')
+            except ValueError:
+                pass  # Not a number, skip
+        
+        # Ensure all epitope positions are shown on x-axis
+        current_ticks = list(ax.get_xticks())
+        current_tick_labels = [int(label.get_text()) if label.get_text().isdigit() else 0 
+                             for label in ax.get_xticklabels()]
+        
+        # Add epitope sites that might be missing from ticks
+        for highlight_pos in highlight_positions:
+            if highlight_pos in sorted_positions and highlight_pos not in current_tick_labels:
+                x_idx = sorted_positions.index(highlight_pos)
+                current_ticks.append(x_idx + 0.5)  # Center the tick on the cell
+                current_tick_labels.append(highlight_pos)
+        
+        # Sort and set new ticks
+        if len(current_ticks) > 0:
+            tick_pairs = list(zip(current_ticks, current_tick_labels))
+            tick_pairs.sort()
+            new_ticks, new_tick_labels = zip(*tick_pairs)
+            ax.set_xticks(new_ticks)
+            ax.set_xticklabels(new_tick_labels)
+            
+            # Color the epitope sites red
+            for i, label_text in enumerate(new_tick_labels):
+                if label_text in highlight_positions:
+                    ax.get_xticklabels()[i].set_color('red')
+                    ax.get_xticklabels()[i].set_weight('bold')
+    
+    plt.tight_layout()
+    
+    # Save if path provided
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Figure saved to {save_path}")
+    
+    plt.show()
 
 
 def get_analysis_window(analysis_date: str, build: str, fitness_df: pd.DataFrame) -> tuple:

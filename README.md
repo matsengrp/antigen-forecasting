@@ -30,6 +30,49 @@ mamba activate antigen
 pip install .
 ```
 
+### Development Mode
+
+For users who want to edit or contribute to the `antigentools` package:
+
+#### Quick Setup
+
+1. **Run the setup script:**
+   ```bash
+   chmod +x install_dev.sh
+   ./install_dev.sh
+   ```
+
+2. **Activate the environment:**
+   ```bash
+   mamba activate antigen
+   ```
+
+3. **Import antigentools in notebooks and scripts:**
+   ```python
+   from antigentools.antigen_reader import AntigenReader
+   from antigentools.utils import hamming_distance, translate_dna_to_aa
+   from antigentools.plot import plot_tree
+   ```
+
+#### Manual Setup
+
+If you prefer to set up manually:
+
+1. **Create/update the environment:**
+   ```bash
+   mamba env create -f environment.yaml
+   # or if environment exists:
+   mamba env update -f environment.yaml
+   ```
+
+2. **Activate and verify:**
+   ```bash
+   mamba activate antigen
+   python -c "from antigentools.antigen_reader import AntigenReader; print('Import successful!')"
+   ```
+
+The development setup installs the `antigentools` package in editable mode, making your local changes immediately available throughout the project without reinstallation.
+
 ### Extracting the included simulated data
 The relevant files used in this analysis 
 

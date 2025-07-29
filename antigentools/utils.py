@@ -6,6 +6,7 @@ from scipy.stats import linregress, gamma, entropy
 from typing import Optional, Tuple, Dict, Any
 from scipy.interpolate import UnivariateSpline
 import json
+from Bio.Seq import Seq
 
 
 def read_estimates(paths: list) -> pd.DataFrame:
@@ -861,3 +862,48 @@ def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_da
         json.dump(diagnostics_output, f, indent=2)
     
     return filepath
+
+
+def hamming_distance(seq1: str, seq2: str) -> Tuple[int, Tuple[int]]:
+    """
+    Calculate the hamming distance between two sequences.
+
+    Args:
+        seq1 (str): The first sequence.
+        seq2 (str): The second sequence.
+
+    Raises:
+        ValueError: If the sequences are not the same length.
+
+    Returns:
+        count (int): The hamming distance between the two sequences.
+        indices Tuple[int]: The indices of the mutation sites.
+    """
+    i = 0
+    count = 0
+    indices = []
+    if len(seq1) != len(seq2):
+        raise ValueError("Strand lengths are not equal!")
+    if seq1 == seq2:
+        return count, indices
+    while(i < len(seq1)):
+        if(seq1[i] != seq2[i]):
+            count += 1
+            indices.append(i)
+        i += 1
+    return count, indices
+
+
+def translate_dna_to_aa(dna_sequence: str) -> str:
+    """
+    Translate a sequence of DNA to its amino acid sequence.
+
+    Args:
+        dna_sequence (string): The DNA sequence
+    
+    Returns:
+        aa_seq (string): The amino acid sequence.
+    """
+    dna_seq = Seq(dna_sequence)
+    aa_seq = dna_seq.translate()
+    return str(aa_seq)

@@ -748,6 +748,19 @@ def plot_dynamics(
     plt.show()
 
 
+def plot_tree(tree):
+    """Plot a tree using Bio.Phylo.draw
+
+    Args:
+        tree (Bio.Phylo.Tree): tree object
+    
+    Returns:
+        None
+    """
+    import Bio.Phylo as bp
+    bp.draw(tree, lambda node: None)
+
+
 def get_analysis_window(analysis_date: str, build: str, fitness_df: pd.DataFrame) -> tuple:
     """ Create a subset of data for a given analysis window.
 

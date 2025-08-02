@@ -27,3 +27,4 @@ pytest.ini
 
 # Ignore generated model config files
 config_*.json
+issues/

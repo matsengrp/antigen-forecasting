@@ -1822,7 +1822,7 @@ def plot_growth_rate_dynamics(
         
         # Plot variant incidence or frequencies based on flag
         if plot_incidence:
-            # Plot variant incidence (smoothed)
+            # Plot variant incidence (smoothed) without filtering
             valid_incidence_data = variant_data[~variant_data['variant_incidence_smoothed'].isna()]
             if len(valid_incidence_data) > 0:
                 axs[1].plot(
@@ -1976,8 +1976,8 @@ def plot_growth_rate_dynamics(
             # Just ensure we don't have identical min/max
             if overall_min == overall_max:
                 # If all values are the same, add a tiny margin
-                overall_min -= 0.001
-                overall_max += 0.001
+                overall_min -= 0.002
+                overall_max += 0.002
             
             # Ensure 0 is included in the range if it's close
             if overall_min > -0.001 and overall_min < 0:

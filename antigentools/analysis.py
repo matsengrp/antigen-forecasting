@@ -8,7 +8,7 @@ from antigentools.utils import (
     calculate_overestimation_rate,
 )
 
-def load_model_rt_values(build: str, model: str, location: str, pivot_date: str) -> Optional[pd.DataFrame]:
+def load_model_rt_values(build: str, model: str, location: str, pivot_date: str, results_path: str = "../results/") -> Optional[pd.DataFrame]:
     """
     Load Rt values directly from model result files.
     
@@ -22,6 +22,8 @@ def load_model_rt_values(build: str, model: str, location: str, pivot_date: str)
         The location name (e.g., 'north', 'tropics').
     pivot_date : str
         The pivot date in YYYY-MM-DD format.
+    results_path : str, default="../results/"
+        Base directory for results files.
     
     Returns:
     --------
@@ -29,7 +31,7 @@ def load_model_rt_values(build: str, model: str, location: str, pivot_date: str)
         A DataFrame containing the Rt values, or None if the file is not found.
     """
     # Construct path to the Rt file for this model, location, and date
-    rt_path = f"../results/{build}/estimates/{model}/rt_{location}_{pivot_date}.tsv"
+    rt_path = f"{results_path}{build}/estimates/{model}/rt_{location}_{pivot_date}.tsv"
     
     try:
         # Read the file
@@ -138,7 +140,8 @@ def get_filtered_growth_rates_df(
     min_variant_frequency=0.05,
     skip_first_n_points=2,
     use_freqs=True,
-    use_smoothed_incidence=True
+    use_smoothed_incidence=True,
+    data_path="../data/",
 ):
     """
     Get growth rates dataframe with automatic filtering of unreliable data points.
@@ -190,6 +193,8 @@ def get_filtered_growth_rates_df(
         Whether to use smoothed incidence for r_data calculations.
         If False, uses raw incidence (variant_frequency × cases).
         If True, uses smoothed incidence (variant_frequency_smoothed × cases).
+    data_path : str, default='../data/'
+        Directory where data lives.
     
     Returns:
     --------
@@ -197,8 +202,8 @@ def get_filtered_growth_rates_df(
         DataFrame containing growth rates with proper variant incidence calculations
     """
     # Load raw data
-    seqs_path = f"../data/{build}/time-stamped/{pivot_date}/seq_counts.tsv"
-    cases_path = f"../data/{build}/time-stamped/{pivot_date}/case_counts.tsv"
+    seqs_path = f"{data_path}{build}/time-stamped/{pivot_date}/seq_counts.tsv"
+    cases_path = f"{data_path}{build}/time-stamped/{pivot_date}/case_counts.tsv"
     seqs_df = pd.read_csv(seqs_path, sep='\t')
     cases_df = pd.read_csv(cases_path, sep='\t')
     
@@ -372,7 +377,7 @@ def get_filtered_growth_rates_df(
     growth_rates_df = calculate_growth_rates(growth_rates_df, use_smoothed=use_smoothed_incidence)
     
     # Load model results and merge
-    rt_df = load_model_rt_values(build, model, location, pivot_date)
+    rt_df = load_model_rt_values(build, model, location, pivot_date, results_path=data_path.replace('data/', 'results/'))
     if rt_df is not None:
         # Ensure both date columns are datetime type
         growth_rates_df['date'] = pd.to_datetime(growth_rates_df['date'])

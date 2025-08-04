@@ -378,13 +378,13 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
             print(f"  Sequence count range: {results_df['n_seqs'].min()}-{results_df['n_seqs'].max()}")
 
     # Save results to CSV files
-    window_growth_rates_df_path = Path(output_dir) / "window_growth_rates.csv"
-    variant_results_df_path = Path(output_dir) / "variant_growth_rates.csv"
-    diagnostics_df_path = Path(output_dir) / "vi_convergence_diagnostics.csv"
+    window_growth_rates_df_path = Path(output_dir) / "window_growth_rates.tsv"
+    variant_results_df_path = Path(output_dir) / "variant_growth_rates.tsv"
+    diagnostics_df_path = Path(output_dir) / "vi_convergence_diagnostics.tsv"
     
-    results_df.to_csv(window_growth_rates_df_path, index=False)
-    variant_results_df.to_csv(variant_results_df_path, index=False)
-    diagnostics_df.to_csv(diagnostics_df_path, index=False)
+    results_df.to_csv(window_growth_rates_df_path, index=False, sep='\t')
+    variant_results_df.to_csv(variant_results_df_path, index=False, sep='\t')
+    diagnostics_df.to_csv(diagnostics_df_path, index=False, sep='\t')
     
     print(f"\nResults saved to:")
     print(f"  {window_growth_rates_df_path}")

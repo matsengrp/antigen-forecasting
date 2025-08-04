@@ -144,7 +144,25 @@ def get_filtered_growth_rates_df(
     Get growth rates dataframe with automatic filtering of unreliable data points.
     
     Uses improved variant incidence calculation pipeline with proper date alignment
-    and complete variant×time frequency matrix.
+    and complete variant×time frequency matrix. Includes handling for missing case 
+    data and frequency re-normalization after spline smoothing.
+    
+    Key Processing Steps:
+    -------------------
+    1. Aligns all dates to weekly boundaries (Monday week starts)
+    2. Creates complete variant×time frequency matrix (fills missing combinations with 0)
+    3. Applies spline smoothing to both sequence counts and variant frequencies
+    4. Re-normalizes smoothed frequencies to ensure they sum to 1.0 at each time point
+    5. Handles missing case data by taking first chronological observation per week
+    6. Fills remaining missing case data using nearest neighbor approach (±2 days)
+    7. Calculates variant incidence and empirical growth rates
+    8. Merges with model results and applies filtering
+    
+    Data Alignment & Missing Data Handling:
+    ---------------------------------------
+    - When multiple case observations exist for the same week, takes the first chronologically
+    - For missing case data, searches for observations within ±2 days and uses closest match
+    - Spline-smoothed frequencies are clipped to [0,1] and re-normalized to sum to 1.0
     
     Parameters:
     -----------
@@ -247,7 +265,8 @@ def get_filtered_growth_rates_df(
         col_to_smooth='sequences', 
         output_col='smoothed_sequences',
         s=spline_smoothing_factor, 
-        k=spline_order
+        k=spline_order,
+        date_col='week_start'
     )
     
     seqs_smoothed = smooth_with_spline(
@@ -255,12 +274,23 @@ def get_filtered_growth_rates_df(
         col_to_smooth='variant_frequency',
         output_col='variant_frequency_smoothed', 
         s=spline_smoothing_factor,
-        k=spline_order
+        k=spline_order,
+        date_col='week_start'
+    )
+    
+    # Re-normalize smoothed frequencies to ensure they sum to 1.0 and are in [0, 1]
+    # First, clip negative values to 0
+    seqs_smoothed['variant_frequency_smoothed'] = seqs_smoothed['variant_frequency_smoothed'].clip(lower=0.0)
+    
+    # Re-normalize so frequencies sum to 1.0 at each time point
+    # The only edge case is if sum is 0 (all variants have 0 frequency), then keep as 0
+    seqs_smoothed['variant_frequency_smoothed'] = seqs_smoothed.groupby(['country', 'week_start'])['variant_frequency_smoothed'].transform(
+        lambda x: x / x.sum() if x.sum() > 0 else x
     )
     
     # Step 4: Calculate variant incidence
-    # Merge with case counts
-    cases_weekly = cases_aligned.groupby(['country', 'week_start'])['cases'].sum().reset_index()
+    # Merge with case counts - take first observation chronologically when multiple exist
+    cases_weekly = cases_aligned.sort_values('date').groupby(['country', 'week_start']).first().reset_index()[['country', 'week_start', 'cases']]
     
     growth_rates_df = pd.merge(
         seqs_smoothed,
@@ -268,6 +298,27 @@ def get_filtered_growth_rates_df(
         on=['country', 'week_start'],
         how='left'
     )
+    
+    # Fill any missing case counts using nearest neighbor approach (±2 days)
+    missing_cases = growth_rates_df['cases'].isna()
+    if missing_cases.any():
+        missing_weeks = growth_rates_df[missing_cases]['week_start'].unique()
+        location_cases_raw = cases_aligned[cases_aligned['country'] == location].copy()
+        
+        for missing_week in missing_weeks:
+            # Find case data within ±2 days of this week_start (using original raw dates)
+            time_diff = (location_cases_raw['date'] - missing_week).abs()
+            nearby_mask = time_diff <= pd.Timedelta(days=2)
+            nearby_cases = location_cases_raw[nearby_mask]
+            
+            if len(nearby_cases) > 0:
+                # Use the closest case count (by original date)
+                closest_idx = time_diff[nearby_mask].idxmin()
+                closest_cases = location_cases_raw.loc[closest_idx, 'cases']
+                
+                # Fill all rows for this location and week_start
+                fill_mask = (growth_rates_df['week_start'] == missing_week) & (growth_rates_df['country'] == location)
+                growth_rates_df.loc[fill_mask, 'cases'] = closest_cases
     
     # Calculate incidence
     growth_rates_df['variant_incidence'] = growth_rates_df['variant_frequency'] * growth_rates_df['cases']

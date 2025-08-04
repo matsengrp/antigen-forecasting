@@ -84,7 +84,7 @@ def export_growth_rates_data(
         Pivot date in YYYY-MM-DD format
     """
     # Create output directory structure
-    model_dir = Path(output_dir) / "growth_rates" / model
+    model_dir = Path(output_dir) / "growth-rates" / model
     model_dir.mkdir(parents=True, exist_ok=True)
     
     # Create filename following existing convention
@@ -118,7 +118,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
     output_dir : str
         Output directory for results
     """
-    # Initialize result dictionaries (same as notebook)
+    # Initialize result dictionaries
     results_dict = {
         'pivot_date': [],
         'model': [],
@@ -251,7 +251,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
             )
             
             # Load VI convergence diagnostics if available
-            diagnostics_path = f"results/{build}/convergence_diagnostics/{model}_{location}_{pivot_date}_vi_diagnostics.json"
+            diagnostics_path = f"results/{build}/convergence-diagnostics/{model}_{location}_{pivot_date}_vi_diagnostics.json"
             try:
                 with open(diagnostics_path, 'r') as f:
                     diag_data = json.load(f)

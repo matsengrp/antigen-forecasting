@@ -129,7 +129,8 @@ def smooth_with_spline(
     output_col: str = 'smoothed_sequences',
     s: float = 0.5, 
     k: int = 3,
-    log_transform: bool = False
+    log_transform: bool = False,
+    date_col: str = 'date'
 ) -> pd.DataFrame:
     """
     Smooth variant sequence counts using 1-D spline fitting.
@@ -153,6 +154,9 @@ def smooth_with_spline(
     k : int, default=3
         Degree of the smoothing spline. Must be 1 <= k <= 5.
         k=3 gives cubic splines which are generally smooth and flexible.
+    date_col : str, default='date'
+        The name of the column containing date/time information for sorting and 
+        creating the time index for smoothing.
     
     Returns:
     --------
@@ -181,15 +185,15 @@ def smooth_with_spline(
     result_df[output_col] = np.nan
     
     # Convert date to datetime
-    if not pd.api.types.is_datetime64_any_dtype(result_df['date']):
-        result_df['date'] = pd.to_datetime(result_df['date'])
+    if not pd.api.types.is_datetime64_any_dtype(result_df[date_col]):
+        result_df[date_col] = pd.to_datetime(result_df[date_col])
     
     # For each location and variant combination, perform the smoothing
     for location in result_df['country'].unique():
         for variant in result_df[result_df['country'] == location]['variant'].unique():
             # Get data for this specific location and variant
             mask = (result_df['country'] == location) & (result_df['variant'] == variant)
-            variant_data = result_df[mask].sort_values('date')
+            variant_data = result_df[mask].sort_values(date_col)
             
             # Skip if we don't have enough data points
             # Need at least k+1 data points for a degree k spline
@@ -200,7 +204,7 @@ def smooth_with_spline(
             
             # Create a numerical index for dates (days since first observation)
             variant_data = variant_data.copy()
-            variant_data['day_index'] = (variant_data['date'] - variant_data['date'].min()).dt.days
+            variant_data['day_index'] = (variant_data[date_col] - variant_data[date_col].min()).dt.days
             
             # Handle duplicate dates by adding small increments to ensure monotonic x values
             x = variant_data['day_index'].values.astype(float)

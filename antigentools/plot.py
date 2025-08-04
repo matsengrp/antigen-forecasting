@@ -748,7 +748,7 @@ def plot_dynamics(
     plt.show()
 
 
-def get_analysis_window(analysis_date: str, build: str, fitness_df: pd.DataFrame) -> tuple:
+def get_analysis_window(analysis_date: str, build: str, fitness_df: pd.DataFrame, data_path: str = "../data/", results_path: str = "../results/") -> tuple:
     """ Create a subset of data for a given analysis window.
 
     Parameters
@@ -759,12 +759,16 @@ def get_analysis_window(analysis_date: str, build: str, fitness_df: pd.DataFrame
             Build name where data resides
         fitness_df : pd.DataFrame
             Fitness dataframe with assigned datetimes
+        data_path : str
+            Path to sequence and case count data
+        results_path : str
+            Path to rt estimates
 
     Returns
     ---------------
         tuple: (evo_dict, freqs_df, rts_df, fitness_df)
     """
-    data_path = f"../data/{build}/time-stamped/{analysis_date}/"
+    data_path = f"{data_path}{build}/time-stamped/{analysis_date}/"
     
     # Read in variant and case count data
     seqs_df = pd.read_csv(f"{data_path}/seq_counts.tsv", sep="\t")
@@ -778,8 +782,8 @@ def get_analysis_window(analysis_date: str, build: str, fitness_df: pd.DataFrame
         evo_dict[deme] = ef.CaseFrequencyData(raw_cases=deme_cases, raw_seq=deme_seqs, pivot='other')
     
     # Read in frequency and Rt inference data for all models and locations
-    freq_paths = glob.glob(f"../results/{build}/estimates/*/freq_*{analysis_date}.tsv")
-    rt_paths = glob.glob(f"../results/{build}/estimates/*/rt_*{analysis_date}.tsv")
+    freq_paths = glob.glob(f"{results_path}{build}/estimates/*/freq_*{analysis_date}.tsv")
+    rt_paths = glob.glob(f"{results_path}{build}/estimates/*/rt_*{analysis_date}.tsv")
     freqs_df = read_estimates(freq_paths)
     rts_df = read_estimates(rt_paths)
     rts_df = rts_df.groupby(['date', 'pivot_date', 'location', 'variant', 'model']).mean().reset_index()

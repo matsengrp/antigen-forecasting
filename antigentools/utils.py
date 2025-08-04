@@ -585,7 +585,7 @@ def compute_vi_convergence_diagnostics(posterior, window=100, threshold=1e-2):
 
 def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_date, 
                                    inference_method, inference_settings, 
-                                   output_dir="results/convergence_diagnostics",
+                                   output_dir="../results/convergence_diagnostics",
                                    window=100, threshold=1e-2):
     """
     Compute and save VI convergence diagnostics to JSON file.
@@ -604,7 +604,7 @@ def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_da
         Name of inference method (e.g., 'InferFullRank')
     inference_settings : dict
         Dictionary containing inference settings (iterations, lr, num_samples)
-    output_dir : str, default="results/convergence_diagnostics"
+    output_dir : str, default="../results/convergence_diagnostics"
         Directory to save diagnostics files
     window : int, default=100
         Number of iterations to use for computing relative change

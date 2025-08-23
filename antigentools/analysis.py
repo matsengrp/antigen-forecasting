@@ -3,15 +3,12 @@ import numpy as np
 from typing import Optional, List, Tuple
 from scipy.stats import pearsonr
 from antigentools.utils import (
-    add_week_id_column,
     smooth_with_spline,
-    add_variant_frequencies,
-    calculate_variant_growth_rates,
     calculate_sign_disagreement_rate,
     calculate_overestimation_rate,
 )
 
-def load_model_rt_values(build: str, model: str, location: str, pivot_date: str) -> Optional[pd.DataFrame]:
+def load_model_rt_values(build: str, model: str, location: str, pivot_date: str, results_path: str = "../results/") -> Optional[pd.DataFrame]:
     """
     Load Rt values directly from model result files.
     
@@ -25,6 +22,8 @@ def load_model_rt_values(build: str, model: str, location: str, pivot_date: str)
         The location name (e.g., 'north', 'tropics').
     pivot_date : str
         The pivot date in YYYY-MM-DD format.
+    results_path : str, default="../results/"
+        Base directory for results files.
     
     Returns:
     --------
@@ -32,7 +31,7 @@ def load_model_rt_values(build: str, model: str, location: str, pivot_date: str)
         A DataFrame containing the Rt values, or None if the file is not found.
     """
     # Construct path to the Rt file for this model, location, and date
-    rt_path = f"../results/{build}/estimates/{model}/rt_{location}_{pivot_date}.tsv"
+    rt_path = f"{results_path}{build}/estimates/{model}/rt_{location}_{pivot_date}.tsv"
     
     try:
         # Read the file
@@ -129,121 +128,6 @@ def get_top_variants(
     correlations.sort(key=lambda x: abs(x[1]), reverse=True)
     return correlations[:n]
 
-def get_growth_rates_df(
-    build: str, 
-    model: str, 
-    location: str, 
-    pivot_date: str, 
-    spline_smoothing_factor: float = 0.5,
-    spline_order: int = 3,
-    use_freqs: bool = True,
-    renormalize_frequencies: bool = True
-) -> pd.DataFrame:
-    """
-    Load growth rates from model results and convert Rt to growth rates.
-    
-    Parameters:
-    -----------
-    build : str
-        The build name (e.g., 'flu-simulated-150k-samples').
-    model : str
-        The model name (e.g., 'FGA', 'GARW').
-    location : str
-        The location name (e.g., 'north', 'tropics').
-    pivot_date : str
-        The pivot date in YYYY-MM-DD format.
-    spline_smoothing_factor : float, default=0.5
-        Smoothing factor for splines (larger = smoother).
-    spline_order : int, default=3
-        Degree of the spline (1-5).
-    use_freqs : bool, default=True
-        Whether to use frequencies instead of raw counts.
-    renormalize_frequencies : bool, default=True
-        Whether to renormalize smoothed frequencies to ensure they sum to 1.
-        If False, accepts small deviations from sum=1 to avoid jaggedness artifacts.
-    
-    Returns:
-    --------
-    pd.DataFrame
-        DataFrame containing growth rates with columns 'country', 'variant', 
-        'date', 'growth_rate_r', 'growth_rate_r_data', 'variant_incidence', 
-        and 'variant_incidence_smoothed' (if smoothed frequencies are available).
-    """
-    seqs_path = f"../data/{build}/time-stamped/{pivot_date}/seq_counts.tsv"
-    cases_path = f"../data/{build}/time-stamped/{pivot_date}/case_counts.tsv"
-    seqs_df = pd.read_csv(seqs_path, sep='\t')
-    cases_df = pd.read_csv(cases_path, sep='\t')
-
-    # Subset seqs and cases DataFrames for the specified location
-    seqs_df = seqs_df[seqs_df['country'] == location]
-    cases_df = cases_df[cases_df['country'] == location]
-
-    # Add week_id column to both DataFrames for weekly calculations
-    seqs_df = add_week_id_column(seqs_df, date_col='date')
-    cases_df = add_week_id_column(cases_df, date_col='date')
-    rt_df = load_model_rt_values(build, model, location, pivot_date)
-
-    # Add variant frequencies and then smooth.
-    smoothed_seqs_df = seqs_df.copy()
-    smoothed_seqs_df = add_variant_frequencies(smoothed_seqs_df, count_column='sequences')
-    smoothed_seqs_df = smooth_with_spline(smoothed_seqs_df, col_to_smooth='sequences', output_col='smoothed_sequences', s=spline_smoothing_factor, k=spline_order, log_transform=False)
-    # Smooth sequences
-    if use_freqs:
-        output_col = 'variant_frequency_smoothed'
-        smoothed_seqs_df = smooth_with_spline(smoothed_seqs_df, col_to_smooth='variant_frequency', output_col=output_col, s=spline_smoothing_factor, k=spline_order)
-        
-        # Optionally normalize the smoothed frequencies to ensure they sum to 1 for each date
-        if renormalize_frequencies:
-            smoothed_seqs_df[output_col] = smoothed_seqs_df.groupby('date')[output_col].transform(lambda x: x / x.sum())
-    
-    # Calculate growth rates based on the smoothed counts
-    growth_rates_df = calculate_variant_growth_rates(seqs_df=smoothed_seqs_df, cases_df=cases_df, use_freqs=use_freqs)
-
-    # Add variant incidence calculation (case counts * variant frequency)
-    # First merge with cases data to get case counts for each date
-    cases_df_for_merge = cases_df[['date', 'cases']].drop_duplicates()
-    growth_rates_df = pd.merge(
-        growth_rates_df,
-        cases_df_for_merge,
-        on='date',
-        how='left'
-    )
-    
-    # Calculate variant incidence = cases * variant_frequency
-    growth_rates_df['variant_incidence'] = growth_rates_df['cases'] * growth_rates_df['variant_frequency']
-    
-    # Also calculate smoothed variant incidence if smoothed frequencies are available
-    if 'variant_frequency_smoothed' in growth_rates_df.columns:
-        growth_rates_df['variant_incidence_smoothed'] = growth_rates_df['cases'] * growth_rates_df['variant_frequency_smoothed']
-
-    try:
-        # Change date column to string format for merging
-        growth_rates_df['date'] = growth_rates_df['date'].dt.strftime('%Y-%m-%d')
-        rt_df['date'] = rt_df['date'].dt.strftime('%Y-%m-%d')
-    except AttributeError:
-        # If date is already a string, do nothing
-        pass
-    # Merge with the model data for comparison
-    growth_rates_df = pd.merge(
-        growth_rates_df, 
-        rt_df[['date', 'variant', 'median_r', 'model', 'analysis_date']], 
-        on=['date', 'variant'], 
-        how='left', 
-        suffixes=('', '_model')
-    ).drop_duplicates()
-    # Calculate the absolute error between empirical and model growth rates
-    growth_rates_df['abs_error'] = (
-        growth_rates_df['growth_rate_r_data'] - growth_rates_df['median_r']
-    ).abs() 
-    
-    # Set median_r to NaN for variants with zero frequency
-    # This prevents them from affecting the y-axis range in plots
-    zero_freq_mask = growth_rates_df['variant_frequency'] == 0.0
-    growth_rates_df.loc[zero_freq_mask, 'median_r'] = np.nan
-
-    # Return the final DataFrame with growth rates
-    return growth_rates_df
-
 # Helper function to get growth rates with automatic filtering of unreliable early points
 def get_filtered_growth_rates_df(
     build, 
@@ -255,43 +139,282 @@ def get_filtered_growth_rates_df(
     min_sequence_count=5,
     min_variant_frequency=0.05,
     skip_first_n_points=2,
-    use_freqs=True
+    use_freqs=True,
+    use_smoothed_incidence=True,
+    data_path="../data/",
 ):
     """
     Get growth rates dataframe with automatic filtering of unreliable data points.
     
+    Uses improved variant incidence calculation pipeline with proper date alignment
+    and complete variant×time frequency matrix. Includes handling for missing case 
+    data and frequency re-normalization after spline smoothing.
+    
+    Key Processing Steps:
+    -------------------
+    1. Aligns all dates to weekly boundaries (Monday week starts)
+    2. Creates complete variant×time frequency matrix (fills missing combinations with 0)
+    3. Applies spline smoothing to both sequence counts and variant frequencies
+    4. Re-normalizes smoothed frequencies to ensure they sum to 1.0 at each time point
+    5. Handles missing case data by taking first chronological observation per week
+    6. Fills remaining missing case data using nearest neighbor approach (±2 days)
+    7. Calculates variant incidence and empirical growth rates
+    8. Merges with model results and applies filtering
+    
+    Data Alignment & Missing Data Handling:
+    ---------------------------------------
+    - When multiple case observations exist for the same week, takes the first chronologically
+    - For missing case data, searches for observations within ±2 days and uses closest match
+    - Spline-smoothed frequencies are clipped to [0,1] and re-normalized to sum to 1.0
+    
     Parameters:
     -----------
-    min_sequence_count : float
+    build : str
+        The build name (e.g., 'flu-simulated-150k-samples')
+    model : str
+        The model name (e.g., 'FGA', 'GARW')
+    location : str
+        The location name (e.g., 'north', 'tropics')
+    pivot_date : str
+        The pivot date in YYYY-MM-DD format
+    spline_smoothing_factor : float, default=5.0
+        Smoothing factor for splines (larger = smoother)
+    spline_order : int, default=3
+        Degree of the spline (1-5)
+    min_sequence_count : float, default=5
         Minimum smoothed sequence count to trust growth rate calculations
-    min_variant_frequency : float  
+    min_variant_frequency : float, default=0.05
         Minimum variant frequency to trust growth rate calculations
-    skip_first_n_points : int
+    skip_first_n_points : int, default=2
         Number of initial points to skip for each variant (often noisy)
+    use_freqs : bool, default=True
+        Whether to use frequencies instead of raw counts
+    use_smoothed_incidence : bool, default=True
+        Whether to use smoothed incidence for r_data calculations.
+        If False, uses raw incidence (variant_frequency × cases).
+        If True, uses smoothed incidence (variant_frequency_smoothed × cases).
+    data_path : str, default='../data/'
+        Directory where data lives.
+    
+    Returns:
+    --------
+    pd.DataFrame
+        DataFrame containing growth rates with proper variant incidence calculations
     """
-    # Get the base growth rates
-    growth_rates_df = get_growth_rates_df(
-        build=build, 
-        model=model, 
-        location=location, 
-        pivot_date=pivot_date,
-        spline_smoothing_factor=spline_smoothing_factor,
-        spline_order=spline_order,
-        use_freqs=use_freqs
+    # Load raw data
+    seqs_path = f"{data_path}{build}/time-stamped/{pivot_date}/seq_counts.tsv"
+    cases_path = f"{data_path}{build}/time-stamped/{pivot_date}/case_counts.tsv"
+    seqs_df = pd.read_csv(seqs_path, sep='\t')
+    cases_df = pd.read_csv(cases_path, sep='\t')
+    
+    # Filter for location
+    seqs_df = seqs_df[seqs_df['country'] == location]
+    cases_df = cases_df[cases_df['country'] == location]
+    
+    # Step 1: Align weekly dates
+    def align_weekly_dates(df, date_col='date'):
+        """Align dates to week start (Monday) for consistent merging."""
+        df = df.copy()
+        df[date_col] = pd.to_datetime(df[date_col])
+        # Map to week start (Monday)
+        df['week_start'] = df[date_col] - pd.to_timedelta(df[date_col].dt.dayofweek, unit='d')
+        # Create year_week based on week_start
+        df['year_week'] = df['week_start'].dt.strftime('%Y-%U')
+        return df
+    
+    seqs_aligned = align_weekly_dates(seqs_df)
+    cases_aligned = align_weekly_dates(cases_df)
+    
+    # Step 2: Calculate complete variant frequencies (with 0.0 for missing combinations)
+    def calculate_variant_frequencies_complete(seqs_df):
+        """Calculate variant frequencies with complete variant×time matrix."""
+        # Get all unique combinations
+        all_variants = seqs_df['variant'].unique()
+        all_week_starts = seqs_df['week_start'].unique()
+        
+        # Create complete combinations
+        from itertools import product
+        complete_combinations = list(product([location], all_variants, all_week_starts))
+        complete_df = pd.DataFrame(complete_combinations, columns=['country', 'variant', 'week_start'])
+        
+        # Add week_start derived columns
+        complete_df['week_start'] = pd.to_datetime(complete_df['week_start'])
+        complete_df['year_week'] = complete_df['week_start'].dt.strftime('%Y-%U')
+        
+        # Merge with original data
+        merged_df = pd.merge(
+            complete_df,
+            seqs_df[['country', 'variant', 'week_start', 'sequences', 'date']],
+            on=['country', 'variant', 'week_start'],
+            how='left'
+        )
+        
+        # Fill missing sequences with 0
+        merged_df['sequences'] = merged_df['sequences'].fillna(0.0)
+        
+        # Calculate frequencies
+        total_by_week = merged_df.groupby(['country', 'week_start'])['sequences'].transform('sum')
+        merged_df['variant_frequency'] = np.where(
+            total_by_week > 0,
+            merged_df['sequences'] / total_by_week,
+            0.0
+        )
+        
+        return merged_df
+    
+    seqs_with_freq = calculate_variant_frequencies_complete(seqs_aligned)
+    
+    # Step 3: Apply spline smoothing
+    seqs_smoothed = smooth_with_spline(
+        seqs_with_freq, 
+        col_to_smooth='sequences', 
+        output_col='smoothed_sequences',
+        s=spline_smoothing_factor, 
+        k=spline_order,
+        date_col='week_start'
     )
     
-    # Filter out low count/frequency data points
-    low_count_mask = (
-        (growth_rates_df['smoothed_sequences'] < min_sequence_count) | 
-        (growth_rates_df['variant_frequency_smoothed'] < min_variant_frequency)
+    seqs_smoothed = smooth_with_spline(
+        seqs_smoothed,
+        col_to_smooth='variant_frequency',
+        output_col='variant_frequency_smoothed', 
+        s=spline_smoothing_factor,
+        k=spline_order,
+        date_col='week_start'
     )
-    growth_rates_df.loc[low_count_mask, 'growth_rate_r_data'] = np.nan
+    
+    # Re-normalize smoothed frequencies to ensure they sum to 1.0 and are in [0, 1]
+    # First, clip negative values to 0
+    seqs_smoothed['variant_frequency_smoothed'] = seqs_smoothed['variant_frequency_smoothed'].clip(lower=0.0)
+    
+    # Re-normalize so frequencies sum to 1.0 at each time point
+    # The only edge case is if sum is 0 (all variants have 0 frequency), then keep as 0
+    seqs_smoothed['variant_frequency_smoothed'] = seqs_smoothed.groupby(['country', 'week_start'])['variant_frequency_smoothed'].transform(
+        lambda x: x / x.sum() if x.sum() > 0 else x
+    )
+    
+    # Step 4: Calculate variant incidence
+    # Merge with case counts - take first observation chronologically when multiple exist
+    cases_weekly = cases_aligned.sort_values('date').groupby(['country', 'week_start']).first().reset_index()[['country', 'week_start', 'cases']]
+    
+    growth_rates_df = pd.merge(
+        seqs_smoothed,
+        cases_weekly,
+        on=['country', 'week_start'],
+        how='left'
+    )
+    
+    # Fill any missing case counts using nearest neighbor approach (±2 days)
+    missing_cases = growth_rates_df['cases'].isna()
+    if missing_cases.any():
+        missing_weeks = growth_rates_df[missing_cases]['week_start'].unique()
+        location_cases_raw = cases_aligned[cases_aligned['country'] == location].copy()
+        
+        for missing_week in missing_weeks:
+            # Find case data within ±2 days of this week_start (using original raw dates)
+            time_diff = (location_cases_raw['date'] - missing_week).abs()
+            nearby_mask = time_diff <= pd.Timedelta(days=2)
+            nearby_cases = location_cases_raw[nearby_mask]
+            
+            if len(nearby_cases) > 0:
+                # Use the closest case count (by original date)
+                closest_idx = time_diff[nearby_mask].idxmin()
+                closest_cases = location_cases_raw.loc[closest_idx, 'cases']
+                
+                # Fill all rows for this location and week_start
+                fill_mask = (growth_rates_df['week_start'] == missing_week) & (growth_rates_df['country'] == location)
+                growth_rates_df.loc[fill_mask, 'cases'] = closest_cases
+    
+    # Calculate incidence
+    growth_rates_df['variant_incidence'] = growth_rates_df['variant_frequency'] * growth_rates_df['cases']
+    growth_rates_df['variant_incidence_smoothed'] = growth_rates_df['variant_frequency_smoothed'] * growth_rates_df['cases']
+    
+    # Ensure we have a proper date column for plotting compatibility
+    # Use the original date if available, otherwise use week_start
+    if 'date' not in growth_rates_df.columns or growth_rates_df['date'].isna().any():
+        growth_rates_df['date'] = growth_rates_df['week_start']
+    
+    # Ensure date column is datetime type
+    growth_rates_df['date'] = pd.to_datetime(growth_rates_df['date'])
+    
+    # Step 5: Calculate empirical growth rates
+    def calculate_growth_rates(df, use_smoothed=False):
+        """Calculate empirical growth rates from variant incidence."""
+        df = df.copy()
+        df['growth_rate_r_data'] = np.nan
+        
+        # Choose which incidence column to use
+        incidence_col = 'variant_incidence_smoothed' if use_smoothed else 'variant_incidence'
+        
+        # Sort by week_start within each variant
+        df = df.sort_values(['variant', 'week_start'])
+        
+        for variant in df['variant'].unique():
+            variant_mask = df['variant'] == variant
+            variant_data = df[variant_mask].copy()
+            
+            if len(variant_data) < 2:
+                continue
+                
+            # Calculate time differences in days
+            variant_data['days_diff'] = variant_data['week_start'].diff().dt.days
+            
+            # Calculate growth rates
+            for i in range(1, len(variant_data)):
+                curr_incidence = variant_data.iloc[i][incidence_col]
+                prev_incidence = variant_data.iloc[i-1][incidence_col] 
+                days_diff = variant_data.iloc[i]['days_diff']
+                
+                if (curr_incidence > 0 and prev_incidence > 0 and 
+                    not pd.isna(curr_incidence) and not pd.isna(prev_incidence) and
+                    days_diff > 0):
+                    
+                    growth_rate = (np.log(curr_incidence) - np.log(prev_incidence)) / days_diff
+                    df.loc[variant_data.index[i], 'growth_rate_r_data'] = growth_rate
+        
+        return df
+    
+    growth_rates_df = calculate_growth_rates(growth_rates_df, use_smoothed=use_smoothed_incidence)
+    
+    # Load model results and merge
+    rt_df = load_model_rt_values(build, model, location, pivot_date, results_path=data_path.replace('data/', 'results/'))
+    if rt_df is not None:
+        # Ensure both date columns are datetime type
+        growth_rates_df['date'] = pd.to_datetime(growth_rates_df['date'])
+        rt_df['date'] = pd.to_datetime(rt_df['date'])
+        
+        # Try direct merge first (exact date matching)
+        growth_rates_df = pd.merge(
+            growth_rates_df,
+            rt_df[['date', 'variant', 'median_r', 'model', 'analysis_date']],
+            on=['date', 'variant'],
+            how='left'
+        )
+        
+        # Calculate absolute error where we have both values
+        mask = ~(growth_rates_df['growth_rate_r_data'].isna() | growth_rates_df['median_r'].isna())
+        growth_rates_df.loc[mask, 'abs_error'] = (
+            growth_rates_df.loc[mask, 'growth_rate_r_data'] - growth_rates_df.loc[mask, 'median_r']
+        ).abs()
+        
+        # Set median_r to NaN for variants with zero frequency (like in original function)
+        zero_freq_mask = growth_rates_df['variant_frequency'] == 0.0
+        growth_rates_df.loc[zero_freq_mask, 'median_r'] = np.nan
+    
+    # Apply filtering
+    # Filter out low count/frequency data points
+    if 'smoothed_sequences' in growth_rates_df.columns and 'variant_frequency_smoothed' in growth_rates_df.columns:
+        low_count_mask = (
+            (growth_rates_df['smoothed_sequences'] < min_sequence_count) | 
+            (growth_rates_df['variant_frequency_smoothed'] < min_variant_frequency)
+        )
+        growth_rates_df.loc[low_count_mask, 'growth_rate_r_data'] = np.nan
     
     # Skip the first few points for each variant
     if skip_first_n_points > 0:
         for variant in growth_rates_df['variant'].unique():
             variant_mask = growth_rates_df['variant'] == variant
-            variant_indices = growth_rates_df[variant_mask].index
+            variant_indices = growth_rates_df[variant_mask].sort_values('week_start').index
             if len(variant_indices) > skip_first_n_points:
                 growth_rates_df.loc[variant_indices[:skip_first_n_points], 'growth_rate_r_data'] = np.nan
     

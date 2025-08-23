@@ -123,152 +123,14 @@ def get_gamma_distribution_params(mean, std):
     theta = std**2 / mean
     return alpha, theta
 
-def add_week_id_column(df: pd.DataFrame, date_col: str = 'date') -> pd.DataFrame:
-    """
-    Add a week_id column to a dataframe that represents the chronological order of dates.
-    
-    This function creates a new column 'week_id' that assigns a unique integer ID
-    to each unique date in the dataframe, with earlier dates receiving smaller IDs.
-    
-    Parameters:
-    -----------
-    df : pd.DataFrame
-        DataFrame containing a date column
-    date_col : str, default='date'
-        Name of the column containing date information
-        
-    Returns:
-    --------
-    pd.DataFrame
-        A copy of the input DataFrame with an additional 'week_id' column
-        
-    Notes:
-    ------
-    - The function ensures that dates are properly sorted chronologically
-    - All rows with the same date will receive the same week_id
-    - The earliest date will have week_id=0
-    """
-    # Create a copy of the dataframe to avoid modifying the original
-    result_df = df.copy()
-    
-    # Ensure date column is datetime type
-    if not pd.api.types.is_datetime64_any_dtype(result_df[date_col]):
-        result_df[date_col] = pd.to_datetime(result_df[date_col])
-    
-    # Get unique dates and sort them chronologically
-    unique_dates = sorted(result_df[date_col].unique())
-    
-    # Create a mapping from date to week_id
-    date_to_id = {date: i for i, date in enumerate(unique_dates)}
-    
-    # Add the week_id column based on the mapping
-    result_df['week_id'] = result_df[date_col].map(date_to_id)
-    
-    return result_df
-
-def add_variant_frequencies(seqs_df: pd.DataFrame, count_column: str = 'sequences', ensure_complete: bool = True) -> pd.DataFrame:
-    """
-    Calculate and add variant frequencies to the dataframe.
-    
-    This function takes a dataframe containing variant sequence counts and adds a new column
-    with the relative frequency of each variant at each location and time point.
-    
-    Parameters:
-    -----------
-    seqs_df : pd.DataFrame
-        DataFrame containing sequence data with 'country', 'variant', 'date',
-        and sequence count columns.
-    count_column : str, default='smoothed_sequences'
-        Name of the column containing sequence counts to use for frequency calculation.
-        Could be raw 'sequences' or 'smoothed_sequences'.
-    ensure_complete : bool, default=True
-        If True, ensures all variants have entries for all dates (missing combinations 
-        get 0.0 frequency). If False, uses original behavior where missing combinations
-        are not included.
-    
-    Returns:
-    --------
-    pd.DataFrame
-        A copy of the input DataFrame with an additional 'variant_frequency' column
-        containing the relative frequency of each variant.
-    
-    Notes:
-    ------
-    - If a location and date combination has no sequences at all, frequencies will be NaN
-    - Frequencies for each location and date should sum to 1.0
-    - NaN values in the count column will be excluded from frequency calculations
-    - When ensure_complete=True, all variant-date combinations will be present with 0.0
-      frequency for unobserved variants
-    """
-    # Create a copy of the input DataFrame
-    result_df = seqs_df.copy()
-    
-    # Ensure date is in datetime format
-    if not pd.api.types.is_datetime64_any_dtype(result_df['date']):
-        result_df['date'] = pd.to_datetime(result_df['date'])
-    
-    if ensure_complete:
-        # Get all unique values
-        all_countries = result_df['country'].unique()
-        all_variants = result_df['variant'].unique()
-        all_dates = result_df['date'].unique()
-        
-        # Create a complete index of all combinations
-        complete_index = pd.MultiIndex.from_product(
-            [all_countries, all_variants, all_dates],
-            names=['country', 'variant', 'date']
-        )
-        
-        # Reindex to include all combinations, filling missing values with 0
-        result_df = result_df.set_index(['country', 'variant', 'date']).reindex(complete_index)
-        
-        # Fill missing sequence counts with 0
-        if count_column in result_df.columns:
-            result_df[count_column] = result_df[count_column].fillna(0)
-        
-        # Also fill 'sequences' column if it exists and is different from count_column
-        if 'sequences' in result_df.columns and 'sequences' != count_column:
-            result_df['sequences'] = result_df['sequences'].fillna(0)
-            
-        # Reset index to get back to regular DataFrame
-        result_df = result_df.reset_index()
-    
-    # Add a column for the variant frequencies, initialize with NaN
-    result_df['variant_frequency'] = np.nan
-    
-    # Calculate the total counts for each location and date
-    total_counts = result_df.groupby(['country', 'date'])[count_column].transform('sum')
-    
-    # Calculate the variant frequency as the proportion of each variant
-    # Avoid division by zero
-    mask = total_counts > 0
-    result_df.loc[mask, 'variant_frequency'] = result_df.loc[mask, count_column] / total_counts[mask]
-    result_df.loc[~mask, 'variant_frequency'] = 0.0
-    
-    # Validate frequencies (should sum to 1.0 for each location and date)
-    # Group by location and date, and check the sum of frequencies
-    freq_sums = result_df.groupby(['country', 'date'])['variant_frequency'].sum().reset_index()
-    freq_sums = freq_sums.rename(columns={'variant_frequency': 'freq_sum'})
-    
-    # Check if any sum deviates significantly from 1.0
-    validation_threshold = 0.01  # Allow 1% deviation due to floating point errors
-    invalid_sums = freq_sums[(abs(freq_sums['freq_sum'] - 1.0) > validation_threshold) & 
-                            (~freq_sums['freq_sum'].isna()) &
-                            (freq_sums['freq_sum'] > 0)]  # Only check non-zero sums
-    
-    if len(invalid_sums) > 0:
-        print(f"Warning: {len(invalid_sums)} location-date combinations have frequency sums that deviate from 1.0")
-        print(invalid_sums.head())
-    
-    return result_df
-
 def smooth_with_spline(
     df: pd.DataFrame, 
     col_to_smooth: str = 'sequences',
     output_col: str = 'smoothed_sequences',
     s: float = 0.5, 
     k: int = 3,
-    log_transform: bool = False
+    log_transform: bool = False,
+    date_col: str = 'date'
 ) -> pd.DataFrame:
     """
     Smooth variant sequence counts using 1-D spline fitting.
@@ -292,6 +154,9 @@ def smooth_with_spline(
     k : int, default=3
         Degree of the smoothing spline. Must be 1 <= k <= 5.
         k=3 gives cubic splines which are generally smooth and flexible.
+    date_col : str, default='date'
+        The name of the column containing date/time information for sorting and 
+        creating the time index for smoothing.
     
     Returns:
     --------
@@ -320,15 +185,15 @@ def smooth_with_spline(
     result_df[output_col] = np.nan
     
     # Convert date to datetime
-    if not pd.api.types.is_datetime64_any_dtype(result_df['date']):
-        result_df['date'] = pd.to_datetime(result_df['date'])
+    if not pd.api.types.is_datetime64_any_dtype(result_df[date_col]):
+        result_df[date_col] = pd.to_datetime(result_df[date_col])
     
     # For each location and variant combination, perform the smoothing
     for location in result_df['country'].unique():
         for variant in result_df[result_df['country'] == location]['variant'].unique():
             # Get data for this specific location and variant
             mask = (result_df['country'] == location) & (result_df['variant'] == variant)
-            variant_data = result_df[mask].sort_values('date')
+            variant_data = result_df[mask].sort_values(date_col)
             
             # Skip if we don't have enough data points
             # Need at least k+1 data points for a degree k spline
@@ -339,12 +204,23 @@ def smooth_with_spline(
             
             # Create a numerical index for dates (days since first observation)
             variant_data = variant_data.copy()
-            variant_data['day_index'] = (variant_data['date'] - variant_data['date'].min()).dt.days
+            variant_data['day_index'] = (variant_data[date_col] - variant_data[date_col].min()).dt.days
             
-            # Apply spline fitting to the sequence counts
-            # Convert to 1-indexed arrays for scipy
-            x = variant_data['day_index'].values
+            # Handle duplicate dates by adding small increments to ensure monotonic x values
+            x = variant_data['day_index'].values.astype(float)
             y = variant_data[col_to_smooth].values
+            
+            # Check for duplicate x values and make them unique
+            if len(np.unique(x)) < len(x):
+                # Add small increments to duplicate values to make them unique
+                for i in range(1, len(x)):
+                    if x[i] <= x[i-1]:
+                        x[i] = x[i-1] + 0.01  # Add small increment
+            
+            # Ensure x is strictly increasing
+            if not np.all(np.diff(x) > 0):
+                # If still not increasing, create a simple sequential index
+                x = np.arange(len(x), dtype=float)
             
             try:
                 # If log_transform is enabled, apply log1p transformation
@@ -370,83 +246,6 @@ def smooth_with_spline(
     
     return result_df
 
-def calculate_variant_growth_rates(seqs_df: pd.DataFrame, cases_df: pd.DataFrame, use_freqs: bool = False) -> pd.DataFrame:
-    """
-    Calculate empirical growth rates (r_data) for each variant in each location based on smoothed sequence counts and total case counts.
-    
-    Parameters:
-    -----------
-    seqs_df : pd.DataFrame
-        DataFrame containing sequence data with 'country', 'variant', 'date', 'sequences',
-        'smoothed_sequences', and 'week_id' columns.
-    cases_df : pd.DataFrame
-        DataFrame containing case count data with 'country', 'date', 'cases', and 'week_id' columns.
-        Used to adjust the growth rates by incorporating total case counts.
-    use_freqs : bool, default=False
-        If True, use variant frequencies instead of smoothed counts to calculate growth rates.
-    
-    Returns:
-    --------
-    pd.DataFrame
-        A copy of the input DataFrame with an additional 'growth_rate_r_data' column.
-    """
-    # Create a copy of the input DataFrame
-    result_df = seqs_df.copy()
-    
-    # Add a column for the growth rates, initialize with NaN
-    result_df['growth_rate_r_data'] = np.nan
-    
-    # Ensure date columns are datetime
-    result_df['date'] = pd.to_datetime(result_df['date'])
-    cases_df['date'] = pd.to_datetime(cases_df['date'])
-    
-    # For each location and variant combination, calculate growth rates
-    for location in result_df['country'].unique():
-        for variant in result_df[result_df['country'] == location]['variant'].unique():
-            # Get data for this specific location and variant
-            mask = (result_df['country'] == location) & (result_df['variant'] == variant)
-            variant_data = result_df[mask].sort_values('week_id')  # Sort by week_id instead of date
-            
-            # Skip if we don't have enough data points
-            if len(variant_data) < 2:
-                continue
-            
-            # Calculate day differences between consecutive observations
-            variant_data = variant_data.copy()  # Avoid SettingWithCopyWarning
-            variant_data['days_diff'] = variant_data['date'].diff().dt.days
-            
-            # Calculate growth rate as (ln(C_t * total_cases_t) - ln(C_{t-1} * total_cases_{t-1})) / (t - t_{t-1})
-            for i in range(1, len(variant_data)):
-                # Get current and previous values
-                current_week_id = variant_data.iloc[i]['week_id']
-                prev_week_id = variant_data.iloc[i-1]['week_id']
-                current_count = variant_data.iloc[i]['smoothed_sequences']
-                prev_count = variant_data.iloc[i-1]['smoothed_sequences']
-                days_diff = variant_data.iloc[i]['days_diff']
-
-                # Get total cases for current and previous week_ids for this location
-                current_cases = cases_df[(cases_df['country'] == location) & (cases_df['week_id'] == current_week_id)]['cases'].values
-                prev_cases = cases_df[(cases_df['country'] == location) & (cases_df['week_id'] == prev_week_id)]['cases'].values
-                
-                # Skip if we have zero counts or missing data
-                if (current_count <= 0 or np.isnan(current_count) or prev_count <= 0 or np.isnan(prev_count) or days_diff == 0
-                    or len(current_cases) == 0 or len(prev_cases) == 0 or current_cases[0] <= 0 or prev_cases[0] <= 0):
-                    continue
-                
-                # Calculate growth rate with case count adjustment
-                if use_freqs:
-                    current_freq = variant_data.iloc[i]['variant_frequency_smoothed']
-                    prev_freq = variant_data.iloc[i-1]['variant_frequency_smoothed']
-                    # Use frequencies to adjust counts
-                    growth_rate = (np.log(current_freq * current_cases[0]) - 
-                                   np.log(prev_freq * prev_cases[0])) / days_diff
-                else:
-                    growth_rate = (np.log(current_count) - np.log(prev_count)) / days_diff
-                
-                # Store in the result DataFrame
-                result_df.loc[variant_data.index[i], 'growth_rate_r_data'] = growth_rate
-    
-    return result_df
 
 def convert_rt_to_growth_rate(rt_df: pd.DataFrame, gamma_shape: float = 2.5, gamma_scale: float = 1.5, rt_column: str = 'median_R') -> pd.DataFrame:
     """
@@ -786,7 +585,7 @@ def compute_vi_convergence_diagnostics(posterior, window=100, threshold=1e-2):
 
 def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_date, 
                                    inference_method, inference_settings, 
-                                   output_dir="results/convergence_diagnostics",
+                                   output_dir="../results/convergence_diagnostics",
                                    window=100, threshold=1e-2):
     """
     Compute and save VI convergence diagnostics to JSON file.
@@ -805,7 +604,7 @@ def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_da
         Name of inference method (e.g., 'InferFullRank')
     inference_settings : dict
         Dictionary containing inference settings (iterations, lr, num_samples)
-    output_dir : str, default="results/convergence_diagnostics"
+    output_dir : str, default="../results/convergence_diagnostics"
         Directory to save diagnostics files
     window : int, default=100
         Number of iterations to use for computing relative change

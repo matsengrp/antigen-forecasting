@@ -635,7 +635,7 @@ def main(args) -> None:
                 analysis_date=analysis_date,
                 inference_method=inference_method.__class__.__name__,
                 inference_settings=inference_settings,
-                output_dir=f"{output_dir}/convergence_diagnostics"
+                output_dir=f"{output_dir}/convergence-diagnostics"
             )
             print(f"VI diagnostics saved to: {diagnostics_path}")
         except Exception as e:

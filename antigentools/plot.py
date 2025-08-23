@@ -120,7 +120,8 @@ def plot_observed_cases(
     ax: plt.Axes, 
     flu_data: Dict[str, Any], 
     deme: str, 
-    pivot_idx: Optional[List[int]] = None
+    pivot_idx: Optional[List[int]] = None,
+    label_fontsize: int = 14
 ) -> None:
     """Plot observed cases.
 
@@ -134,6 +135,8 @@ def plot_observed_cases(
         Location/deme name (e.g., 'north', 'tropics', 'south')
     pivot_idx : Optional[List[int]], default=None
         List of time indices to mark with vertical lines
+    label_fontsize : int, default=14
+        Font size for axis labels
         
     Returns:
     --------
@@ -144,10 +147,10 @@ def plot_observed_cases(
     if pivot_idx:
         for idx in pivot_idx:
             ax.axvline(x=idx, color='black', linestyle='--', lw=2.0)
-    ax.set_ylabel("Cases")
+    ax.set_ylabel("Cases", fontsize=label_fontsize)
 
 
-def plot_observed_freqs(ax: plt.Axes, ef_data: Dict[str, Any], deme: str, color_map: Dict[str, str]) -> None:
+def plot_observed_freqs(ax: plt.Axes, ef_data: Dict[str, Any], deme: str, color_map: Dict[str, str], label_fontsize: int = 14) -> None:
     """ Plot observed frequencies of variants.
     
     Parameters:
@@ -156,6 +159,7 @@ def plot_observed_freqs(ax: plt.Axes, ef_data: Dict[str, Any], deme: str, color_
         ef_data (Dict): Dictionary of `evofr` data
         deme (str): Demographic unit
         color_map (dict): Dictionary mapping variant names to colors
+        label_fontsize (int, optional): Font size for axis labels. Defaults to 14.
     
     Returns:
     --------------
@@ -175,7 +179,7 @@ def plot_observed_freqs(ax: plt.Axes, ef_data: Dict[str, Any], deme: str, color_
         ax.scatter(t, obs_freq[:, variant], color=color_map[v_name], alpha=0.8, s=150, edgecolors='black')
     
     # Axes
-    ax.set_ylabel("Frequency")
+    ax.set_ylabel("Frequency", fontsize=label_fontsize)
 
 
 def plot_frequencies(
@@ -186,7 +190,8 @@ def plot_frequencies(
     model: str, 
     color_map: Dict[str, str], 
     p: int = 50, 
-    pivot_idx: Optional[List[int]] = None
+    pivot_idx: Optional[List[int]] = None,
+    label_fontsize: int = 14
 ) -> None:
     """ Plot observed and predicted frequencies of variants.
 
@@ -200,6 +205,7 @@ def plot_frequencies(
         color_map (dict): Dictionary of colors to use for variants
         p (int): Percentile to plot
         pivot_idx (list): Index to pivot plot
+        label_fontsize (int, optional): Font size for axis labels. Defaults to 14.
 
     Returns:
     ---------------
@@ -230,7 +236,7 @@ def plot_frequencies(
         for idx in pivot_idx:
             ax.axvline(x=idx, color='black', linestyle='--', lw=2.0)
     ax.set_xticks([])
-    ax.set_ylabel("Frequency")
+    ax.set_ylabel("Frequency", fontsize=label_fontsize)
 
 
 def plot_rt(
@@ -240,7 +246,8 @@ def plot_rt(
     model: str, 
     color_map: Dict[str, str], 
     p: int = 95, 
-    pivot_idx: Optional[List[int]] = None
+    pivot_idx: Optional[List[int]] = None,
+    label_fontsize: int = 14
 ) -> None:
     """ Plot posteriors of inferred variant growth advantages.
 
@@ -253,6 +260,7 @@ def plot_rt(
         color_map (dict): Dictionary of colors to use for variants
         p (int): Percentile to plot
         pivot_idx (list): List of pivot indices
+        label_fontsize (int, optional): Font size for axis labels. Defaults to 14.
 
     Returns:
     ---------------
@@ -301,7 +309,7 @@ def plot_rt(
             ax.axvline(x=idx, color='black', linestyle='--', lw=2.0)
     ax.axhline(y=1.0, color='red', linestyle='--', lw=1.5)
     ax.set_xlabel('')
-    ax.set_ylabel(r"$R_t$")
+    ax.set_ylabel(r"$R_t$", fontsize=label_fontsize)
     
     # Calculate and set appropriate y-axis limits based on data range if there's data to plot
     if not deme_ga.empty and 'median_R' in deme_ga.columns:
@@ -330,7 +338,8 @@ def plot_fitness(
     fitness_df: pd.DataFrame, 
     deme: str, 
     color_map: Dict[str, str], 
-    pivot_idx: Optional[List[int]] = None
+    pivot_idx: Optional[List[int]] = None,
+    label_fontsize: int = 14
 ) -> None:
     """ Plot simulated fitness of variants.
 
@@ -341,6 +350,7 @@ def plot_fitness(
         deme (str): Deme name
         color_map (dict): Dictionary of colors to use for variants
         pivot_idx (list): List of pivot indices
+        label_fontsize (int, optional): Font size for axis labels. Defaults to 14.
 
     Returns:
     ---------------
@@ -366,7 +376,7 @@ def plot_fitness(
             ax.axvline(x=idx, color='black', linestyle='--', lw=2.0)
     ax.set_xlabel('')
     ax.set_ylim(min_fitness - 0.1, max_fitness + 0.1)
-    ax.set_ylabel("Fitness")
+    ax.set_ylabel("Fitness", fontsize=label_fontsize)
 
 
 def plot_r_model(
@@ -555,7 +565,8 @@ def plot_variant_counts(
     ef_data: Dict[str, Any], 
     deme: str, 
     color_map: Dict[str, str], 
-    pivot_idx: Optional[List[int]] = None
+    pivot_idx: Optional[List[int]] = None,
+    label_fontsize: int = 14
 ) -> None:
     """ Plot histogram of variant sequence counts with optional pivot lines.
 
@@ -566,6 +577,7 @@ def plot_variant_counts(
         deme (str): Deme to plot
         color_map (dict): Dictionary mapping variant names to colors
         pivot_idx (list, optional): List of pivot indices to draw vertical lines at. Defaults to None.
+        label_fontsize (int, optional): Font size for axis labels. Defaults to 14.
 
     Returns:
     ---------------
@@ -595,28 +607,43 @@ def plot_variant_counts(
         for idx in pivot_idx:
             ax.axvline(x=idx, color='black', linestyle='--', lw=2.0)
             
-    ax.set_ylabel("Sampled Sequences")
+    ax.set_ylabel("Sampled Sequences", fontsize=label_fontsize)
     ax.set_xlabel("")
 
 
 def plot_observed_dynamics(
-    ef_data: Dict[str, Any], 
-    fitness_df: pd.DataFrame, 
+    seqs_df: pd.DataFrame,
+    cases_df: pd.DataFrame, 
     deme: str, 
     color_map: Dict[str, str], 
-    figsize: Tuple[int, int] = (30, 15), 
-    pivot_date: Optional[str] = None
+    figsize: Tuple[int, int] = (30, 15),
+    title_fontsize: int = 30,
+    label_fontsize: int = 14,
+    tick_labelsize: int = 12,
+    legend_fontsize: int = 12,
+    legend_title_fontsize: int = 14,
+    title: Optional[str] = None
 ) -> None:
-    """ Plot observed dynamics.
+    """ Plot observed dynamics for entire simulation using time-stamped truth data.
+    
+    This creates a three-panel plot including:
+    1. Case counts over time
+    2. Variant sequence counts (stacked histogram) 
+    3. Variant frequencies over time
 
     Parameters:
     ---------------
-        ef_data (dict): Dictionary of evofr data
-        fitness_df (pd.DataFrame): Fitness dataframe
-        deme (str): Deme name
+        seqs_df (pd.DataFrame): Sequence counts dataframe with columns: date, country, variant, sequences
+        cases_df (pd.DataFrame): Case counts dataframe with columns: date, country, cases  
+        deme (str): Location/deme name to plot
         color_map (dict): Dictionary mapping variant names to colors
-        figsize (tuple): Size of the figure
-        pivot_date (str, optional): Date string for the title. Defaults to None.
+        figsize (tuple): Size of the figure. Defaults to (30, 15).
+        title_fontsize (int): Font size for the figure title. Defaults to 30.
+        label_fontsize (int): Font size for axis labels. Defaults to 14.
+        tick_labelsize (int): Font size for tick labels. Defaults to 12.
+        legend_fontsize (int): Font size for legend text. Defaults to 12.
+        legend_title_fontsize (int): Font size for legend title. Defaults to 14.
+        title (str, optional): Custom title for the plot. If None, uses default format.
 
     Returns:
     ---------------
@@ -626,37 +653,55 @@ def plot_observed_dynamics(
     fig, axs = plt.subplots(nrows=3, ncols=1, figsize=figsize, sharex=True)
     
     # Add a title
-    if pivot_date:
-        fig.suptitle(f"Observed dynamics {deme} deme for {pivot_date}", fontsize=30)
+    if title:
+        fig.suptitle(title, fontsize=title_fontsize)
     else:
-        fig.suptitle(f"Observed dynamics {deme} deme", fontsize=30)
+        fig.suptitle(f"Observed dynamics for {deme} deme", fontsize=title_fontsize)
+    
+    # Filter data for the specified deme
+    deme_seqs = seqs_df[seqs_df['country'] == deme].copy()
+    deme_cases = cases_df[cases_df['country'] == deme].copy()
+    
+    # Create evofr data object for this deme
+    ef_data_deme = ef.CaseFrequencyData(raw_cases=deme_cases, raw_seq=deme_seqs)
     
     # Subset color map to only include variants present in the deme
-    available_variants = ef_data[deme].var_names
-    color_map = {k: v for k, v in color_map.items() if k in available_variants}
-
+    available_variants = ef_data_deme.var_names
+    filtered_color_map = {k: v for k, v in color_map.items() if k in available_variants}
+    
     # Sort color map by variant name
-    color_map = {k: color_map[k] for k in sorted(color_map.keys())}
+    filtered_color_map = {k: filtered_color_map[k] for k in sorted(filtered_color_map.keys())}
+
+    # Create a temporary ef_data dict for compatibility with existing helper functions
+    ef_data = {deme: ef_data_deme}
 
     # Plot cases
-    plot_observed_cases(axs[0], ef_data, deme)
+    plot_observed_cases(axs[0], ef_data, deme, label_fontsize=label_fontsize)
 
     # Plot variant counts histogram
-    plot_variant_counts(axs[1], ef_data, deme, color_map)
+    plot_variant_counts(axs[1], ef_data, deme, filtered_color_map, label_fontsize=label_fontsize)
 
     # Plot observed frequencies
-    plot_observed_freqs(axs[2], ef_data, deme, color_map)
+    plot_observed_freqs(axs[2], ef_data, deme, filtered_color_map, label_fontsize=label_fontsize)
+    
+    # Set tick label font sizes for all axes
+    for ax in axs:
+        ax.tick_params(axis='both', which='major', labelsize=tick_labelsize)
 
     # Add x-axis label
-    axs[-1].set_xlabel("Date")
+    axs[-1].set_xlabel("Date", fontsize=label_fontsize)
 
     # Create a legend
-    patches = [matplotlib.patches.Patch(color=c, label=l) for l, c in color_map.items()]
-    legend = fig.legend(patches, list(color_map.keys()), ncol=10, bbox_to_anchor=(0.5, -0.15), loc="lower center", title="Variant")  
+    patches = [matplotlib.patches.Patch(color=c, label=l) for l, c in filtered_color_map.items()]
+    legend = fig.legend(patches, list(filtered_color_map.keys()), ncol=10, bbox_to_anchor=(0.5, -0.10), 
+                       loc="lower center", title="Variant", fontsize=legend_fontsize, title_fontsize=legend_title_fontsize)  
     legend.get_frame().set_linewidth(2.)
     legend.get_frame().set_edgecolor("k")
     fig.tight_layout()
     
+    plt.show()
+    
+
 def plot_dynamics(
     ef_data: Dict[str, Any], 
     freq: pd.DataFrame, 
@@ -904,15 +949,17 @@ def plot_observed_dynamics_window(pivot_date: str, location: str, build: str,
 
 
 def plot_analysis_window_with_variant_counts(pivot_date:str, location: str, model: str, build: str, 
-                       pruned_variant_fitness_df: pd.DataFrame, color_map: dict) -> None:
+                       color_map: dict, pruned_variant_fitness_df: pd.DataFrame = None, plot_fitness: bool = False,
+                       title_fontsize: int = 18, label_fontsize: int = 14, tick_labelsize: int = 12,
+                       legend_fontsize: int = 12, legend_title_fontsize: int = 14) -> None:
     """ Plot analysis window for a given location and model with variant counts histogram.
     
-    This creates a five-panel plot including:
+    This creates a four or five-panel plot including:
     1. Case counts
     2. Variant sequence counts (stacked histogram)
     3. Variant frequencies
     4. Growth advantages
-    5. Fitness
+    5. Fitness (optional, controlled by plot_fitness parameter)
 
     Parameters:
     ---------------
@@ -924,16 +971,39 @@ def plot_analysis_window_with_variant_counts(pivot_date:str, location: str, mode
             Model name
         build : str
             Build name
-        pruned_variant_fitness_df : pd.DataFrame
-            Pruned fitness dataframe
         color_map : dict
             Dictionary mapping variant names to colors
+        pruned_variant_fitness_df : pd.DataFrame, optional
+            Pruned fitness dataframe. Required only if plot_fitness=True. Defaults to None.
+        plot_fitness : bool, optional
+            Whether to include the fitness panel. Defaults to False.
+        title_fontsize : int, optional
+            Font size for the figure title. Defaults to 18.
+        label_fontsize : int, optional
+            Font size for axis labels. Defaults to 14.
+        tick_labelsize : int, optional
+            Font size for tick labels. Defaults to 12.
+        legend_fontsize : int, optional
+            Font size for legend text. Defaults to 12.
+        legend_title_fontsize : int, optional
+            Font size for legend title. Defaults to 14.
 
     Returns
     ---------------
         None
     """
-    evo_dict, small_freqs_df, small_rt_df, small_fitness_df = get_analysis_window(pivot_date, build, pruned_variant_fitness_df)
+    # Check if fitness plotting is requested but fitness_df is not provided
+    if plot_fitness and pruned_variant_fitness_df is None:
+        raise ValueError("pruned_variant_fitness_df is required when plot_fitness=True")
+    
+    # Get analysis window data
+    if pruned_variant_fitness_df is not None:
+        evo_dict, small_freqs_df, small_rt_df, small_fitness_df = get_analysis_window(pivot_date, build, pruned_variant_fitness_df)
+    else:
+        # Create a dummy fitness_df just for get_analysis_window
+        # We won't use it since plot_fitness=False
+        dummy_fitness_df = pd.DataFrame(columns=['date', 'location', 'variant', 'fitness', 'seasonal_fitness', 't'])
+        evo_dict, small_freqs_df, small_rt_df, small_fitness_df = get_analysis_window(pivot_date, build, dummy_fitness_df)
     # Print window stats
     print_window_stats(evo_dict, location)
 
@@ -941,10 +1011,12 @@ def plot_analysis_window_with_variant_counts(pivot_date:str, location: str, mode
     pivot_idx = small_freqs_df.query(f"date == '{pivot_date}'")['t'].values[0]
     
     # Setup figure and grid with shared x-axis
-    fig, axs = plt.subplots(nrows=5, ncols=1, figsize=(30, 18), sharex=True)
+    num_panels = 5 if plot_fitness else 4
+    fig_height = 18 if plot_fitness else 15
+    fig, axs = plt.subplots(nrows=num_panels, ncols=1, figsize=(30, fig_height), sharex=True)
     
     # Add a title
-    fig.suptitle(f"{model} inference for {location} deme on {pivot_date}", fontsize=30)
+    fig.suptitle(f"{model} inference for {location} deme on {pivot_date}", fontsize=title_fontsize)
     
     # Subset color map to only include variants present in the deme
     available_variants = evo_dict[location].var_names
@@ -957,37 +1029,42 @@ def plot_analysis_window_with_variant_counts(pivot_date:str, location: str, mode
     dates = ef.data.expand_dates(evo_dict[location].dates, T_forecast=0)
 
     # Plot case counts
-    plot_observed_cases(axs[0], evo_dict, location, pivot_idx=[pivot_idx])
+    plot_observed_cases(axs[0], evo_dict, location, pivot_idx=[pivot_idx], label_fontsize=label_fontsize)
     
     # Plot variant counts histogram
-    plot_variant_counts(axs[1], evo_dict, location, filtered_color_map, pivot_idx=[pivot_idx])
+    plot_variant_counts(axs[1], evo_dict, location, filtered_color_map, pivot_idx=[pivot_idx], label_fontsize=label_fontsize)
     
     # Plot frequencies
-    plot_frequencies(axs[2], evo_dict, small_freqs_df, location, model, filtered_color_map, p=50, pivot_idx=[pivot_idx])
+    plot_frequencies(axs[2], evo_dict, small_freqs_df, location, model, filtered_color_map, p=50, pivot_idx=[pivot_idx], label_fontsize=label_fontsize)
 
     # Plot growth advantages
     ga = small_rt_df.query(f"variant in {list(available_variants)}")
-    plot_rt(axs[3], ga, location, model, filtered_color_map, p=50, pivot_idx=[pivot_idx])
+    plot_rt(axs[3], ga, location, model, filtered_color_map, p=50, pivot_idx=[pivot_idx], label_fontsize=label_fontsize)
 
-    # Plot fitness
-    # Subset fitness dataframe to only include variants present in the available_variants
-    fitness = small_fitness_df.query(f"variant in {list(available_variants)}")
-    plot_fitness(axs[4], fitness, location, filtered_color_map, pivot_idx=[pivot_idx])
-    axs[4].set_xticks(np.arange(0, len(dates), 30))
-    axs[4].set_xticklabels(axs[4].get_xticks(), rotation=45)
+    # Plot fitness (only if requested)
+    if plot_fitness:
+        # Subset fitness dataframe to only include variants present in the available_variants
+        fitness = small_fitness_df.query(f"variant in {list(available_variants)}")
+        plot_fitness(axs[4], fitness, location, filtered_color_map, pivot_idx=[pivot_idx], label_fontsize=label_fontsize)
+        axs[4].set_xticks(np.arange(0, len(dates), 30))
+        axs[4].set_xticklabels(axs[4].get_xticks(), rotation=45)
 
-    # Adjust axis visibility
+    # Adjust axis visibility and font sizes
     for ax in axs[:-1]:  # Hide x-axis labels on all but the last subplot
         ax.label_outer()
+    
+    # Set tick label font sizes for all axes
+    for ax in axs:
+        ax.tick_params(axis='both', which='major', labelsize=tick_labelsize)
 
     # Add x-axis label
-    axs[-1].set_xlabel("Date")
+    axs[-1].set_xlabel("Date", fontsize=label_fontsize)
 
-    # Create a legend
+    # Create a legend with updated styling to match plot_growth_rate_dynamics
     patches = [Patch(color=c, label=l) for l, c in filtered_color_map.items()]
-    legend = fig.legend(patches, list(filtered_color_map.keys()), ncol=10, bbox_to_anchor=(0.5, -0.15), 
-                       loc="lower center", title="Variant")  
-    legend.get_frame().set_linewidth(2.)
+    legend = fig.legend(patches, list(filtered_color_map.keys()), ncol=10, bbox_to_anchor=(0.5, -0.10), 
+                       loc="lower center", title="Variant", fontsize=legend_fontsize, title_fontsize=legend_title_fontsize)  
+    legend.get_frame().set_linewidth(2.0)
     legend.get_frame().set_edgecolor("k")
     fig.tight_layout()
     

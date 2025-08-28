@@ -36,3 +36,7 @@ data/**/pathogen-embed/sequences.alignment
 data/**/pathogen-embed/sequences.alignment.insertions.csv
 data/**/pathogen-embed/sequences.alignment.log
 # Keep: pathogen-embed.tar.gz and seq-clusters.csv
+
+# Large FASTA files (keep compressed versions)
+data/**/antigen-outputs/sequences.fasta
+# Keep: sequences.fasta.gz

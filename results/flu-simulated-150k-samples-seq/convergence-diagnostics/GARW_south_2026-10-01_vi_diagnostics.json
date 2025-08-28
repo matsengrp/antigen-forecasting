@@ -1,0 +1,27 @@
+{
+  "model": "GARW",
+  "location": "south",
+  "analysis_date": "2026-10-01",
+  "inference_method": "InferFullRank",
+  "inference_settings": {
+    "iterations": 50000,
+    "learning_rate": null,
+    "num_samples": 500
+  },
+  "convergence_diagnostics": {
+    "elbo_trajectory": {
+      "num_iterations": 50000,
+      "initial_loss": 95538.796875,
+      "final_loss": 268.66326904296875,
+      "min_loss": 252.2018280029297,
+      "total_improvement": 95270.1328125
+    },
+    "convergence": {
+      "converged": true,
+      "relative_change": 0.005505016073584557,
+      "threshold": 0.01,
+      "window": 100,
+      "final_iteration": 50000
+    }
+  }
+}

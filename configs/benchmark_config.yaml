@@ -62,11 +62,10 @@ main:
   - '2054-10-01'
   locations:
   - north
-  - tropics
   - south
+  - tropics
   models:
   - NAIVE
   - MLR
   - FGA
   - GARW
-  model_config: 'configs/default_config.json'

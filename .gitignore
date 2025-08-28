@@ -28,3 +28,11 @@ pytest.ini
 # Ignore generated model config files
 config_*.json
 issues/
+
+# Pathogen-embed files (keep tar archive and seq-clusters.csv)
+data/**/pathogen-embed/distance-matrix.csv
+data/**/pathogen-embed/mds-embeddings.csv
+data/**/pathogen-embed/sequences.alignment
+data/**/pathogen-embed/sequences.alignment.insertions.csv
+data/**/pathogen-embed/sequences.alignment.log
+# Keep: pathogen-embed.tar.gz and seq-clusters.csv

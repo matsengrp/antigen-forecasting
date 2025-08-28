@@ -19,8 +19,6 @@ Optional Arguments:
     --window-size          Size of the training window in days (default: 365).
     --buffer-size          Number of days to remove from the training set before the analysis date (default: 0).
     --config-path          Path to save the configuration YAML file (default: 'configs/benchmark_config.yaml').
-    -n, --normalize_cases  Normalize case counts to report cases per 100k hosts.
-    --deme_population_size Population size of the deme (default: 30,000,000).
 
 Processing Steps:
     1. Load variant and case count data from TSV files.

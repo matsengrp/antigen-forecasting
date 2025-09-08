@@ -660,3 +660,181 @@ def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_da
         json.dump(diagnostics_output, f, indent=2)
     
     return filepath
+
+
+def naive_forecast_full_window(seq_count_date: pd.DataFrame, pivot: str, n_days_to_average: int = 7, 
+                               forecast_period: int = 180, training_window: Optional[int] = None) -> pd.DataFrame:
+    """
+    Naive forecast covering entire training window + forecast period.
+    
+    This function creates predictions for all available training dates plus the forecast period,
+    using rolling averages. For forecast dates (at/after pivot), it uses a fixed average from
+    the n_days_to_average period immediately before the pivot. For training dates (before pivot),
+    it uses rolling averages calculated separately for each date.
+    
+    Parameters
+    ----------
+    seq_count_date : pd.DataFrame
+        Sequence count data with columns: date, country, variant, sequences
+    pivot : str
+        Analysis/pivot date (YYYY-MM-DD format)
+    n_days_to_average : int, default=7
+        Number of days for rolling average
+    forecast_period : int, default=180
+        Number of days to forecast ahead
+    training_window : int, optional
+        Days of historical data to include. If None, uses all available data.
+    
+    Returns
+    -------
+    pd.DataFrame
+        Predictions for entire training window + forecast period with columns:
+        variant, country, freq, date, median_freq_nowcast, median_freq_forecast
+    """
+    pivot_dt = pd.to_datetime(pivot)
+    
+    # Get all available dates if training_window not specified
+    if training_window is None:
+        min_date = seq_count_date['date'].min()
+        back_date = min_date
+    else:
+        back_date = pivot_dt - pd.Timedelta(days=training_window)
+
+    # Create date ranges for full coverage
+    forecast_dates = pd.date_range(start=pivot_dt, periods=forecast_period, freq='D')
+    
+    # Get all training dates available in the data
+    all_training_dates = seq_count_date[
+        (seq_count_date['date'] >= back_date) & 
+        (seq_count_date['date'] < pivot)
+    ]['date'].unique()
+
+    # Combine for full coverage
+    pred_dates = pd.to_datetime(forecast_dates).union(pd.to_datetime(all_training_dates))
+    pred_dates = sorted(pred_dates)
+
+    # Compute frequency of variants for the demes using seq_count_data
+    seq_count_date = seq_count_date.copy()
+    seq_count_date['total_seq'] = seq_count_date.groupby(['date', 'country'])['sequences'].transform('sum')
+    seq_count_date['freq'] = seq_count_date['sequences'] / seq_count_date['total_seq']
+
+    # Pre-calculate the forecast average (fixed for all forecast dates)
+    forecast_recent_dates = pd.Series(
+        pd.to_datetime(seq_count_date[seq_count_date.date < pivot].date).unique()
+    ).nlargest(n_days_to_average).astype(str)
+    
+    if len(forecast_recent_dates) > 0:
+        forecast_freq_mean = seq_count_date[
+            seq_count_date.date.isin(forecast_recent_dates)
+        ].groupby(["variant", "country"])["freq"].mean().reset_index()
+    else:
+        forecast_freq_mean = pd.DataFrame(columns=['variant', 'country', 'freq'])
+
+    # Add prediction dates to date column for each country and variant
+    sc_s = []
+    for d in pred_dates:
+        if pd.to_datetime(d) >= pivot_dt:
+            # For forecast dates: use pre-calculated average from before pivot
+            if len(forecast_freq_mean) > 0:
+                sc_ = forecast_freq_mean.copy()
+                sc_["date"] = d.strftime('%Y-%m-%d')
+                sc_s.append(sc_)
+        else:
+            # For training dates: calculate average using data before this date
+            recent_dates = pd.Series(
+                pd.to_datetime(seq_count_date[seq_count_date.date < d].date).unique()
+            ).nlargest(n_days_to_average).astype(str)
+
+            if len(recent_dates) > 0:
+                seq_count_mean = seq_count_date[
+                    seq_count_date.date.isin(recent_dates)
+                ].groupby(["variant", "country"])["freq"].mean().reset_index()
+                
+                sc_ = seq_count_mean.copy()
+                sc_["date"] = d.strftime('%Y-%m-%d')
+                sc_s.append(sc_)
+
+    if not sc_s:
+        # Return empty dataframe with expected columns if no data
+        return pd.DataFrame(columns=['variant', 'country', 'freq', 'date', 'median_freq_nowcast', 'median_freq_forecast'])
+
+    sc = pd.concat(sc_s).sort_values(by=["country", "variant", "date"])
+    
+    # Adding nowcast and forecast columns
+    sc['median_freq_nowcast'] = sc['freq']
+    sc['median_freq_forecast'] = sc['freq']
+    
+    # Determine which dates are forecast vs nowcast
+    forecast_dates_str = [d.strftime('%Y-%m-%d') for d in forecast_dates]
+    training_dates_str = [pd.to_datetime(d).strftime('%Y-%m-%d') for d in all_training_dates]
+    
+    # Set appropriate columns to NaN based on date type
+    sc.loc[sc.date.isin(forecast_dates_str), 'median_freq_nowcast'] = np.nan
+    sc.loc[sc.date.isin(training_dates_str), 'median_freq_forecast'] = np.nan
+    
+    return sc.reset_index(drop=True)
+
+
+def naive_forecast(seq_count_date: pd.DataFrame, pivot: str, n_days_to_average: int = 7, period: int = 30) -> pd.DataFrame:
+    """
+    Naive forecast of the frequency of a variant (original implementation).
+    
+    Creates predictions for a fixed window around the pivot date: `period` days before
+    and `period` days after the pivot, for a total coverage of 2 * period days.
+
+    Parameters
+    ----------
+    seq_count_date : pd.DataFrame
+        Sequence count data with columns: date, country, variant, sequences
+    pivot : str
+        Pivot/forecasting date (YYYY-MM-DD format)
+    n_days_to_average : int, default=7
+        Number of days to average counts over for forecasting
+    period : int, default=30
+        Number of days before and after pivot to include
+
+    Returns
+    -------
+    pd.DataFrame
+        Forecasted frequencies with columns:
+        variant, country, freq, date, median_freq_nowcast, median_freq_forecast
+    """
+    from pandas.tseries.offsets import Day
+    
+    # Define dates for forecasting and nowcasting
+    back_date = pd.to_datetime(pivot) - Day(period)
+    forecast_dates = pd.to_datetime(pd.unique(pd.date_range(start=pivot, periods=period, freq='D'))).astype(str)
+    nowcast_dates = pd.to_datetime(pd.unique(pd.date_range(start=back_date, periods=period, freq='D'))).astype(str)
+
+    # Define prediction period for nowcasting and forecasting
+    pred_dates = forecast_dates.union(nowcast_dates)
+
+    # Compute frequency of variants for the demes using seq_count_data
+    seq_count_date = seq_count_date.copy()
+    seq_count_date['total_seq'] = seq_count_date.groupby(['date', 'country'])['sequences'].transform('sum')
+    seq_count_date['freq'] = seq_count_date['sequences'] / seq_count_date['total_seq']
+
+    # Add prediction dates to date column for each country and variant
+    sc_s = []
+    for d in pred_dates:
+        recent_dates = pd.Series(pd.to_datetime(seq_count_date[seq_count_date.date < d].date).unique()).nlargest(n_days_to_average).astype(str)
+
+        # Get mean frequency of variants for the last n_days_to_average days
+        seq_count_mean = seq_count_date[seq_count_date.date.isin(recent_dates)].groupby(["variant", "country"])["freq"].mean().reset_index()
+
+        sc_ = seq_count_mean.copy()
+        
+        # Adding dates column
+        sc_["date"] = d
+        sc_s.append(sc_)
+
+    sc = pd.concat(sc_s).sort_values(by=["country", "variant", "date"])
+    
+    # Adding nowcast and forecast columns
+    sc['median_freq_nowcast'] = sc['freq']
+    sc['median_freq_forecast'] = sc['freq']
+    
+    # Matching dates for nowcast and forecast
+    sc.loc[sc.date.isin(forecast_dates), 'median_freq_nowcast'] = np.nan
+    sc.loc[sc.date.isin(nowcast_dates), 'median_freq_forecast'] = np.nan
+    return sc.reset_index(drop=True)

@@ -1,28 +1,42 @@
 """
-Compute model scores.
+Compute model scores with focused evaluation on meaningful variants.
 
-This script computes the scores of the models based on the predictions and the truth set. 
-The scores are computed for each model, location, and analysis date. 
-The scores are saved to a tsv file.
-Borrowing a lot of these functions from Marlin: https://github.com/blab/ncov-forecasting-fit/blob/main/script/compute_model_scores.py 
+This script computes the scores of the models based on predictions and truth set data,
+with enhanced filtering to focus on epidemiologically relevant variants. The scoring
+excludes rare, extinct, and non-circulating variants to provide clearer model
+performance differentiation.
+
+Key filtering features:
+- Active variant filtering: Only scores variants observed recently (configurable window)
+- Frequency threshold: Excludes very rare variants below a threshold
+- Missing data handling: Properly handles NaN values in smoothed frequencies
 
 Usage:
     python score_models.py --config config.yaml --truth-set truth_set.tsv --estimates-path estimates --output-path scores.tsv
 
 Required Arguments:
-    --config            Path to the configuration file.
-    --truth-set         Path to the truth set of sequences.
-    --estimates-path    Path to the estimates.
-    --output-path       Path to save the output.
+    --config            Path to the configuration file with scoring parameters
+    --truth-set         Path to the truth set of sequences
+    --estimates-path    Path to the model estimates
+    --output-path       Path to save the output scores
+
+Configuration (in YAML):
+    scoring:
+      min_frequency_threshold: 0.01  # Minimum frequency to include (1%)
+      active_window_days: 90         # Look back window for active variants
+      min_sequences: 10              # Minimum sequences for a variant
+      min_observations: 3            # Minimum observations in window
+      handle_missing_smoothed: true  # Filter missing smoothed frequencies
 
 Output:
-    - scores.tsv        Scores of the models saved to a tsv file.
+    - scores.tsv        Model scores with filtering applied
 
 Dependencies:
     - Requires Python 3.x
     - pandas
     - numpy
     - pyyaml
+    - scipy
 
 Author: Zorian Thornton (@zorian15)
 Date: 2025-02-06
@@ -236,26 +250,98 @@ def merge_truth_pred(df, location_truth):
     )
     return merged_set[merged_set["pred_freq"].notnull()]
 
-def calculate_errors(merged: pd.DataFrame, pivot_date: str, country: str, model: str):
+
+def filter_active_variants(df: pd.DataFrame, pivot_date: str, lookback_days: int = 90, 
+                          min_observations: int = 3, min_sequences: int = 10) -> pd.DataFrame:
+    """
+    Filter to only include variants that have been recently observed.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with variant observations.
+    pivot_date : str
+        The analysis/pivot date.
+    lookback_days : int
+        Number of days to look back for active variants.
+    min_observations : int
+        Minimum number of times variant must be observed in lookback window.
+    min_sequences : int
+        Minimum total sequences for a variant in lookback window.
+
+    Returns
+    -------
+    pd.DataFrame
+        Filtered DataFrame containing only active variants.
+    """
+    pivot_dt = pd.to_datetime(pivot_date)
+    lookback_start = pivot_dt - pd.Timedelta(days=lookback_days)
+    
+    # Get variants observed in the lookback window
+    recent_data = df[(pd.to_datetime(df['date']) >= lookback_start) & 
+                     (pd.to_datetime(df['date']) < pivot_dt)]
+    
+    # Calculate observation counts and total sequences per variant
+    active_variants = recent_data.groupby(['country', 'variant']).agg({
+        'sequences': ['count', 'sum']
+    }).reset_index()
+    
+    # Flatten column names
+    active_variants.columns = ['country', 'variant', 'observation_count', 'total_sequences']
+    
+    # Filter based on criteria
+    active_variants = active_variants[
+        (active_variants['observation_count'] >= min_observations) &
+        (active_variants['total_sequences'] >= min_sequences)
+    ]
+    
+    # Get list of active variant-country combinations
+    active_keys = set(zip(active_variants['country'], active_variants['variant']))
+    
+    # Filter original dataframe to only include active variants
+    mask = df.apply(lambda row: (row['country'], row['variant']) in active_keys, axis=1)
+    
+    return df[mask]
+
+def calculate_errors(merged: pd.DataFrame, pivot_date: str, country: str, model: str, 
+                    min_freq_threshold: float = None, handle_missing_smoothed: bool = True):
     """
     Calculate the errors between the truth and predictions.
 
     Parameters
     ----------
-    merged (pd.DataFrame):
+    merged : pd.DataFrame
         DataFrame of the merged truth and predictions.
-    pivot_date (str):
+    pivot_date : str
         Date of the analysis.
-    country (str):
+    country : str
         Name of the country.
-    model (str):
+    model : str
         Name of the model.
+    min_freq_threshold : float, optional
+        Minimum frequency threshold to include variants (applied to smoothed_freq).
+        If None, no filtering.
+    handle_missing_smoothed : bool
+        Whether to filter out rows with missing smoothed frequencies.
 
     Returns
     -------
-    pd.DataFrame:
+    pd.DataFrame
         DataFrame of the errors.
     """
+    # Filter out rows with missing smoothed_freq if requested
+    if handle_missing_smoothed:
+        merged = merged[merged['smoothed_freq'].notna()].copy()
+        if len(merged) == 0:
+            return None
+    
+    # Apply minimum frequency threshold if specified
+    # Use smoothed_freq for consistency since that's what errors are calculated against
+    if min_freq_threshold is not None:
+        freq_mask = (merged['smoothed_freq'] >= min_freq_threshold) | (merged['pred_freq'] >= min_freq_threshold)
+        merged = merged[freq_mask].copy()
+        if len(merged) == 0:
+            return None
     # Compute model dates and leads from pivot_date
     model_dates = pd.to_datetime(merged["date"])
     lead = (model_dates - pd.to_datetime(pivot_date)).dt.days
@@ -401,6 +487,21 @@ if __name__ == "__main__":
     dates = config["main"]["estimation_dates"]
     locations = config["main"]["locations"]
     models = config["main"]["models"]
+    
+    # Load scoring configuration parameters
+    scoring_config = config.get("scoring", {})
+    min_freq_threshold = scoring_config.get("min_frequency_threshold", None)
+    active_window_days = scoring_config.get("active_window_days", None)
+    min_sequences = scoring_config.get("min_sequences", 10)
+    min_observations = scoring_config.get("min_observations", 3)
+    handle_missing_smoothed = scoring_config.get("handle_missing_smoothed", True)
+    
+    print(f"Scoring configuration:")
+    print(f"  Min frequency threshold: {min_freq_threshold}")
+    print(f"  Active window days: {active_window_days}")
+    print(f"  Min sequences: {min_sequences}")
+    print(f"  Min observations: {min_observations}")
+    print(f"  Handle missing smoothed: {handle_missing_smoothed}")
 
     # Retrospective sequence counts
     truth_set = load_truthset(
@@ -438,11 +539,38 @@ if __name__ == "__main__":
 
                 # Merge predictions and truth set
                 merged = merge_truth_pred(raw_pred, location_truth)
-
-                # Make dataframe containing the errors
-                error_df = calculate_errors(merged, pivot_date, country=location, model=model)
+                
+                # Track original size for diagnostics
+                original_size = len(merged)
+                
+                # Apply active variant filtering if configured
+                if active_window_days is not None:
+                    merged = filter_active_variants(
+                        merged, 
+                        pivot_date=pivot_date,
+                        lookback_days=active_window_days,
+                        min_observations=min_observations,
+                        min_sequences=min_sequences
+                    )
+                    active_filtered_size = len(merged)
+                    print(f"  Active variant filter: {original_size} → {active_filtered_size} rows")
+                
+                # Make dataframe containing the errors with additional filtering
+                error_df = calculate_errors(
+                    merged, 
+                    pivot_date, 
+                    country=location, 
+                    model=model,
+                    min_freq_threshold=min_freq_threshold,
+                    handle_missing_smoothed=handle_missing_smoothed
+                )
+                
                 if error_df is None:
+                    print(f"  No valid data after filtering for {model} {location} {pivot_date}")
                     continue
+                
+                final_size = len(error_df)
+                print(f"  Final size after all filters: {final_size} rows")
 
                 score_df_list.append(error_df)
     score_df = pd.concat(score_df_list)

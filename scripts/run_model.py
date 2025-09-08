@@ -60,7 +60,7 @@ from pandas.tseries.offsets import Day, BDay
 import sys
 import os
 sys.path.append('..')  # Adjust path to import antigentools
-from antigentools.utils import save_vi_convergence_diagnostics
+from antigentools.utils import save_vi_convergence_diagnostics, naive_forecast, naive_forecast_full_window
 
 def load_data(data_path: str, country: str) -> pd.DataFrame:
     """ Load variant or case count data from a path, and filter to the desired location.
@@ -339,62 +339,7 @@ def get_mlr_rt(samples: dict, variant_data: ef.VariantFrequencies, ps: list, cou
     rt_df.to_csv(f'{filepath}/rt_{country}_{date}.tsv', sep="\t", index=False, header=True)
     return None
 
-def naive_forecast(seq_count_date, pivot, n_days_to_average=7, period=30):
-    """
-    Naive forecast of the frequency of a variant.
 
-    Parameters
-    ----------
-    seq_count_date : pd.DataFrame
-        Sequence count data.
-    pivot : str
-        Pivot/forecasting date
-    n_days_to_average : int
-        Number of days to average counts over for forecasting.
-    period : int
-        Number of days to forecast.
-
-    Returns
-    -------
-    pd.DataFrame
-        Forecasted frequencies.
-    """
-    # Define dates for forecasting and nowcasting
-    back_date = pd.to_datetime(pivot) - Day(period)
-    forecast_dates = pd.to_datetime(pd.unique(pd.date_range(start=pivot, periods=period, freq='D'))).astype(str)
-    nowcast_dates = pd.to_datetime(pd.unique(pd.date_range(start=back_date, periods=period, freq='D'))).astype(str)
-
-    # Define prediction period for nowcasting and forecasting
-    pred_dates = forecast_dates.union(nowcast_dates)
-
-    # Compute frequency of variants for the demes using seq_count_data
-    seq_count_date['total_seq'] = seq_count_date.groupby(['date', 'country'])['sequences'].transform('sum')
-    seq_count_date['freq'] = seq_count_date['sequences'] / seq_count_date['total_seq']
-
-    # Add prediction dates to date column for each country and variant
-    sc_s = []
-    for d in pred_dates:
-        recent_dates = pd.Series(pd.to_datetime(seq_count_date[seq_count_date.date < d].date).unique()).nlargest(n_days_to_average).astype(str)
-
-        # Get mean frequency of variants for the last 7 days
-        seq_count_mean = seq_count_date[seq_count_date.date.isin(recent_dates)].groupby(["variant", "country"])["freq"].mean().reset_index()
-
-        sc_ = seq_count_mean.copy()
-        
-        # Adding dates column
-        sc_["date"] = d
-        sc_s.append(sc_)
-
-    sc = pd.concat(sc_s).sort_values(by=["country", "variant", "date"])
-    
-    # Adding nowcast and forecast columns
-    sc['median_freq_nowcast'] = sc['freq']
-    sc['median_freq_forecast'] = sc['freq']
-    
-    # Matching dates for nowcast and forecast
-    sc.loc[sc.date.isin(forecast_dates),'median_freq_nowcast'] = np.nan
-    sc.loc[sc.date.isin(nowcast_dates),'median_freq_forecast'] = np.nan
-    return sc.reset_index(drop=True)
 
 def load_config(config_path: str) -> dict:
     """Load and validate JSON configuration file.
@@ -494,12 +439,14 @@ def main(args) -> None:
     country = args.country
     model_type = args.model
     output_dir = args.output_dir
-    forecast_L = args.forecast_L
     seed_L = args.seed_L
     
     # Load and validate configuration
     config = load_config(args.config) if args.config else {}
     config = validate_config_for_model(config, model_type)
+    
+    # Get forecast_L from config (with command line override)
+    forecast_L = get_config_value(config, ['forecast_L'], args.forecast_L)
     
     # Configuration logging and reproduction
     if args.config:
@@ -593,6 +540,12 @@ def main(args) -> None:
         )
     elif model_type == "NAIVE":
         print("Running naive forecast...")
+        # Check for full window configuration
+        use_full_window = get_config_value(config, ['model_specific', 'NAIVE', 'full_window'], False)
+        if use_full_window:
+            print("Using full training window coverage for NAIVE model...")
+        else:
+            print("Using traditional 60-day window for NAIVE model...")
     else:
         print(f"Model type {model_type} not recognized.")
         return None
@@ -603,7 +556,31 @@ def main(args) -> None:
     filepath = f"{output_dir}/estimates/{model_type}"
     os.makedirs(filepath, exist_ok=True)
     if model_type == "NAIVE":
-        model_posterior = naive_forecast(seq_counts, pivot=analysis_date, n_days_to_average=7, period=forecast_L)
+        # Check for full window configuration (command line flag overrides config)
+        use_full_window = getattr(args, 'naive_full_window', False) or get_config_value(config, ['model_specific', 'NAIVE', 'full_window'], False)
+        
+        # Get NAIVE-specific parameters from config
+        n_days_to_average = get_config_value(config, ['model_specific', 'NAIVE', 'n_days_to_average'], 7)
+        
+        if use_full_window:
+            # Always use all available training data (training_window=None)
+            model_posterior = naive_forecast_full_window(
+                seq_counts, 
+                pivot=analysis_date,
+                n_days_to_average=n_days_to_average,
+                forecast_period=forecast_L,
+                training_window=None
+            )
+        else:
+            # Use original implementation for backward compatibility
+            # For original function, use forecast_L as the period parameter
+            model_posterior = naive_forecast(
+                seq_counts, 
+                pivot=analysis_date, 
+                n_days_to_average=n_days_to_average, 
+                period=forecast_L
+            )
+        
         model_posterior['model'] = model_type
 
         print("Saving naive results to file...")
@@ -673,9 +650,10 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output_dir", type=str, help="Directory to save the model results.")
 
     # Optional arguments
-    parser.add_argument("--forecast_L", type=int, default=366, help="Number of days to forecast.")
+    parser.add_argument("--forecast_L", type=int, default=365, help="Number of days to forecast.")
     parser.add_argument("--seed_L", type=int, default=14, help="Number of days to seed the forecast with.")
     parser.add_argument("--config", type=str, help="Path to JSON configuration file with model parameters.")
+    parser.add_argument("--naive-full-window", action="store_true", help="Use full training window for NAIVE model (overrides config).")
     
 
 

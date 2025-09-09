@@ -439,12 +439,15 @@ def main(args) -> None:
     country = args.country
     model_type = args.model
     output_dir = args.output_dir
+    forecast_L = args.forecast_L
     seed_L = args.seed_L
     
     # Load and validate configuration
     config = load_config(args.config) if args.config else {}
     config = validate_config_for_model(config, model_type)
     
+    # Get seed_L from config (with command line override)
+    seed_L = get_config_value(config, ['seed_L'], args.seed_L)
     # Get forecast_L from config (with command line override)
     forecast_L = get_config_value(config, ['forecast_L'], args.forecast_L)
     

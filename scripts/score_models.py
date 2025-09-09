@@ -14,13 +14,18 @@ Key filtering features:
 
 Usage:
     python score_models.py --config config.yaml --truth-set truth_set.tsv \\
-                          --estimates-path estimates --output-path scores.tsv
+                          --estimates-path estimates --output-path scores.tsv \\
+                          [--verbose] [--log-file log.txt]
 
 Required Arguments:
     --config            Path to the configuration file with scoring parameters
     --truth-set         Path to the truth set of sequences
     --estimates-path    Path to the model estimates
     --output-path       Path to save the output scores
+
+Optional Arguments:
+    --verbose           Enable debug-level logging
+    --log-file          Path to save log messages to file (in addition to console)
 
 Configuration (in YAML):
     main:
@@ -63,12 +68,56 @@ from antigentools.scoring import (
 )
 from antigentools.scoring.config import load_config, parse_config
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
+
+
+def setup_logging(verbose: bool = False, log_file: Optional[Path] = None):
+    """
+    Set up logging configuration for console and file output.
+    
+    Parameters
+    ----------
+    verbose : bool, default=False
+        Enable debug-level logging
+    log_file : Optional[Path], default=None
+        Path to log file. If None, logs only to console
+    """
+    # Clear any existing handlers
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    
+    # Set logging level
+    level = logging.DEBUG if verbose else logging.INFO
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+    
+    # Configure root logger
+    logging.root.setLevel(level)
+    logging.root.addHandler(console_handler)
+    
+    # File handler if specified
+    if log_file:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_file, mode='w')
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        logging.root.addHandler(file_handler)
+        
+        # Log that file logging is enabled
+        logger.info(f"Logging to file: {log_file}")
+    
+    # Set levels for noisy modules
+    logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
 
 
 def parse_arguments():
@@ -107,6 +156,11 @@ def parse_arguments():
         '--verbose', 
         action='store_true',
         help='Enable verbose logging.'
+    )
+    parser.add_argument(
+        '--log-file',
+        type=str,
+        help='Path to log file. If not specified, logs only to console.'
     )
     
     return parser.parse_args()
@@ -245,9 +299,9 @@ def process_model_location_date(
 
 def main(args):
     """Main execution function."""
-    # Set logging level
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    # Setup logging
+    log_file_path = Path(args.log_file) if args.log_file else None
+    setup_logging(verbose=args.verbose, log_file=log_file_path)
     
     # Convert paths
     config_path = Path(args.config)

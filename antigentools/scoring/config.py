@@ -6,7 +6,7 @@ for scoring parameters.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from pathlib import Path
 import yaml
 import logging

@@ -72,7 +72,7 @@ main:
 
 scoring:
   min_frequency_threshold: 0.01  # Minimum 1% frequency to include in scoring
-  active_window_days: 90         # Look back 3 months for active variants
-  min_sequences: 10              # Minimum total sequences for variant
+  active_window_days: 60         # Look back time for active variants
+  min_sequences: 20              # Minimum total sequences for variant over active window
   min_observations: 3            # Minimum times observed in active window
   handle_missing_smoothed: true  # Filter out rows with missing smoothed frequencies

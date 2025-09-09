@@ -1,4 +1,5 @@
 {
+  "seed_L": 14,
   "forecast_L": 365,
   "inference": {
     "method": "InferFullRank",

@@ -1,453 +1,393 @@
+#!/usr/bin/env python
 """
-Compute model scores.
+Compute model scores with focused evaluation on meaningful variants.
 
-This script computes the scores of the models based on the predictions and the truth set. 
-The scores are computed for each model, location, and analysis date. 
-The scores are saved to a tsv file.
-Borrowing a lot of these functions from Marlin: https://github.com/blab/ncov-forecasting-fit/blob/main/script/compute_model_scores.py 
+This script computes the scores of the models based on predictions and truth set data,
+with enhanced filtering to focus on epidemiologically relevant variants. The scoring
+excludes rare, extinct, and non-circulating variants to provide clearer model
+performance differentiation.
+
+Key filtering features:
+- Active variant filtering: Only scores variants observed recently (configurable window)
+- Frequency threshold: Excludes very rare variants below a threshold
+- Missing data handling: Properly handles NaN values in smoothed frequencies
 
 Usage:
-    python score_models.py --config config.yaml --truth-set truth_set.tsv --estimates-path estimates --output-path scores.tsv
+    python score_models.py --config config.yaml --truth-set truth_set.tsv \\
+                          --estimates-path estimates --output-path scores.tsv \\
+                          [--verbose] [--log-file log.txt]
 
 Required Arguments:
-    --config            Path to the configuration file.
-    --truth-set         Path to the truth set of sequences.
-    --estimates-path    Path to the estimates.
-    --output-path       Path to save the output.
+    --config            Path to the configuration file with scoring parameters
+    --truth-set         Path to the truth set of sequences
+    --estimates-path    Path to the model estimates
+    --output-path       Path to save the output scores
+
+Optional Arguments:
+    --verbose           Enable debug-level logging
+    --log-file          Path to save log messages to file (in addition to console)
+
+Configuration (in YAML):
+    main:
+      estimation_dates: [2027-01-01, 2027-02-01, ...]
+      locations: [north, south, tropics]
+      models: [MLR, FGA, GARW, NAIVE]
+    
+    scoring:
+      min_frequency_threshold: 0.01  # Minimum frequency to include (1%)
+      active_window_days: 90         # Look back window for active variants
+      min_sequences: 10              # Minimum sequences for a variant
+      min_observations: 3            # Minimum observations in window
+      handle_missing_smoothed: true  # Filter missing smoothed frequencies
+      smoothing_window: 7            # Window size for frequency smoothing
 
 Output:
-    - scores.tsv        Scores of the models saved to a tsv file.
+    - scores.tsv: Model scores with filtering applied
 
 Dependencies:
-    - Requires Python 3.x
-    - pandas
-    - numpy
-    - pyyaml
+    - Python 3.x with: pandas, numpy, pyyaml, scipy
 
 Author: Zorian Thornton (@zorian15)
 Date: 2025-02-06
 """
+
 import pandas as pd
 import numpy as np
-import os
-import yaml
-import itertools
 import argparse
-from scipy.stats import binom
-from abc import ABC, abstractmethod
+import logging
+from pathlib import Path
 from datetime import datetime
+from typing import Optional, List
+import sys
 
-class ModelScores(ABC):
-    @abstractmethod
-    def __init__(self) -> None:
-        pass
+# Import from the new modular structure
+from antigentools.scoring import (
+    load_data, load_truthset,
+    filter_active_variants,
+    merge_truth_pred, calculate_errors
+)
+from antigentools.scoring.config import load_config, parse_config
+
+logger = logging.getLogger(__name__)
 
 
-class MAE(ModelScores):
-    def __init__(self) -> None:
-        pass
-
-    def evaluate(self, y_true: np.array, y_pred: np.array) -> float:
-        """
-        Compute the absollute error between true and predicted values.
-        """
-        return np.abs(y_true - y_pred)
-
-class MSE(ModelScores):
-    def __init__(self) -> None:
-        pass
-    
-    def evaluate(self, y_true: np.array, y_pred: np.array) -> float:
-        """
-        Compute the mean squared error between true and predicted values.
-        """
-        return np.square(y_true - y_pred)
-    
-class Coverage(ModelScores):
-    def __init__(self) -> None:
-        pass
-    
-    def compute_coverage(self, y_true: np.array, ci_low: np.array, ci_high: np.array) -> float:
-        """
-        Determine if the true value is covered under the credible intervals.
-        """
-        return ((y_true >= ci_low) & (y_true <= ci_high)).astype(int)
-
-class LogLoss(ModelScores):
-    def __init__(self):
-        pass
-
-    def evaluate(self, seq_value: int, tot_seq: int, pred_values: np.array) -> float:
-        loglik = binom.logpmf(k=seq_value, n=tot_seq, p=pred_values)
-        return loglik
-
-def smooth_freqs(freq_df: pd.DataFrame, window_size=7) -> pd.DataFrame:
+def setup_logging(verbose: bool = False, log_file: Optional[Path] = None):
     """
-    Smooth the frequencies of the data using a 1D filter.
-    """
-    raw_freqs = pd.Series(freq_df['truth_freq'])
-    smoothed_freqs = (raw_freqs.rolling(window=window_size, min_periods=1, center=True).mean().values)
-    freq_df['smoothed_freq'] = smoothed_freqs
-    return freq_df
-
-def load_data(filepath:str, sep:str='\t') -> pd.DataFrame:
-    """
-    Load in summary data of forecast frequencies.
-
+    Set up logging configuration for console and file output.
+    
     Parameters
     ----------
-    filepath (str): 
-        Path to the file.
-    sep (str): 
-        Separator for the file.
-
-    Returns
-    -------
-    pd.DataFrame: 
-        DataFrame of summary statistics from predictions.
+    verbose : bool, default=False
+        Enable debug-level logging
+    log_file : Optional[Path], default=None
+        Path to log file. If None, logs only to console
     """
-    # Check for file existence
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"File not found: {filepath}")
+    # Clear any existing handlers
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
     
-    # Load in the dataframe
-    predictions_df = pd.read_csv(filepath, sep=sep)
-
-    # Use median frequency as the predictions
-    predictions_df['pred_freq'] = predictions_df['median_freq_forecast']
+    # Set logging level
+    level = logging.DEBUG if verbose else logging.INFO
     
-    # Fill any missing prediction values with median nowcast frequencies
-    if 'median_freq_nowcast' in predictions_df.columns:
-        predictions_df['pred_freq'].fillna(predictions_df['median_freq_nowcast'], inplace=True)
-
-    # Check for credible intervals and add to dataframe
-    if ("freq_forecast_upper_95" in predictions_df.columns) and ("freq_forecast_lower_95" in predictions_df.columns):
-        # Define the credible intervals for forecasted frequencies
-        predictions_df['ci_low'] = predictions_df['freq_forecast_lower_95']
-        predictions_df['ci_high'] = predictions_df['freq_forecast_upper_95']
-        # Now do the same for the nowcasted frequencies
-        if "freq_lower_95" in predictions_df.columns:
-            predictions_df['ci_low'] = predictions_df[['ci_low', 'freq_lower_95']].min(axis=1)
-        if "freq_upper_95" in predictions_df.columns:
-            predictions_df['ci_high'] = predictions_df[['ci_high', 'freq_upper_95']].max(axis=1)
-    # Return
-    return predictions_df
-
-def load_truthset(path: str) -> pd.DataFrame:
-    """
-    Load retrospective frequencies.
-
-    Parameters
-    ----------
-    path (str):
-        Path to the truth set.
-
-    Returns
-    -------
-    pd.DataFrame:
-        DataFrame of the truth set observations.
-    """
-    truth_set = pd.read_csv(path, sep="\t")
-
-    all_dates = pd.unique(truth_set["date"])
-    all_loc = pd.unique(truth_set["country"])
-    all_var = pd.unique(truth_set["variant"])
-
-    combined = [all_dates, all_loc, all_var]
-    df = pd.DataFrame(
-        columns=["date", "country", "variant"],
-        data=list(itertools.product(*combined)),
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
     )
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+    
+    # Configure root logger
+    logging.root.setLevel(level)
+    logging.root.addHandler(console_handler)
+    
+    # File handler if specified
+    if log_file:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_file, mode='w')
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        logging.root.addHandler(file_handler)
+        
+        # Log that file logging is enabled
+        logger.info(f"Logging to file: {log_file}")
+    
+    # Set levels for noisy modules
+    logging.getLogger('matplotlib').setLevel(logging.WARNING)
+    logging.getLogger('PIL').setLevel(logging.WARNING)
 
-    new_truth = df.merge(truth_set, how="left").fillna(0)
-    new_truth["total_seq"] = new_truth.groupby(["date", "country"])[
-        "sequences"
-    ].transform("sum")
 
-    new_truth["truth_freq"] = new_truth["sequences"] / new_truth["total_seq"]
-    new_truth = new_truth.sort_values(by=["country", "variant", "date"])
-    new_truth = (
-        new_truth.groupby(["country", "variant"], group_keys=False)
-        .apply(smooth_freqs)
-        .reset_index(drop=True)
+def parse_arguments():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Compute model scores with variant filtering.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
     )
-    return new_truth
+    
+    parser.add_argument(
+        '--config', 
+        type=str, 
+        default="../configs/benchmark_config.yaml",
+        help='Path to the configuration file.'
+    )
+    parser.add_argument(
+        '--truth-set', 
+        type=str,
+        required=True,
+        help='Path to the truth set of sequences.'
+    )
+    parser.add_argument(
+        '--estimates-path', 
+        type=str,
+        required=True,
+        help='Path to the estimates directory.'
+    )
+    parser.add_argument(
+        '--output-path', 
+        type=str,
+        required=True,
+        help='Path to save the output scores.'
+    )
+    parser.add_argument(
+        '--verbose', 
+        action='store_true',
+        help='Enable verbose logging.'
+    )
+    parser.add_argument(
+        '--log-file',
+        type=str,
+        help='Path to log file. If not specified, logs only to console.'
+    )
+    
+    return parser.parse_args()
 
-def sample_predictive_quantile(total_seq: np.array, freq:np.array, q:float, num_samples:int=100):
+
+def load_model_predictions(
+    filepath: Path,
+    model: str,
+    location: str,
+    pivot_date: str
+) -> Optional[pd.DataFrame]:
     """
-    Sample the predictive quantile of the data.
+    Load model predictions with fallback to CSV format.
     
     Parameters
     ----------
-    total_seq (np.array): 
-        Total sequence counts.
-    freq (np.array):
-        Frequencies.
-    q (float):
-        Quantile to sample for.
-    num_samples (int):
-        Number of samples to take.
+    filepath : Path
+        Base path to predictions file
+    model : str
+        Model name
+    location : str
+        Location name
+    pivot_date : str
+        Analysis date
         
     Returns
     -------
-    np.array:
-        Predicted frequencies.
+    Optional[pd.DataFrame]
+        Loaded predictions or None if not found
     """
-    freq_pred = np.full_like(total_seq, fill_value=np.nan)
-    if np.isnan(total_seq).all():
-        return freq_pred
-    sample_counts = np.random.binomial(
-        total_seq.astype(int), freq, size=(num_samples, len(total_seq))
+    # Try TSV first
+    tsv_path = filepath.with_suffix('.tsv')
+    if tsv_path.exists():
+        try:
+            return load_data(tsv_path, sep='\t')
+        except Exception as e:
+            logger.error(f"Error loading {tsv_path}: {e}")
+            return None
+    
+    # Try CSV as fallback
+    csv_path = filepath.with_suffix('.csv')
+    if csv_path.exists():
+        try:
+            return load_data(csv_path, sep=',')
+        except Exception as e:
+            logger.error(f"Error loading {csv_path}: {e}")
+            return None
+    
+    logger.warning(
+        f"No {model} predictions found for {location} on {pivot_date}"
     )
-    sample_quants = np.nanquantile(sample_counts, q, axis=0)
-    np.divide(sample_quants, total_seq, out=freq_pred, where=total_seq != 0)
-    return freq_pred
+    return None
 
-def merge_truth_pred(df, location_truth):
+
+def process_model_location_date(
+    model: str,
+    location: str,
+    pivot_date: str,
+    location_truth: pd.DataFrame,
+    estimates_path: Path,
+    main_config,
+    scoring_config
+) -> Optional[pd.DataFrame]:
     """
-    Merge the truth and prediction dataframes.
-
+    Process scoring for a single model/location/date combination.
+    
     Parameters
     ----------
-    df (pd.DataFrame):
-        DataFrame of the predictions.
-    location_truth (pd.DataFrame):
-        DataFrame of the truth set.
-
+    model : str
+        Model name
+    location : str
+        Location name
+    pivot_date : str
+        Analysis date
+    location_truth : pd.DataFrame
+        Truth data for the location
+    estimates_path : Path
+        Base path to estimates
+    main_config : MainConfig
+        Main configuration
+    scoring_config : ScoringConfig
+        Scoring configuration
+        
     Returns
     -------
-    pd.DataFrame:
-        Merged DataFrame of the truth and predictions.
+    Optional[pd.DataFrame]
+        Error dataframe or None if no valid data
     """
-    if "location" in df.columns:
-        df.rename(columns={"location": "country"}, inplace=True)
-    merged_set = pd.merge(
-        location_truth, df, how="left", on=["date", "country", "variant"]
-    )
-
-    # Compute total sequences for each location and date
-    merged_set["total_seq"] = merged_set.groupby(["date", "country"])[
-        "sequences"
-    ].transform("sum")
-
-    # Compute retrospective frequencies for each variant
-    merged_set["truth_freq"] = (
-        merged_set["sequences"] / merged_set["total_seq"]
-    )
-    return merged_set[merged_set["pred_freq"].notnull()]
-
-def calculate_errors(merged: pd.DataFrame, pivot_date: str, country: str, model: str):
-    """
-    Calculate the errors between the truth and predictions.
-
-    Parameters
-    ----------
-    merged (pd.DataFrame):
-        DataFrame of the merged truth and predictions.
-    pivot_date (str):
-        Date of the analysis.
-    country (str):
-        Name of the country.
-    model (str):
-        Name of the model.
-
-    Returns
-    -------
-    pd.DataFrame:
-        DataFrame of the errors.
-    """
-    # Compute model dates and leads from pivot_date
-    model_dates = pd.to_datetime(merged["date"])
-    lead = (model_dates - pd.to_datetime(pivot_date)).dt.days
-
-    error_df = pd.DataFrame(
-        {
-            "country": country,
-            "model": model,
-            "pivot_date": pd.to_datetime(pivot_date),
-            "lead": lead,
-            "variant": merged["variant"],
-        }
-    )
-
-    # unpacking prepped_data values
-    (
-        raw_freq,
-        pred_freq,
-        seq_count,
-        total_seq,
-        smoothed_freq,
-        ci_low,
-        ci_low_pred,
-        ci_high,
-        ci_high_pred,
-    ) = prep_frequency_data(merged)
-
-    if raw_freq is None:
+    # Construct file path
+    filepath = estimates_path / model / f"freq_{location}_{pivot_date}"
+    
+    # Load predictions
+    raw_pred = load_model_predictions(filepath, model, location, pivot_date)
+    if raw_pred is None:
         return None
-
-    # Computing metrics
-    # MAE
-    mae = MAE()
-    error_df["MAE"] = mae.evaluate(smoothed_freq, pred_freq)
-
-    # MSE
-    mse = MSE()
-    error_df["MSE"] = mse.evaluate(smoothed_freq, pred_freq)
-
-    # Logloss error
-    logloss = LogLoss()
-    error_df["loglik"] = logloss.evaluate(seq_count, total_seq, pred_freq)
-
-    # Computing Coverage
-    coverage = Coverage()
-    if ci_low is not None and ci_high is not None:
-        error_df["coverage_posterior"] = coverage.compute_coverage(
-            smoothed_freq, ci_low, ci_high
+    
+    # Merge with truth data
+    merged = merge_truth_pred(raw_pred, location_truth)
+    
+    # Track filtering progress
+    original_size = len(merged)
+    logger.info(f"\nProcessing {model} {location} {pivot_date}:")
+    logger.info(f"  Initial merge: {original_size} rows")
+    
+    # Apply active variant filtering if configured
+    if scoring_config.active_window_days is not None:
+        merged = filter_active_variants(
+            merged,
+            pivot_date=pivot_date,
+            lookback_days=scoring_config.active_window_days,
+            min_observations=scoring_config.min_observations,
+            min_sequences=scoring_config.min_sequences
         )
-    if ci_low_pred is not None and ci_high_pred is not None:
-        error_df["coverage_predictive"] = coverage.compute_coverage(
-            smoothed_freq, ci_low_pred, ci_high_pred
-        )
-    # Adding frequencies columns for comparison and diagnostics
-    error_df["total_seq"] = total_seq
-    error_df["raw_freq"] = raw_freq
-    error_df["smoothed_freq"] = smoothed_freq
-    error_df["pred_freq"] = pred_freq
-    error_df["date"] = model_dates
+        active_filtered_size = len(merged)
+        logger.info(f"  Active variant filter: {original_size} → {active_filtered_size} rows")
+    
+    # Calculate errors with additional filtering
+    error_df = calculate_errors(
+        merged,
+        pivot_date,
+        country=location,
+        model=model,
+        min_freq_threshold=scoring_config.min_frequency_threshold,
+        handle_missing_smoothed=scoring_config.handle_missing_smoothed
+    )
+    
+    if error_df is None:
+        logger.warning(f"  No valid data after all filtering")
+        return None
+    
+    final_size = len(error_df)
+    logger.info(f"  Final size after all filters: {final_size} rows")
+    
     return error_df
 
-def prep_frequency_data(df: pd.DataFrame) -> tuple:
-    """
-    Prepare the frequency data for analysis.
 
-    Resulting dictionary should have the following keys:
-    - 'raw_freq': Raw frequency data.
-    - 'pred_freq': Predicted frequencues.
-    - 'seq_count': Sequence counts for a variant.
-    - 'total_seq': Total sequence counts.
-    - 'smoothed_freq': Smoothed frequency data.
-    - 'ci_low': Lower bound of the credible interval.
-    - 'ci_low_pred': Lower bound of the predicted credible interval.
-    - 'ci_high': Upper bound of the credible interval.
-    - 'ci_high_pred': Upper bound of the predicted credible interval.
-
-    Parameters
-    ----------
-    df (pd.DataFrame): 
-        DataFrame of the frequency data.
-
-    Returns
-    -------
-    tuple:
-        Tuple of the prepared data.
-    """
+def main(args):
+    """Main execution function."""
+    # Setup logging
+    log_file_path = Path(args.log_file) if args.log_file else None
+    setup_logging(verbose=args.verbose, log_file=log_file_path)
     
-    # Convert frequencies to arrays
-    raw_freq = np.squeeze(df[["truth_freq"]].to_numpy(), axis=-1)
+    # Convert paths
+    config_path = Path(args.config)
+    truth_path = Path(args.truth_set)
+    estimates_path = Path(args.estimates_path)
+    output_path = Path(args.output_path)
+    
+    # Load and parse configuration
+    try:
+        config_dict = load_config(config_path)
+        main_config, scoring_config = parse_config(config_dict)
+    except Exception as e:
+        logger.error(f"Configuration error: {e}")
+        sys.exit(1)
+    
+    # Log configuration
+    logger.info("=" * 60)
+    logger.info("Scoring Configuration:")
+    logger.info(f"  Min frequency threshold: {scoring_config.min_frequency_threshold}")
+    logger.info(f"  Active window days: {scoring_config.active_window_days}")
+    logger.info(f"  Min sequences: {scoring_config.min_sequences}")
+    logger.info(f"  Min observations: {scoring_config.min_observations}")
+    logger.info(f"  Handle missing smoothed: {scoring_config.handle_missing_smoothed}")
+    logger.info(f"  Smoothing window: {scoring_config.smoothing_window}")
+    logger.info("=" * 60)
+    
+    # Load truth set
+    try:
+        logger.info(f"\nLoading truth set from {truth_path}")
+        truth_set = load_truthset(truth_path)
+    except Exception as e:
+        logger.error(f"Error loading truth set: {e}")
+        sys.exit(1)
+    
+    # Process all model/location/date combinations
+    score_df_list = []
+    total_combinations = len(main_config.models) * len(main_config.locations) * len(main_config.estimation_dates)
+    processed = 0
+    
+    for model in main_config.models:
+        for location in main_config.locations:
+            # Filter truth set to location
+            location_truth = truth_set[truth_set["country"] == location]
+            
+            if len(location_truth) == 0:
+                logger.warning(f"{location} not found in truth set")
+                continue
+            
+            for pivot_date in main_config.estimation_dates:
+                processed += 1
+                logger.info(f"\nProgress: {processed}/{total_combinations}")
+                
+                error_df = process_model_location_date(
+                    model, location, pivot_date,
+                    location_truth, estimates_path,
+                    main_config, scoring_config
+                )
+                
+                if error_df is not None:
+                    score_df_list.append(error_df)
+    
+    # Check if we have any results
+    if not score_df_list:
+        logger.error("No scores computed for any model/location/date combination")
+        sys.exit(1)
+    
+    # Combine all scores
+    logger.info(f"\nCombining {len(score_df_list)} score dataframes")
+    score_df = pd.concat(score_df_list, ignore_index=True)
+    
+    # Save output
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    score_df.to_csv(output_path, sep="\t", index=False)
+    
+    # Log summary statistics
+    logger.info("=" * 60)
+    logger.info("Scoring Summary:")
+    logger.info(f"  Total scores: {len(score_df)}")
+    logger.info(f"  Models: {score_df['model'].nunique()}")
+    logger.info(f"  Locations: {score_df['country'].nunique()}")
+    logger.info(f"  Analysis dates: {score_df['pivot_date'].nunique()}")
+    logger.info(f"  Variants: {score_df['variant'].nunique()}")
+    logger.info(f"  Output saved to: {output_path}")
+    logger.info("=" * 60)
 
-    if len(raw_freq) == 0:
-        return (None,) * 9
-
-    # Convert smoothed frequencies to arrays
-    smoothed_freq = np.squeeze(df[["smoothed_freq"]].to_numpy())
-
-    # Convert sequences and total sequnces to arrays
-    seq_count = np.squeeze(df[["sequences"]].to_numpy())
-    total_seq = np.squeeze(df[["total_seq"]].to_numpy())
-
-    # Convert predicted frequencies to arrays
-    pred_freq = np.squeeze(df[["pred_freq"]].to_numpy())
-
-    # Convert credible intervals to arrays
-    if "ci_low" in df.columns:
-        ci_low = np.squeeze(df[["ci_low"]].to_numpy())
-        ci_low_pred = sample_predictive_quantile(total_seq, ci_low, q=0.025)
-    else:
-        ci_low = None
-        ci_low_pred = None
-
-    if "ci_high" in df.columns:
-        ci_high = np.squeeze(df[["ci_high"]].to_numpy())
-        ci_high_pred = sample_predictive_quantile(total_seq, ci_high, q=0.975)
-    else:
-        ci_high = None
-        ci_high_pred = None
-
-    return (
-        raw_freq,
-        pred_freq,
-        seq_count,
-        total_seq,
-        smoothed_freq,
-        ci_low,
-        ci_low_pred,
-        ci_high,
-        ci_high_pred,
-    )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Compute model scores.')
-
-    parser.add_argument('--config', type=str, default="../configs/benchmark_config.yaml", help='Path to the configuration file.')
-    parser.add_argument('--truth-set', type=str, help='Path to the truth set of sequences.')
-    parser.add_argument('--estimates-path', type=str, help='Path to the estimates.')
-    parser.add_argument('--output-path', type=str, help='Path to save the output.')
-    args = parser.parse_args()
-    
-    with open(args.config, "r") as config:
-        config = yaml.safe_load(config)
-
-    dates = config["main"]["estimation_dates"]
-    locations = config["main"]["locations"]
-    models = config["main"]["models"]
-
-    # Retrospective sequence counts
-    truth_set = load_truthset(
-        args.truth_set
-    )
-
-    # Loading model predictions and computing errors
-    score_df_list = []
-    for model in models:
-        for location in locations:
-            pred_dic = {}
-            # Filtering to location of increast
-            location_truth = truth_set[truth_set["country"] == location]
-            if len(location_truth) == 0:
-                print(f"{location} is not in the retrospective frequencies.")
-                continue
-
-            for pivot_date in dates:
-                filepath = args.estimates_path + f"/{model}/freq_{location}_{pivot_date}.tsv"
-                # if no .tsv, check for .csv
-                if not os.path.exists(filepath):
-                    filepath = args.estimates_path + f"/{model}/freq_{location}_{pivot_date}.csv"
-
-                # Load data
-                sep = "\t" if filepath.endswith(".tsv") else ","
-                try:
-                    raw_pred = load_data(filepath, sep=sep)
-                except FileNotFoundError:
-                    raw_pred = None
-                if raw_pred is None:
-                    print(
-                        f"No {model} predictions found for country {location} on analysis date {pivot_date}"
-                    )
-                    continue
-
-                # Merge predictions and truth set
-                merged = merge_truth_pred(raw_pred, location_truth)
-
-                # Make dataframe containing the errors
-                error_df = calculate_errors(merged, pivot_date, country=location, model=model)
-                if error_df is None:
-                    continue
-
-                score_df_list.append(error_df)
-    score_df = pd.concat(score_df_list)
-
-    # Save score output to a tsv file
-    error_filepath = args.output_path
-    date = datetime.now().strftime("%Y-%m-%d")
-    score_df.to_csv(error_filepath, sep="\t", index=False)
+    args = parse_arguments()
+    main(args)

@@ -21,7 +21,7 @@ CLAUDE.md
 *.iqtree.log
 
 # Ignore tests for now.
-antigentools/tests/
+#antigentools/tests/
 run_tests.py
 pytest.ini
 

@@ -1,5 +1,6 @@
 {
   "seed_L": 14,
+  "forecast_L": 365,
   "inference": {
     "method": "InferFullRank",
     "settings": {
@@ -30,6 +31,10 @@
     }
   },
   "model_specific": {
+    "NAIVE": {
+      "full_window": true,
+      "n_days_to_average": 14
+    },
     "MLR": {
       "tau": 3.0
     },

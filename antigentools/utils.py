@@ -660,3 +660,337 @@ def save_vi_convergence_diagnostics(posterior, model_name, location, analysis_da
         json.dump(diagnostics_output, f, indent=2)
     
     return filepath
+
+
+def _validate_naive_forecast_input(seq_count_date: pd.DataFrame, pivot: str, n_days_to_average: int) -> pd.Timestamp:
+    """
+    Validate input parameters for naive forecast functions.
+    
+    Parameters
+    ----------
+    seq_count_date : pd.DataFrame
+        Sequence count data to validate
+    pivot : str
+        Pivot date to validate
+    n_days_to_average : int
+        Number of days parameter to validate
+        
+    Returns
+    -------
+    pd.Timestamp
+        Validated pivot datetime
+        
+    Raises
+    ------
+    ValueError
+        If input validation fails
+    """
+    # Check required columns
+    required_cols = {'date', 'country', 'variant', 'sequences'}
+    missing_cols = required_cols - set(seq_count_date.columns)
+    if missing_cols:
+        raise ValueError(f"seq_count_date missing required columns: {missing_cols}")
+    
+    # Check for empty data
+    if seq_count_date.empty:
+        raise ValueError("seq_count_date cannot be empty")
+    
+    # Validate pivot date
+    try:
+        pivot_dt = pd.to_datetime(pivot)
+    except Exception as e:
+        raise ValueError(f"Invalid pivot date format: {pivot}") from e
+    
+    # Validate n_days_to_average
+    if n_days_to_average <= 0:
+        raise ValueError(f"n_days_to_average must be positive, got {n_days_to_average}")
+    
+    return pivot_dt
+
+
+def _calculate_variant_frequencies(seq_count_date: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate variant frequencies from sequence counts.
+    
+    Parameters
+    ----------
+    seq_count_date : pd.DataFrame
+        Sequence count data with columns: date, country, variant, sequences
+        
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with additional columns: total_seq, freq
+    """
+    seq_count_date = seq_count_date.copy()
+    
+    # Ensure date column is datetime
+    if not pd.api.types.is_datetime64_any_dtype(seq_count_date['date']):
+        seq_count_date['date'] = pd.to_datetime(seq_count_date['date'])
+    
+    # Calculate total sequences per date/country
+    seq_count_date['total_seq'] = seq_count_date.groupby(['date', 'country'])['sequences'].transform('sum')
+    
+    # Avoid division by zero
+    mask = seq_count_date['total_seq'] > 0
+    seq_count_date.loc[mask, 'freq'] = seq_count_date.loc[mask, 'sequences'] / seq_count_date.loc[mask, 'total_seq']
+    seq_count_date.loc[~mask, 'freq'] = 0.0
+    
+    return seq_count_date
+
+
+def _calculate_rolling_average_optimized(seq_data_with_freq: pd.DataFrame, 
+                                       target_dates: pd.DatetimeIndex,
+                                       n_days: int,
+                                       pivot_dt: pd.Timestamp,
+                                       use_fixed_forecast: bool = True) -> pd.DataFrame:
+    """
+    Calculate rolling averages for multiple dates using optimized operations.
+    
+    For the full window variant, forecast dates use a fixed average from the n days 
+    before the pivot. For the original variant, all dates use rolling averages.
+    
+    Parameters
+    ----------
+    seq_data_with_freq : pd.DataFrame
+        Sequence data with frequencies calculated
+    target_dates : pd.DatetimeIndex
+        Dates to calculate averages for
+    n_days : int
+        Number of days for rolling average
+    pivot_dt : pd.Timestamp
+        Pivot date for forecast/nowcast distinction
+    use_fixed_forecast : bool
+        If True, use fixed average for forecast dates (full window behavior)
+        If False, use rolling average for all dates (original behavior)
+        
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with variant, country, date, freq columns
+    """
+    results = []
+    
+    # Pre-calculate the fixed forecast average if needed
+    fixed_forecast_avg = {}
+    if use_fixed_forecast:
+        # Get the n most recent dates before pivot
+        pivot_mask = pd.to_datetime(seq_data_with_freq['date']) < pivot_dt
+        recent_dates_before_pivot = pd.DatetimeIndex(
+            seq_data_with_freq[pivot_mask]['date'].unique()
+        ).sort_values()[-n_days:]
+        
+        if len(recent_dates_before_pivot) > 0:
+            # Calculate average for each variant/country combination
+            if pd.api.types.is_datetime64_any_dtype(seq_data_with_freq['date']):
+                forecast_data = seq_data_with_freq[
+                    pd.to_datetime(seq_data_with_freq['date']).isin(recent_dates_before_pivot)
+                ]
+            else:
+                recent_dates_str = recent_dates_before_pivot.strftime('%Y-%m-%d')
+                forecast_data = seq_data_with_freq[
+                    seq_data_with_freq['date'].isin(recent_dates_str)
+                ]
+            for (variant, country), group in forecast_data.groupby(['variant', 'country']):
+                fixed_forecast_avg[(variant, country)] = group['freq'].mean()
+    
+    # Split dates into forecast and training
+    forecast_dates = target_dates[target_dates >= pivot_dt]
+    training_dates = target_dates[target_dates < pivot_dt]
+    
+    # Process each variant/country combination
+    for (variant, country), group in seq_data_with_freq.groupby(['variant', 'country']):
+        # Sort by date for efficiency
+        group = group.sort_values('date')
+        group_dates = pd.to_datetime(group['date'])
+        
+        # Handle forecast dates (use fixed average if available)
+        if use_fixed_forecast and len(forecast_dates) > 0:
+            avg_freq = fixed_forecast_avg.get((variant, country))
+            if avg_freq is not None:
+                for date in forecast_dates:
+                    results.append({
+                        'variant': variant,
+                        'country': country,
+                        'date': date.strftime('%Y-%m-%d'),
+                        'freq': avg_freq
+                    })
+        
+        # Handle training/nowcast dates (always use rolling average)
+        dates_to_roll = training_dates if use_fixed_forecast else target_dates
+        for target_date in dates_to_roll:
+            # Find the n most recent dates before target
+            mask = group_dates < target_date
+            recent_data = group[mask].tail(n_days)
+            
+            if len(recent_data) > 0:
+                avg_freq = recent_data['freq'].mean()
+                results.append({
+                    'variant': variant,
+                    'country': country,
+                    'date': target_date.strftime('%Y-%m-%d'),
+                    'freq': avg_freq
+                })
+    
+    if not results:
+        return pd.DataFrame(columns=['variant', 'country', 'date', 'freq'])
+    
+    return pd.DataFrame(results)
+
+
+def naive_forecast_full_window(seq_count_date: pd.DataFrame, pivot: str, n_days_to_average: int = 7, 
+                               forecast_period: int = 180, training_window: Optional[int] = None) -> pd.DataFrame:
+    """
+    Naive forecast covering entire training window + forecast period.
+    
+    This function creates predictions for all available training dates plus the forecast period,
+    using rolling averages. For forecast dates (at/after pivot), it uses a fixed average from
+    the n_days_to_average period immediately before the pivot. For training dates (before pivot),
+    it uses rolling averages calculated separately for each date.
+    
+    Parameters
+    ----------
+    seq_count_date : pd.DataFrame
+        Sequence count data with columns: date, country, variant, sequences
+    pivot : str
+        Analysis/pivot date (YYYY-MM-DD format)
+    n_days_to_average : int, default=7
+        Number of days for rolling average
+    forecast_period : int, default=180
+        Number of days to forecast ahead
+    training_window : int, optional
+        Days of historical data to include. If None, uses all available data.
+    
+    Returns
+    -------
+    pd.DataFrame
+        Predictions for entire training window + forecast period with columns:
+        variant, country, freq, date, median_freq_nowcast, median_freq_forecast
+        
+    Raises
+    ------
+    ValueError
+        If input validation fails
+    """
+    # Validate inputs
+    pivot_dt = _validate_naive_forecast_input(seq_count_date, pivot, n_days_to_average)
+    
+    # Validate additional parameters
+    if forecast_period <= 0:
+        raise ValueError(f"forecast_period must be positive, got {forecast_period}")
+    if training_window is not None and training_window <= 0:
+        raise ValueError(f"training_window must be positive or None, got {training_window}")
+    
+    # Calculate frequencies
+    seq_data_with_freq = _calculate_variant_frequencies(seq_count_date)
+    
+    # Determine date ranges
+    if training_window is None:
+        min_date = pd.to_datetime(seq_data_with_freq['date']).min()
+        back_date = min_date
+    else:
+        back_date = pivot_dt - pd.Timedelta(days=training_window)
+    
+    # Create date ranges
+    forecast_dates = pd.date_range(start=pivot_dt, periods=forecast_period, freq='D')
+    
+    # Get all training dates available in the data
+    training_mask = (pd.to_datetime(seq_data_with_freq['date']) >= back_date) & \
+                   (pd.to_datetime(seq_data_with_freq['date']) < pivot_dt)
+    training_dates = pd.to_datetime(seq_data_with_freq[training_mask]['date'].unique())
+    
+    # Combine all dates
+    all_dates = pd.DatetimeIndex(forecast_dates).union(pd.DatetimeIndex(training_dates))
+    all_dates = all_dates.sort_values()
+    
+    # Calculate rolling averages more efficiently
+    results = _calculate_rolling_average_optimized(seq_data_with_freq, all_dates, n_days_to_average, pivot_dt, use_fixed_forecast=True)
+    
+    if results.empty:
+        return pd.DataFrame(columns=['variant', 'country', 'freq', 'date', 
+                                   'median_freq_nowcast', 'median_freq_forecast'])
+    
+    # Add nowcast/forecast columns
+    results['median_freq_nowcast'] = results['freq']
+    results['median_freq_forecast'] = results['freq']
+    
+    # Determine which dates are forecast vs training
+    results['date_dt'] = pd.to_datetime(results['date'])
+    results.loc[results['date_dt'] >= pivot_dt, 'median_freq_nowcast'] = np.nan
+    results.loc[results['date_dt'] < pivot_dt, 'median_freq_forecast'] = np.nan
+    
+    # Clean up and sort
+    results = results.drop('date_dt', axis=1)
+    results = results.sort_values(by=['country', 'variant', 'date'])
+    
+    return results.reset_index(drop=True)
+
+
+def naive_forecast(seq_count_date: pd.DataFrame, pivot: str, n_days_to_average: int = 7, period: int = 30) -> pd.DataFrame:
+    """
+    Naive forecast of the frequency of a variant (original implementation).
+    
+    Creates predictions for a fixed window around the pivot date: `period` days before
+    and `period` days after the pivot, for a total coverage of 2 * period days.
+
+    Parameters
+    ----------
+    seq_count_date : pd.DataFrame
+        Sequence count data with columns: date, country, variant, sequences
+    pivot : str
+        Pivot/forecasting date (YYYY-MM-DD format)
+    n_days_to_average : int, default=7
+        Number of days to average counts over for forecasting
+    period : int, default=30
+        Number of days before and after pivot to include
+
+    Returns
+    -------
+    pd.DataFrame
+        Forecasted frequencies with columns:
+        variant, country, freq, date, median_freq_nowcast, median_freq_forecast
+        
+    Raises
+    ------
+    ValueError
+        If input validation fails
+    """
+    # Validate inputs
+    pivot_dt = _validate_naive_forecast_input(seq_count_date, pivot, n_days_to_average)
+    
+    # Validate period
+    if period <= 0:
+        raise ValueError(f"period must be positive, got {period}")
+    
+    # Calculate frequencies
+    seq_data_with_freq = _calculate_variant_frequencies(seq_count_date)
+    
+    # Define date ranges for forecasting and nowcasting
+    back_date = pivot_dt - pd.Timedelta(days=period)
+    forecast_dates = pd.date_range(start=pivot_dt, periods=period, freq='D')
+    nowcast_dates = pd.date_range(start=back_date, periods=period, freq='D')
+    
+    # Combine all dates
+    all_dates = pd.DatetimeIndex(forecast_dates).union(pd.DatetimeIndex(nowcast_dates))
+    
+    # Calculate rolling averages
+    results = _calculate_rolling_average_optimized(seq_data_with_freq, all_dates, n_days_to_average, pivot_dt, use_fixed_forecast=False)
+    
+    if results.empty:
+        return pd.DataFrame(columns=['variant', 'country', 'freq', 'date', 
+                                   'median_freq_nowcast', 'median_freq_forecast'])
+    
+    # Add nowcast/forecast columns
+    results['median_freq_nowcast'] = results['freq']
+    results['median_freq_forecast'] = results['freq']
+    
+    # Determine which dates are forecast vs nowcast
+    results['date_dt'] = pd.to_datetime(results['date'])
+    results.loc[results['date_dt'] >= pivot_dt, 'median_freq_nowcast'] = np.nan
+    results.loc[results['date_dt'] < pivot_dt, 'median_freq_forecast'] = np.nan
+    
+    # Clean up and sort
+    results = results.drop('date_dt', axis=1)
+    results = results.sort_values(by=['country', 'variant', 'date'])
+    
+    return results.reset_index(drop=True)

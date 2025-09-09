@@ -12,13 +12,13 @@
     "elbo_trajectory": {
       "num_iterations": 50000,
       "initial_loss": 291412.5,
-      "final_loss": 528.7869873046875,
+      "final_loss": 532.7125244140625,
       "min_loss": NaN,
-      "total_improvement": 290883.71875
+      "total_improvement": 290879.78125
     },
     "convergence": {
       "converged": false,
-      "relative_change": 0.040143877267837524,
+      "relative_change": 0.01934465765953064,
       "threshold": 0.01,
       "window": 100,
       "final_iteration": 50000

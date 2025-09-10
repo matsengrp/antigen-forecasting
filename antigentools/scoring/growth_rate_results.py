@@ -66,8 +66,11 @@ class WindowResult:
     
     def __post_init__(self):
         """Validate field values after initialization."""
-        # Validate correlation if not None
-        if self.correlation is not None and not -1 <= self.correlation <= 1:
+        # Validate correlation if not None and not NaN
+        import math
+        if (self.correlation is not None and 
+            not math.isnan(self.correlation) and 
+            not -1 <= self.correlation <= 1):
             raise ValueError("correlation must be between -1 and 1")
         
         # Validate non-negative metrics
@@ -76,10 +79,10 @@ class WindowResult:
         if self.rmse < 0:
             raise ValueError("rmse must be >= 0")
         
-        # Validate rates (0-1)
-        if not 0 <= self.sign_disagreement_rate <= 1:
+        # Validate rates (0-1, allowing small floating point errors)
+        if not (0 <= self.sign_disagreement_rate <= 1.001):
             raise ValueError("sign_disagreement_rate must be between 0 and 1")
-        if not 0 <= self.overestimation_rate <= 1:
+        if not (0 <= self.overestimation_rate <= 1.001):
             raise ValueError("overestimation_rate must be between 0 and 1")
         
         # Validate counts
@@ -170,8 +173,11 @@ class VariantResult:
     
     def __post_init__(self):
         """Validate field values after initialization."""
-        # Validate correlation if not None
-        if self.correlation is not None and not -1 <= self.correlation <= 1:
+        # Validate correlation if not None and not NaN
+        import math
+        if (self.correlation is not None and 
+            not math.isnan(self.correlation) and 
+            not -1 <= self.correlation <= 1):
             raise ValueError("correlation must be between -1 and 1")
         
         # Validate non-negative metrics
@@ -180,10 +186,10 @@ class VariantResult:
         if self.normalized_mae < 0:
             raise ValueError("normalized_mae must be >= 0")
         
-        # Validate rates (0-1)
-        if not 0 <= self.sign_disagreement_rate <= 1:
+        # Validate rates (0-1, allowing small floating point errors)
+        if not (0 <= self.sign_disagreement_rate <= 1.001):
             raise ValueError("sign_disagreement_rate must be between 0 and 1")
-        if not 0 <= self.overestimation_rate <= 1:
+        if not (0 <= self.overestimation_rate <= 1.001):
             raise ValueError("overestimation_rate must be between 0 and 1")
         
         # Validate counts

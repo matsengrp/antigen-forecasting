@@ -2,10 +2,10 @@
 Configuration handling for model scoring.
 
 This module provides configuration validation and data classes
-for scoring parameters.
+for scoring parameters and growth rate analysis.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import Optional, List, Dict, Any, Tuple
 from pathlib import Path
 import yaml
@@ -161,3 +161,167 @@ def parse_config(config_dict: Dict[str, Any]) -> Tuple[MainConfig, ScoringConfig
     )
     
     return main_config, scoring_config
+
+
+# Growth rate configuration classes
+
+@dataclass
+class GrowthRateConfig:
+    """Configuration for growth rate analysis parameters.
+    
+    Attributes
+    ----------
+    connect_gaps : bool
+        Whether to connect gaps in the growth rate data when plotting
+    min_segment_length : int
+        Minimum segment length to trust growth rate calculations
+    min_sequence_count : int
+        Minimum smoothed sequence count per variant
+    min_variant_frequency : float
+        Minimum variant frequency to consider
+    epsilon : float
+        Tolerance threshold for overestimation rate calculations
+    min_total_sequences : Optional[int]
+        Minimum total sequences per window (None to disable)
+    spline_smoothing_factor : float
+        Smoothing factor for spline interpolation
+    spline_order : int
+        Order of spline interpolation (1-5)
+    skip_first_n_points : int
+        Number of initial data points to skip in growth rate calculations
+    use_freqs : bool
+        Use variant frequencies (vs raw counts) for analysis
+    use_smoothed_incidence : bool
+        Apply smoothing to incidence data
+    """
+    
+    connect_gaps: bool = True
+    min_segment_length: int = 3
+    min_sequence_count: int = 10
+    min_variant_frequency: float = 0.01
+    epsilon: float = 1e-3
+    min_total_sequences: Optional[int] = 300
+    spline_smoothing_factor: float = 1.0
+    spline_order: int = 3
+    skip_first_n_points: int = 2
+    use_freqs: bool = True
+    use_smoothed_incidence: bool = True
+    
+    def __post_init__(self):
+        """Validate configuration values after initialization."""
+        if self.min_segment_length < 1:
+            raise ValueError("min_segment_length must be >= 1")
+        
+        if self.min_sequence_count < 0:
+            raise ValueError("min_sequence_count must be >= 0")
+        
+        if not 0 <= self.min_variant_frequency <= 1:
+            raise ValueError("min_variant_frequency must be between 0 and 1")
+        
+        if self.epsilon <= 0:
+            raise ValueError("epsilon must be > 0")
+        
+        if self.min_total_sequences is not None and self.min_total_sequences < 0:
+            raise ValueError("min_total_sequences must be >= 0 or None")
+        
+        if not 1 <= self.spline_order <= 5:
+            raise ValueError("spline_order must be between 1 and 5")
+        
+        if self.spline_smoothing_factor <= 0:
+            raise ValueError("spline_smoothing_factor must be > 0")
+        
+        if self.skip_first_n_points < 0:
+            raise ValueError("skip_first_n_points must be >= 0")
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary format.
+        
+        Returns
+        -------
+        Dict[str, Any]
+            Configuration as dictionary
+        """
+        return asdict(self)
+
+
+@dataclass
+class ConvergenceConfig:
+    """Configuration for convergence diagnostics.
+    
+    Attributes
+    ----------
+    threshold : float
+        Threshold for convergence diagnostics (0-1)
+    check_diagnostics : bool
+        Whether to check and load convergence diagnostics
+    required_models : List[str]
+        List of models that require convergence diagnostics
+    """
+    
+    threshold: float = 0.5
+    check_diagnostics: bool = True
+    required_models: List[str] = None
+    
+    def __post_init__(self):
+        """Validate configuration values after initialization."""
+        if self.required_models is None:
+            self.required_models = ["FGA", "GARW"]
+        
+        if not 0 <= self.threshold <= 1:
+            raise ValueError("threshold must be between 0 and 1")
+        
+        if not isinstance(self.required_models, list):
+            raise TypeError("required_models must be a list")
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary format.
+        
+        Returns
+        -------
+        Dict[str, Any]
+            Configuration as dictionary
+        """
+        return asdict(self)
+
+
+def parse_growth_rate_config(config_dict: Dict[str, Any]) -> Tuple[GrowthRateConfig, ConvergenceConfig]:
+    """Parse configuration dictionary into growth rate config objects.
+    
+    Parameters
+    ----------
+    config_dict : Dict[str, Any]
+        Raw configuration dictionary
+    
+    Returns
+    -------
+    Tuple[GrowthRateConfig, ConvergenceConfig]
+        Parsed and validated configuration objects
+    
+    Raises
+    ------
+    ValueError
+        If configuration values fail validation
+    """
+    # Extract growth rate config
+    growth_rate_dict = config_dict.get('growth_rate', {})
+    
+    # Filter to only include valid fields
+    growth_rate_fields = {
+        k: v for k, v in growth_rate_dict.items()
+        if k in GrowthRateConfig.__annotations__
+    }
+    
+    growth_config = GrowthRateConfig(**growth_rate_fields)
+    
+    # Extract convergence config
+    convergence_dict = config_dict.get('convergence', {})
+    
+    # Filter to only include valid fields
+    convergence_fields = {
+        k: v for k, v in convergence_dict.items()
+        if k in ConvergenceConfig.__annotations__
+    }
+    
+    conv_config = ConvergenceConfig(**convergence_fields)
+    
+    return growth_config, conv_config

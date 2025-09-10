@@ -77,3 +77,25 @@ scoring:
   min_sequences: 20              # Minimum total sequences for variant over active window
   min_observations: 3            # Minimum times observed in active window
   handle_missing_smoothed: true  # Filter out rows with missing smoothed frequencies
+
+# Growth rate analysis configuration (used by score_growth_rates.py)
+growth_rate:
+  connect_gaps: true                # Whether to connect gaps in growth rate data
+  min_segment_length: 3            # Minimum segment length for growth rate calculations
+  min_sequence_count: 10           # Minimum smoothed sequence count per variant
+  min_variant_frequency: 0.01      # Minimum variant frequency to consider (matches scoring threshold)
+  epsilon: 0.001                   # Tolerance threshold for overestimation rate calculations
+  min_total_sequences: 300         # Minimum total sequences per window (null to disable)
+  spline_smoothing_factor: 1.0     # Smoothing factor for spline interpolation (original used 1.0, function default is 5.0)
+  spline_order: 3                  # Order of spline interpolation (1-5)
+  skip_first_n_points: 2           # Number of initial data points to skip in growth rate calculations
+  use_freqs: true                  # Use variant frequencies (vs raw counts) for analysis
+  use_smoothed_incidence: true     # Apply smoothing to incidence data
+
+# Convergence diagnostics configuration
+convergence:
+  threshold: 0.5                   # Convergence threshold for VI diagnostics
+  check_diagnostics: true          # Whether to load convergence diagnostics
+  required_models:                 # Models that generate convergence diagnostics
+    - FGA
+    - GARW

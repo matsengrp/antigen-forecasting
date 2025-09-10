@@ -1,0 +1,1 @@
+"""Test module for growth rate scoring functionality."""

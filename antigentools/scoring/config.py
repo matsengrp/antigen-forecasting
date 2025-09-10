@@ -187,6 +187,12 @@ class GrowthRateConfig:
         Smoothing factor for spline interpolation
     spline_order : int
         Order of spline interpolation (1-5)
+    skip_first_n_points : int
+        Number of initial data points to skip in growth rate calculations
+    use_freqs : bool
+        Use variant frequencies (vs raw counts) for analysis
+    use_smoothed_incidence : bool
+        Apply smoothing to incidence data
     """
     
     connect_gaps: bool = True
@@ -197,6 +203,9 @@ class GrowthRateConfig:
     min_total_sequences: Optional[int] = 300
     spline_smoothing_factor: float = 1.0
     spline_order: int = 3
+    skip_first_n_points: int = 2
+    use_freqs: bool = True
+    use_smoothed_incidence: bool = True
     
     def __post_init__(self):
         """Validate configuration values after initialization."""
@@ -220,6 +229,9 @@ class GrowthRateConfig:
         
         if self.spline_smoothing_factor <= 0:
             raise ValueError("spline_smoothing_factor must be > 0")
+        
+        if self.skip_first_n_points < 0:
+            raise ValueError("skip_first_n_points must be >= 0")
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary format.

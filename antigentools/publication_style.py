@@ -897,8 +897,8 @@ def apply_publication_styling_to_figure(fig: Figure,
         if remove_titles:
             ax.set_title('')
         
-        # Add panel labels if requested
-        if panel_labels:
+        # Add panel labels if requested and there are multiple panels
+        if panel_labels and len(axes) > 1:
             label = chr(ord('A') + i)
             _add_panel_label(ax, label, style)
         

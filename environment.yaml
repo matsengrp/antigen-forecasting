@@ -18,5 +18,8 @@ dependencies:
   - augur
   - auspice
   - importlib_resources
+  - r-base
+  - r-irkernel
+  - r-essentials
   - pip:
     - pathogen-embed

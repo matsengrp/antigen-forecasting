@@ -7,7 +7,7 @@ set -eu
 # Default BUILD: flu-simulated-150k-samples
 
 # Get BUILD from command line argument or use default
-BUILD="${1:-flu-simulated-150k-samples}"
+BUILD="${1:-flu-simulated-150k-samples-final}"
 
 # Dynamically detect number of CPU cores
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -30,8 +30,8 @@ AUSPICE_DIR="$PROJECT_ROOT/data/$BUILD/auspice"
 
 # Input file paths
 REF_PATH="$PROJECT_ROOT/data/$BUILD/ref_HA.fasta"
-SEQS_PATH="$DATA_DIR/sequences.fasta"
-METADATA_PATH="$DATA_DIR/sequences_metadata.tsv"
+SEQS_PATH="$AUSPICE_DIR/sequences.fasta"
+METADATA_PATH="$AUSPICE_DIR/sequences_metadata.tsv"
 COLORMAP_PATH="$AUSPICE_DIR/variant_color_map.tsv"
 
 # Output file paths
@@ -55,11 +55,11 @@ fi
 # Create output directory if it doesn't exist
 mkdir -p "$AUSPICE_DIR"
 
-export AUGUR_RECURSION_LIMIT=10000;
+export AUGUR_RECURSION_LIMIT=25000;
 
 echo "Building auspice tree for $BUILD"
 echo "Project root: $PROJECT_ROOT"
-echo "Data directory: $DATA_DIR"
+#echo "Data directory: $DATA_DIR"
 echo "Output directory: $AUSPICE_DIR"
 # Infer newick tree from fasta sequences
 echo "Step 1: Building phylogenetic tree from sequences..."

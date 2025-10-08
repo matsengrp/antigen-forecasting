@@ -11,7 +11,7 @@ set -eu
 # Define build and paths
 SEED=314159
 N_THREADS=32
-BUILD="flu-simulated-150k-samples"
+BUILD="flu-simulated-150k-samples-final"
 REF_PATH="data/$BUILD/ref_HA.fasta"
 SEQS_PATH="data/$BUILD/antigen-outputs/unique_sequences.fasta"
 ALIGNMENT_PATH="data/$BUILD/pathogen-embed/sequences.alignment"
@@ -46,16 +46,16 @@ if [ ! -f "$EMBEDDINGS_PATH" ]; then
     exit 1
 fi
 
-# Cluster the embeddings
-echo "Clustering embeddings with k-means (k=$N_CLUSTERS)..."
-python scripts/kmeans-cluster.py "$EMBEDDINGS_PATH" "$N_CLUSTERS" "$CLUSTERS_PATH" --column-prefix "$EMBEDDING_METHOD" --cluster-col-name "variant_seq" --random_seed "$SEED"
+# # Cluster the embeddings
+# echo "Clustering embeddings with k-means (k=$N_CLUSTERS)..."
+# python scripts/kmeans-cluster.py "$EMBEDDINGS_PATH" "$N_CLUSTERS" "$CLUSTERS_PATH" --column-prefix "$EMBEDDING_METHOD" --cluster-col-name "variant_seq" --random_seed "$SEED"
 
-# Check if clustering succeeded
-if [ -f "$CLUSTERS_PATH" ]; then
-    echo "Success! Sequence embeddings and clusters have been created:"
-    echo "  - Embeddings: $EMBEDDINGS_PATH"
-    echo "  - Clusters: $CLUSTERS_PATH"
-else
-    echo "Error: Clustering failed. Check the error messages above."
-    exit 1
-fi
+# # Check if clustering succeeded
+# if [ -f "$CLUSTERS_PATH" ]; then
+#     echo "Success! Sequence embeddings and clusters have been created:"
+#     echo "  - Embeddings: $EMBEDDINGS_PATH"
+#     echo "  - Clusters: $CLUSTERS_PATH"
+# else
+#     echo "Error: Clustering failed. Check the error messages above."
+#     exit 1
+# fi

@@ -20,6 +20,19 @@ dependencies:
   - importlib_resources
   - r-base
   - r-irkernel
+  - rpy2
+  - libxml2
+  - r-igraph
   - r-essentials
+  - r-ape
+  - r-phytools
+  - r-stringr
+  - r-metbrewer
+  - r-mgcv
+  - r-cowplot
+  - r-ggplot2
+  - r-binom
+  - r-cmdstanr
   - pip:
     - pathogen-embed
+    - evofr

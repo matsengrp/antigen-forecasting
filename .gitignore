@@ -19,6 +19,7 @@ CLAUDE.md
 *.nwk
 *.fasta.log
 *.iqtree.log
+iqtree*
 
 # Ignore tests for now.
 #antigentools/tests/

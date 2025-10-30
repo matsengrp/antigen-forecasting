@@ -1,5 +1,4 @@
 main:
-  model_config: "configs/default_config.json"
   estimation_dates:
   - '2025-04-01'
   - '2025-10-01'
@@ -63,17 +62,10 @@ main:
   - '2054-10-01'
   locations:
   - north
-  - south
   - tropics
+  - south
   models:
   - NAIVE
   - MLR
   - FGA
   - GARW
-
-scoring:
-  min_frequency_threshold: 0.01  # Minimum 1% frequency to include in scoring
-  active_window_days: 60         # Look back time for active variants
-  min_sequences: 20              # Minimum total sequences for variant over active window
-  min_observations: 3            # Minimum times observed in active window
-  handle_missing_smoothed: true  # Filter out rows with missing smoothed frequencies

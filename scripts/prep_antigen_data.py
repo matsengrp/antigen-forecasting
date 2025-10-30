@@ -159,9 +159,11 @@ def main(args) -> None:
     normalize_cases = args.normalize_cases
     deme_population_size = args.deme_population_size
 
-    # Load the tips and cases data
-    tips_df = pd.read_csv(tips_path)
-    cases_df = pd.read_csv(cases_path)
+    # Load the tips and cases data (auto-detect separator based on file extension)
+    tips_sep = '\t' if tips_path.endswith('.tsv') else ','
+    cases_sep = '\t' if cases_path.endswith('.tsv') else ','
+    tips_df = pd.read_csv(tips_path, sep=tips_sep)
+    cases_df = pd.read_csv(cases_path, sep=cases_sep)
     
     # Prepare the sequence and case count dataframes
     variant_counts_df = prep_tips_df(tips_df, start_date, variant_col)

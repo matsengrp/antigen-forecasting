@@ -1,0 +1,2 @@
+location	variant	median_ga	ga_upper_95	ga_lower_95	ga_upper_80	ga_lower_80	ga_upper_50	ga_lower_50	analysis_date	model
+tropics	7	0.9464189	0.967457	0.92672306	0.95883685	0.93485665	0.9523774	0.94049954	2037-04-01	MLR

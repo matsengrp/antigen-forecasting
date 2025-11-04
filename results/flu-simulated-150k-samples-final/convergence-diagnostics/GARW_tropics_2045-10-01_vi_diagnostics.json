@@ -1,0 +1,27 @@
+{
+  "model": "GARW",
+  "location": "tropics",
+  "analysis_date": "2045-10-01",
+  "inference_method": "InferFullRank",
+  "inference_settings": {
+    "iterations": 50000,
+    "learning_rate": null,
+    "num_samples": 500
+  },
+  "convergence_diagnostics": {
+    "elbo_trajectory": {
+      "num_iterations": 50000,
+      "initial_loss": 5360.384765625,
+      "final_loss": 332.0883483886719,
+      "min_loss": 326.5519104003906,
+      "total_improvement": 5028.29638671875
+    },
+    "convergence": {
+      "converged": true,
+      "relative_change": 0.0022272730711847544,
+      "threshold": 0.01,
+      "window": 100,
+      "final_iteration": 50000
+    }
+  }
+}

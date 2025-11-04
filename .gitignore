@@ -5,7 +5,7 @@ antigentools.egg-info/
 
 # For now, ignore time-stamped files
 data/**/antigen-outputs/*.csv
-
+data/toy-example/
 # Ignore compiled Python files
 **/*.pyc
 

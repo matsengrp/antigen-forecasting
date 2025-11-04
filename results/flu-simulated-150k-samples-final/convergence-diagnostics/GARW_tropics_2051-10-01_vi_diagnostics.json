@@ -11,7 +11,7 @@
   "convergence_diagnostics": {
     "elbo_trajectory": {
       "num_iterations": 50000,
-      "initial_loss": 238111.859375,
+      "initial_loss": 223877.765625,
       "final_loss": NaN,
       "min_loss": NaN,
       "total_improvement": NaN

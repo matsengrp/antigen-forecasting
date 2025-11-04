@@ -1,0 +1,2 @@
+location	variant	median_ga	ga_upper_95	ga_lower_95	ga_upper_80	ga_lower_80	ga_upper_50	ga_lower_50	analysis_date	model
+north	6	0.97892034	1.0143787	0.9461202	1.0000019	0.9597901	0.9891552	0.9694233	2033-10-01	MLR

@@ -36,3 +36,4 @@ dependencies:
   - pip:
     - pathogen-embed
     - evofr
+    - baltic

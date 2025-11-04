@@ -204,6 +204,35 @@ python score_models.py --config configs/benchmark_config.yaml --truth-set data/t
 - For SLURM-based job submission, ensure your SLURM environment is properly configured
 - Check the generated configuration files to verify settings before running models
 
+## Clustering Evaluation Metrics
+
+When comparing different clustering methods (e.g., antigenic, sequence-based, phylowave) for variant assignment, we evaluate them based on two main goals:
+
+**Goal 1 (Internal Evaluation)**: Assess how well cluster assignments explain the variance in the fitness distribution while penalizing the number of clusters used.
+We treat this as an ANOVA-like problem where cluster assignments are categorical predictors of fitness. 
+Each cluster predicts fitness using its mean fitness value, and we evaluate both the variance explained (R²) and a version that penalizes methods for the number of clusters defined in the time window (adj-R²).
+
+**Goal 2 (External Evaluation)**: When considering the antigenic clusters as ground truth, evaluate how well the sequence-based clusters recover the same cluster structure.
+This measures whether alternative clustering methods (which may use different feature spaces) successfully identify the same underlying variant groupings.
+
+### Metrics Summary
+
+| Metric                                  | Type     | Range                     | Interpretation                                                                                                         | Why We're Using It                                                                                                                                                |
+| --------------------------------------- | -------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **R²** (R-squared)                      | Internal | [0, 1], higher is better  | Proportion of fitness variance explained by cluster assignments. 0 = no explanatory power, 1 = perfect prediction.     | **Goal 1**: Directly measures how well cluster assignments explain fitness variation. Complements BIC by showing raw predictive power without complexity penalty. |
+| **Adj-R²** (Adjusted R²)                | Internal | (-∞, 1], higher is better | R² adjusted for number of clusters. Penalizes adding more clusters. Can be negative if model is very poor.             | **Goal 1**: Alternative to BIC that also penalizes complexity. Useful for comparing methods with different cluster counts.                                        |
+| **NMI** (Normalized Mutual Information) | External | [0, 1], higher is better  | Information-theoretic measure of cluster agreement. 0 = independent, 1 = identical clustering. Adjusts for chance.     | **Goal 2**: Measures how much information about antigenic clusters is captured by sequence/phylowave clusters. Symmetric and normalized.                          |
+| **ARI** (Adjusted Rand Index)           | External | [-1, 1], higher is better | Measures pairwise agreement adjusted for chance. 0 = random labeling, 1 = perfect match. Negative = worse than random. | **Goal 2**: Gold standard for comparing clusterings. Adjusts for chance agreement and doesn't assume cluster size balance.                                        |
+
+### Usage Notes:
+
+**Internal Metrics (Goal 1)**: We report BIC since it directly optimizes the fitness prediction vs. complexity trade-off by penalizing the number of inferred clusters. 
+R² and Adj-R² provide interpretable supplementary information about prediction quality. 
+The approach treats clusters as categorical variables in an ANOVA-like framework where each cluster's mean fitness serves as the predicted value for all members of that cluster.
+
+**External Metrics (Goal 2)**: ARI is known as the most robust single metric for cluster agreement. 
+NMI provides an information-theoretic perspective. 
+
 ## License
 
 [Your license information here]

@@ -1,0 +1,9 @@
+assignment_method	metric	score
+variant_mds	NMI	0.8212688044313865
+variant_mds	ARI	0.6468622138124805
+variant_pca	NMI	0.8350300089601265
+variant_pca	ARI	0.6636451994650726
+variant_tsne	NMI	0.8275558682586387
+variant_tsne	ARI	0.6608850025812049
+variant_umap	NMI	0.7526456560262952
+variant_umap	ARI	0.5558214853884815

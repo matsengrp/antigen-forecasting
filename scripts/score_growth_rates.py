@@ -126,8 +126,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
         'correlation': [],
         'mae': [],
         'rmse': [],
-        'sign_disagreement_rate': [],
-        'overestimation_rate': [],
+        'r2': [],
         'n_seqs': [],
         'n_cases': [],
         'seq_entropy': [],
@@ -145,8 +144,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
         'normalized_mae': [],
         'max_r_data': [],
         'correlation': [],
-        'sign_disagreement_rate': [],
-        'overestimation_rate': [],
+        'r2': [],
         'n_points': [],
         'total_sequences': [],
         'total_smoothed_sequences': [],
@@ -305,8 +303,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
                 variant_results_dict['normalized_mae'].append(row['normalized_mae'])
                 variant_results_dict['max_r_data'].append(row['max_r_data'])
                 variant_results_dict['correlation'].append(row['correlation'])
-                variant_results_dict['sign_disagreement_rate'].append(row['sign_disagreement_rate'])
-                variant_results_dict['overestimation_rate'].append(row['overestimation_rate'])
+                variant_results_dict['r2'].append(row['r2'])
                 variant_results_dict['n_points'].append(row['n_points'])
                 variant_results_dict['total_sequences'].append(row['total_sequences'])
                 variant_results_dict['total_smoothed_sequences'].append(row['total_smoothed_sequences'])
@@ -322,8 +319,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
             results_dict['correlation'].append(eval_results['correlation'])
             results_dict['mae'].append(eval_results['mae'])
             results_dict['rmse'].append(eval_results['rmse'])
-            results_dict['sign_disagreement_rate'].append(eval_results['sign_disagreement_rate'])
-            results_dict['overestimation_rate'].append(eval_results['overestimation_rate'])
+            results_dict['r2'].append(eval_results['r2'])
             results_dict['n_seqs'].append(window_stats_dict['seq_counts'])
             results_dict['n_cases'].append(window_stats_dict['case_counts'])
             results_dict['seq_entropy'].append(window_stats_dict['seq_entropy'])

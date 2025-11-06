@@ -583,6 +583,7 @@ def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: 
         - 'correlation': Pearson correlation coefficient between model and empirical growth rates
         - 'mae': Mean Absolute Error between model and empirical growth rates
         - 'rmse': Root Mean Square Error between model and empirical growth rates
+        - 'r2': R² (coefficient of determination) between model and empirical growth rates
         - 'sign_disagreement_rate': Rate at which model and empirical growth rates disagree on sign
         - 'overestimation_rate': Rate at which model overestimates growth rates
         - 'n_points': Number of valid data points used in the evaluation
@@ -623,16 +624,22 @@ def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: 
     # Root Mean Square Error (penalizes larger errors more)
     rmse = np.sqrt(((clean_data[r_data_col] - clean_data[r_model_col])**2).mean())
 
+    # R² (coefficient of determination)
+    ss_res = ((clean_data[r_data_col] - clean_data[r_model_col])**2).sum()
+    ss_tot = ((clean_data[r_data_col] - clean_data[r_data_col].mean())**2).sum()
+    r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else np.nan
+
     # Calculate sign disagreement rate
     sign_disagreement_rate = calculate_sign_disagreement_rate(clean_data, r_data_col, r_model_col)
 
     # Calculate overestimation rate
     overestimation_rate = calculate_overestimation_rate(clean_data, r_data_col, r_model_col, tol=overestimation_tol)
-    
+
     return {
         'correlation': correlation,
         'mae': mae,
         'rmse': rmse,
+        'r2': r2,
         'sign_disagreement_rate': sign_disagreement_rate,
         'overestimation_rate': overestimation_rate,
         'n_points': len(clean_data)
@@ -693,6 +700,7 @@ def calculate_variant_mae(
         - normalized_mae: Normalized Mean Absolute Error (MAE / max_r_data)
         - max_r_data: Maximum absolute r_data value for that variant
         - correlation: Pearson correlation coefficient
+        - r2: R² (coefficient of determination)
         - sign_disagreement_rate: Fraction of times signs disagree
         - overestimation_rate: Fraction of times model overestimates
         - n_points: Number of data points used in calculations
@@ -752,6 +760,14 @@ def calculate_variant_mae(
                 correlation = np.nan
         else:
             correlation = np.nan
+
+        # Calculate R²
+        if len(variant_data) >= 2:
+            ss_res = ((variant_data[r_data_col] - variant_data[r_model_col])**2).sum()
+            ss_tot = ((variant_data[r_data_col] - variant_data[r_data_col].mean())**2).sum()
+            r2 = 1 - (ss_res / ss_tot) if ss_tot > 0 else np.nan
+        else:
+            r2 = np.nan
         
         # Calculate sign disagreement rate
         sign_disagreement_rate = calculate_sign_disagreement_rate(
@@ -785,6 +801,7 @@ def calculate_variant_mae(
             'normalized_mae': normalized_mae,
             'max_r_data': max_r_data,
             'correlation': correlation,
+            'r2': r2,
             'sign_disagreement_rate': sign_disagreement_rate,
             'overestimation_rate': overestimation_rate,
             'n_points': len(variant_data),

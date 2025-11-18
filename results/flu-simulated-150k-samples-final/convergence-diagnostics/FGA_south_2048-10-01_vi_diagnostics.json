@@ -11,14 +11,14 @@
   "convergence_diagnostics": {
     "elbo_trajectory": {
       "num_iterations": 50000,
-      "initial_loss": 119163.78125,
-      "final_loss": 710.2749633789062,
-      "min_loss": 703.9505615234375,
-      "total_improvement": 118453.5078125
+      "initial_loss": NaN,
+      "final_loss": 796.7010498046875,
+      "min_loss": NaN,
+      "total_improvement": NaN
     },
     "convergence": {
-      "converged": true,
-      "relative_change": 0.005552073009312153,
+      "converged": false,
+      "relative_change": 0.011127150617539883,
       "threshold": 0.01,
       "window": 100,
       "final_iteration": 50000

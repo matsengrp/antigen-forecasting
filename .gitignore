@@ -41,3 +41,6 @@ data/**/pathogen-embed/sequences.alignment.log
 # Large FASTA files (keep compressed versions)
 data/**/antigen-outputs/sequences.fasta
 # Keep: sequences.fasta.gz
+
+# Large TSV files
+data/**/tips_forecasting.tsv

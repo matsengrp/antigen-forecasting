@@ -926,6 +926,57 @@ def naive_forecast_full_window(seq_count_date: pd.DataFrame, pivot: str, n_days_
     return results.reset_index(drop=True)
 
 
+def extract_clade_assignments_from_auspice(auspice_json_path: str) -> dict:
+    """
+    Extract clade assignments for all tips from auspice JSON.
+
+    Parameters:
+    -----------
+    auspice_json_path : str
+        Path to auspice JSON file
+
+    Returns:
+    --------
+    dict
+        Mapping of {tip_name: clade_integer}
+    """
+    def traverse_tree(node, clade_dict):
+        """Recursively traverse tree to extract tip clade assignments."""
+        # Check if this is a tip (no children)
+        if 'children' not in node:
+            tip_name = node.get('name')
+            # Try to get clade string first, fall back to clade_membership
+            clade_value = node.get('node_attrs', {}).get('clade', {}).get('value')
+
+            if not clade_value:
+                # Fall back to clade_membership for backward compatibility
+                clade_value = node.get('node_attrs', {}).get('clade_membership', {}).get('value')
+
+            if tip_name and clade_value is not None:
+                clade_dict[tip_name] = clade_value
+        else:
+            # Recursively process children
+            for child in node['children']:
+                traverse_tree(child, clade_dict)
+
+    # Load JSON and extract clades
+    with open(auspice_json_path, 'r') as f:
+        auspice_data = json.load(f)
+
+    clade_dict = {}
+    traverse_tree(auspice_data['tree'], clade_dict)
+
+    # If values are already integers, return as-is
+    if clade_dict and all(isinstance(v, int) for v in clade_dict.values()):
+        return clade_dict
+
+    # Convert clade strings to integers
+    unique_clades = sorted(set(clade_dict.values()))
+    clade_to_int = {clade: idx for idx, clade in enumerate(unique_clades)}
+
+    return {tip: clade_to_int[clade] for tip, clade in clade_dict.items()}
+
+
 def naive_forecast(seq_count_date: pd.DataFrame, pivot: str, n_days_to_average: int = 7, period: int = 30) -> pd.DataFrame:
     """
     Naive forecast of the frequency of a variant (original implementation).

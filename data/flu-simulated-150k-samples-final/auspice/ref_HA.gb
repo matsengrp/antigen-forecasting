@@ -1,0 +1,48 @@
+LOCUS       seq0                    1698 bp    DNA     linear       12-NOV-2025
+DEFINITION  Influenza A H3N2 hemagglutinin reference sequence
+ACCESSION   seq0
+VERSION     seq0
+KEYWORDS    .
+SOURCE      Influenza A virus
+  ORGANISM  Influenza A virus
+FEATURES             Location/Qualifiers
+     source          1..1698
+                     /organism="Influenza A virus"
+                     /mol_type="genomic RNA"
+     CDS             1..1035
+                     /gene="HA1"
+                     /product="HA1"
+     CDS             1036..1698
+                     /gene="HA2"
+                     /product="HA2"
+ORIGIN
+        1 atgaagacta tcattgcttt gagctacatt ctatgtctgg ttttcgctca aaaacttcct
+       61 ggaaatgaca acagcacggc aacgctgtgc cttgggcacc atgcagtaccaaacggaacg
+      121 atagtgaaaa caatcacgaa tgaccaaatt gaagttacta atgctactga gctggttcag
+      181 agttcctcaa caggtgaaat atgcgacagt cctcatcaga tccttgatgg aaaaaactgc
+      241 acactaatag atgctctatt gggagaccct cagtgtgatg acttccaaaa taagaaatgg
+      301 gacctttttg ttgaacgcag caaagcctac agcaactgtt acccttatga tgtgccggat
+      361 tatgcctccc ttaggtcact agttgcctca tccggcacac tggagtttaa caatgaaagc
+      421 ttcaattgga ctggagtcac tcaaaacgga acaagctctg cttgcataag gagatctaaa
+      481 aacagtttct ttagtagatt gaattggttg acccacttaa acttcaaata cccagcattg
+      541 aacgtgacta tgccaaacaa tgaacaattt gacaaattgt acatttgggg ggttctccac
+      601 ccgggtacgg acaaagacca aatcttcctg tatgctcaag catcaggaag gatcacagtc
+      661 tctaccaaaa gaagccaaca aatcgtaagc ccgaatatcg gatctagacc cagagtaagg
+      721 aatatcccta gcagaataag catctattgg acaatagtaa aaccgggaga catacttttg
+      781 attaacagca cagggaatct aattgctcct aggggttact tcaaaatacg aagtgggaaa
+      841 agctcaataa tgagatcaga tgcacccatt ggcaaatgca attctgaatg catcactcca
+      901 aatggaagca ttcccaatga caaaccattc caaaatgtaa acaggatcac atacggggcc
+      961 tgtcccagat atgttaagca aaacactctg aaattggcaa cagggatgcg aaatgtacca
+     1021 gagaaacaaa ctagaggcat atttggcgca atcgcgggtt tcatagaaaa tggttgggag
+     1081 ggaatggtgg atggttggta cggtttcagg catcaaaatt ctgagggaag aggacaagca
+     1141 gcagatctca aaagcactca agcagcaatc gatcaaatca atgggaagct gaatagattg
+     1201 atcgggaaaa ccaacgagaa attccatcag attgaaaaag aattctcaga agtcgaaggg
+     1261 agaattcagg accttgagaa gtatgttgag gacactaaaa tagatctctg gtcatacaac
+     1321 gcggaacttc ttgttgccct ggagaaccaa catacaattg atctaactga ctcagaaatg
+     1381 aacaaactgt ttgaaaaaac aaagaagcaa ctgagggaaa atgctgagga tatgggcaat
+     1441 ggttgtttca aaatatacca caaatgtgac aatgcctgca taggatcaat cagaaatgga
+     1501 acttatgacc acgatgtata cagagatgaa gcattaaaca accggtttca gatcaaggga
+     1561 gttgagctga agtcagggta caaagattgg atcctatgga tttcctttgc catatcatgt
+     1621 tttttgcttt gtgttgcttt gttggggttc atcatgtggg cctgccaaaa aggcaacatt
+     1681 aggtgcaaca tttgcatt
+//

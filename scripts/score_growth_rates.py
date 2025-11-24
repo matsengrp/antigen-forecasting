@@ -125,6 +125,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
         'location': [],
         'correlation': [],
         'mae': [],
+        'mse': [],
         'rmse': [],
         'r2': [],
         'n_seqs': [],
@@ -318,6 +319,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
             results_dict['location'].append(location)
             results_dict['correlation'].append(eval_results['correlation'])
             results_dict['mae'].append(eval_results['mae'])
+            results_dict['mse'].append(eval_results['mse'])
             results_dict['rmse'].append(eval_results['rmse'])
             results_dict['r2'].append(eval_results['r2'])
             results_dict['n_seqs'].append(window_stats_dict['seq_counts'])

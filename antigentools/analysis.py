@@ -621,8 +621,11 @@ def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: 
     # Mean Absolute Error (captures magnitude of differences)
     mae = (clean_data[r_data_col] - clean_data[r_model_col]).abs().mean()
     
+    # Mean Square Error
+    mse = ((clean_data[r_data_col] - clean_data[r_model_col])**2).mean()
+    
     # Root Mean Square Error (penalizes larger errors more)
-    rmse = np.sqrt(((clean_data[r_data_col] - clean_data[r_model_col])**2).mean())
+    rmse = np.sqrt(mse)
 
     # R² (coefficient of determination)
     ss_res = ((clean_data[r_data_col] - clean_data[r_model_col])**2).sum()
@@ -638,6 +641,7 @@ def evaluate_growth_rate_performance(growth_rates_df: pd.DataFrame, r_data_col: 
     return {
         'correlation': correlation,
         'mae': mae,
+        'mse': mse,
         'rmse': rmse,
         'r2': r2,
         'sign_disagreement_rate': sign_disagreement_rate,

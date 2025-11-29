@@ -54,6 +54,7 @@ MIN_SEQUENCE_COUNT = 10  # Minimum smoothed sequence count per variant
 MIN_VARIANT_FREQUENCY = 0.01  # Minimum variant frequency to consider
 EPSILON = 1e-3  # Tolerance threshold for overestimation rate calculations
 MIN_TOTAL_SEQUENCES = 300  # Minimum total sequences per window (set to None to disable)
+MIN_VARIANT_INCIDENCE = 50.0  # Minimum smoothed variant incidence to consider
 CONVERGENCE_THRESHOLD = 0.5  # Threshold for convergence diagnostics
 
 
@@ -142,6 +143,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
         'model': [],
         'location': [],
         'mae': [],
+        'mse': [],
         'normalized_mae': [],
         'max_r_data': [],
         'correlation': [],
@@ -152,7 +154,8 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
         'mean_variant_frequency': [],
         'mean_smoothed_variant_frequency': [],
         'max_variant_frequency': [],
-        'max_smoothed_variant_frequency': []
+        'max_smoothed_variant_frequency': [],
+        'converged': []
     }
 
     # New convergence diagnostics dictionary
@@ -246,7 +249,8 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
                 growth_rates_df, 
                 overestimation_tol=1e-3,
                 min_sequence_count=MIN_SEQUENCE_COUNT,
-                min_variant_frequency=MIN_VARIANT_FREQUENCY
+                min_variant_frequency=MIN_VARIANT_FREQUENCY,
+                min_variant_incidence=MIN_VARIANT_INCIDENCE
             )
             
             # Load VI convergence diagnostics if available
@@ -294,6 +298,14 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
                     else:
                         diagnostics_dict[key].append(None)
             
+            # Determine convergence status for this window from diagnostics
+            window_converged = None
+            if len(diagnostics_dict['pivot_date']) > 0 and diagnostics_dict['pivot_date'][-1] == pivot_date:
+                # Get the last added convergence status for this window
+                relative_change = diagnostics_dict['relative_change'][-1]
+                if relative_change is not None:
+                    window_converged = relative_change <= CONVERGENCE_THRESHOLD
+            
             # Append variant results to the dictionary
             for _, row in variant_mae_df.iterrows():
                 variant_results_dict['variant'].append(row['variant'])
@@ -301,6 +313,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
                 variant_results_dict['model'].append(model)
                 variant_results_dict['location'].append(location)
                 variant_results_dict['mae'].append(row['mae'])
+                variant_results_dict['mse'].append(row['mse'])
                 variant_results_dict['normalized_mae'].append(row['normalized_mae'])
                 variant_results_dict['max_r_data'].append(row['max_r_data'])
                 variant_results_dict['correlation'].append(row['correlation'])
@@ -312,6 +325,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
                 variant_results_dict['mean_smoothed_variant_frequency'].append(row['mean_smoothed_variant_frequency'])
                 variant_results_dict['max_variant_frequency'].append(row['max_variant_frequency'])
                 variant_results_dict['max_smoothed_variant_frequency'].append(row['max_smoothed_variant_frequency'])
+                variant_results_dict['converged'].append(window_converged)
             
             # Now append the results to the results dictionary
             results_dict['pivot_date'].append(pivot_date)

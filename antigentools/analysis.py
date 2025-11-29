@@ -656,7 +656,8 @@ def calculate_variant_mae(
     r_model_col: str = 'median_r',
     overestimation_tol: float = 1e-3,
     min_sequence_count: Optional[float] = None,
-    min_variant_frequency: Optional[float] = None
+    min_variant_frequency: Optional[float] = None,
+    min_variant_incidence: Optional[float] = None
 ) -> pd.DataFrame:
     """
     Calculate MAE and max r_data value for each variant in the growth rates dataframe.
@@ -691,6 +692,9 @@ def calculate_variant_mae(
     min_variant_frequency : Optional[float], default=None
         Minimum variant frequency to trust growth rate calculations.
         If provided, filters out points below this threshold.
+    min_variant_incidence : Optional[float], default=None
+        Minimum smoothed variant incidence to trust growth rate calculations.
+        If provided, filters out points below this threshold.
         
     Returns:
     --------
@@ -701,6 +705,7 @@ def calculate_variant_mae(
         - model: model name
         - analysis_date: analysis date
         - mae: Mean Absolute Error for that variant
+        - mse: Mean Squared Error for that variant
         - normalized_mae: Normalized Mean Absolute Error (MAE / max_r_data)
         - max_r_data: Maximum absolute r_data value for that variant
         - correlation: Pearson correlation coefficient
@@ -718,7 +723,7 @@ def calculate_variant_mae(
     # First apply sequence count and frequency filters if provided
     clean_df = growth_rates_df.copy()
     
-    if min_sequence_count is not None or min_variant_frequency is not None:
+    if min_sequence_count is not None or min_variant_frequency is not None or min_variant_incidence is not None:
         # Build filter mask
         filter_mask = pd.Series(True, index=clean_df.index)
         
@@ -727,6 +732,9 @@ def calculate_variant_mae(
             
         if min_variant_frequency is not None and 'variant_frequency_smoothed' in clean_df.columns:
             filter_mask &= clean_df['variant_frequency_smoothed'] >= min_variant_frequency
+            
+        if min_variant_incidence is not None and 'variant_incidence_smoothed' in clean_df.columns:
+            filter_mask &= clean_df['variant_incidence_smoothed'] >= min_variant_incidence
             
         # Apply the filter
         clean_df = clean_df[filter_mask]
@@ -746,6 +754,9 @@ def calculate_variant_mae(
             
         # Calculate MAE for this variant
         mae = (variant_data[r_data_col] - variant_data[r_model_col]).abs().mean()
+        
+        # Calculate MSE for this variant
+        mse = ((variant_data[r_data_col] - variant_data[r_model_col])**2).mean()
         
         # Calculate max absolute r_data value
         max_r_data = variant_data[r_data_col].abs().max()
@@ -802,6 +813,7 @@ def calculate_variant_mae(
             'model': model,
             'analysis_date': analysis_date,
             'mae': mae,
+            'mse': mse,
             'normalized_mae': normalized_mae,
             'max_r_data': max_r_data,
             'correlation': correlation,

@@ -44,3 +44,6 @@ data/**/antigen-outputs/sequences.fasta
 
 # Large TSV files
 data/**/tips_forecasting.tsv
+
+# Tar.gz archives of results
+data/**/antigen-outputs/*.tar.gz

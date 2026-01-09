@@ -61,9 +61,11 @@ main:
   - '2054-04-01'
   - '2054-10-01'
   locations:
-  - north
   - tropics
+  - north
   - south
   models:
+  - NAIVE
+  - MLR
   - FGA
   - GARW

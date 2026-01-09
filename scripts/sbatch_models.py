@@ -122,6 +122,9 @@ def create_slurm_script(build: str, analysis_date: str, country: str, model_type
     if model_config:
         cmd += f" --config {model_config}"
     
+    # Get project root for PYTHONPATH
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
     # Slurm script template
     slurm_script = f"""#!/bin/bash
 #SBATCH --job-name=run_model_{model_type}_{country}_{analysis_date}
@@ -132,8 +135,12 @@ def create_slurm_script(build: str, analysis_date: str, country: str, model_type
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16GB
 
-# Activate virtual environment (if needed)
-# mamba activate antigen
+# Activate conda environment
+source ~/.bashrc
+mamba activate antigen
+
+# Add project root to PYTHONPATH
+export PYTHONPATH="{project_root}:$PYTHONPATH"
 
 # Run the model fitting script
 {cmd}

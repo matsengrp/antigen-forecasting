@@ -65,7 +65,5 @@ main:
   - north
   - south
   models:
-  - NAIVE
-  - MLR
   - FGA
   - GARW

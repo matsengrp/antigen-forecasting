@@ -65,7 +65,5 @@ main:
   - tropics
   - south
   models:
-  - NAIVE
-  - MLR
   - FGA
   - GARW

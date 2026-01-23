@@ -15,6 +15,7 @@ dependencies = [
     "matplotlib",
     "seaborn",
     "scipy",
+    "evofr",
 ]
 
 [project.optional-dependencies]

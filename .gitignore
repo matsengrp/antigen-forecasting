@@ -55,3 +55,6 @@ data/**/viruses.csv
 data/**/distance-matrix.csv
 data/**/nt_muts.json
 data/**/*.alignment
+
+# Beads file
+AGENTS.md

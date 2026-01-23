@@ -41,12 +41,14 @@ The primary dataset used in this analysis is in `data/flu-final/`, which contain
 
 ## Usage
 
+All scripts are in the `scripts/` directory.
+
 ### 1. Prepare Antigen Data
 
 The `prep_antigen_data.py` script prepares antigen-prime simulated data for variant frequency forecasting.
 
 ```bash
-python prep_antigen_data.py -t path/to/tips.csv -c path/to/cases.csv -o output/directory
+python scripts/prep_antigen_data.py -t path/to/tips.csv -c path/to/cases.csv -o output/directory
 ```
 
 #### Options:
@@ -56,44 +58,45 @@ python prep_antigen_data.py -t path/to/tips.csv -c path/to/cases.csv -o output/d
 - `-o, --output` - Path to the output directory for prepped sequence and case counts
 - `-sd, --start_date` - Start date for the analysis
 - `-v, --variant-col-name` - Name of the column containing the variant information
+- `-m, --variant-mapping` - Path to variant mapping file (joins on nucleotideSequence)
 - `-n, --normalize_cases` - Normalize case counts to report cases per 100k hosts
 - `--deme_population_size` - Population size of the deme
 
 #### Example:
 
 ```bash
-python prep_antigen_data.py -t data/antigen_h3n2_sim/antigen-outputs/tips.csv -c data/antigen_h3n2_sim/antigen-outputs/cases.csv -o data/antigen_h3n2_sim/time-stamped/truth/ -sd 2022-01-01 -v variant_name --normalize_cases
+python scripts/prep_antigen_data.py \
+    -t data/antigen_h3n2_sim/antigen-outputs/tips.csv \
+    -c data/antigen_h3n2_sim/antigen-outputs/cases.csv \
+    -o data/antigen_h3n2_sim/time-stamped/truth/ \
+    -sd 2022-01-01 -v variant_name --normalize_cases
 ```
 
-### 2. Calculate Variant Fitness
+### 2. Assign Variants
 
-The `calc_variant_fitness.py` script calculates variant fitness over time.
+The `assign_all_variants.py` script assigns variant labels using three methods: antigenic (k-means), sequence-based (t-SNE), and phylogenetic (Augur clades).
 
 ```bash
-python calc_variant_fitness.py -t path/to/tips.csv -i path/to/immunity.csv -o output/fitness.csv
+python scripts/assign_all_variants.py \
+    --tips data/build/tips.tsv \
+    --fasta data/build/sequences.fasta \
+    --output data/build/tips_with_variants.tsv \
+    --work-dir data/build/variant_assignment/
 ```
 
 #### Options:
 
-- `-t, --tips` - Path to the variant-assigned tips dataframe
-- `-i, --immunity` - Path to the immune memory text file
-- `-o, --output` - Path to save the variant fitness dataframe
-- `--centroid-output` - Path to save the variant centroid dataframe
-- `--burnin` - Burn-in period in years
-- `--variant-col` - Column name of the variant in the tips dataframe
-
-#### Example:
-
-```bash
-python calc_variant_fitness.py -t data/antigen_h3n2_sim/antigen-outputs/tips.csv -i data/antigen_h3n2_sim/antigen-outputs/immunity.txt -o data/antigen_h3n2_sim/antigen-outputs/variant_fitness.csv --burnin 1 --variant-col variant_name
-```
+- `--tips` - Path to the tips TSV file
+- `--fasta` - Path to the sequences FASTA file
+- `--output` - Path to save the combined tips DataFrame with variant columns
+- `--work-dir` - Working directory for intermediate files
 
 ### 3. Create Training Data
 
 The `make_training_data.py` script splits variant and count data into training windows.
 
 ```bash
-python make_training_data.py -s path/to/sequences.csv -c path/to/cases.csv -o output/directory
+python scripts/make_training_data.py -s path/to/sequences.csv -c path/to/cases.csv -o output/directory
 ```
 
 #### Options:
@@ -108,7 +111,12 @@ python make_training_data.py -s path/to/sequences.csv -c path/to/cases.csv -o ou
 #### Example:
 
 ```bash
-python make_training_data.py -s data/antigen_h3n2_sim/time-stamped/truth/sequences.csv -c data/antigen_h3n2_sim/time-stamped/truth/cases.csv -o data/antigen_h3n2_sim/training/ --window-size 90 --buffer-size 14 --config-path configs/training_config.yaml
+python scripts/make_training_data.py \
+    -s data/antigen_h3n2_sim/time-stamped/truth/sequences.csv \
+    -c data/antigen_h3n2_sim/time-stamped/truth/cases.csv \
+    -o data/antigen_h3n2_sim/training/ \
+    --window-size 90 --buffer-size 14 \
+    --config-path configs/training_config.yaml
 ```
 
 ### 4. Run Forecasting Models
@@ -118,23 +126,28 @@ python make_training_data.py -s data/antigen_h3n2_sim/time-stamped/truth/sequenc
 The `run_model.py` script fits a specified forecasting model.
 
 ```bash
-python run_model.py -d data/directory -c country_name -m model_name -o output/directory
+python scripts/run_model.py -d data/directory -c country_name -m model_name -o output/directory
 ```
 
 #### Options:
 
 - `-d, --data_path` - Path to the data directory
-- `-c, --country` - Country to fit the model to
-- `-m, --model` - Model to fit to the data
+- `-c, --country` - Country/deme to fit the model to
+- `-m, --model` - Model to fit (e.g., FGA, NAIVE)
 - `-o, --output_dir` - Directory to save the model results
-- `--model_args` - Additional arguments to pass to the model
 - `--forecast_L` - Number of days to forecast
 - `--seed_L` - Number of days to seed the forecast with
+- `--config` - Path to JSON configuration file with model parameters
+- `--naive-full-window` - Use full training window for NAIVE model (overrides config)
 
 #### Example:
 
 ```bash
-python run_model.py -d data/antigen_h3n2_sim/time-stamped/2025-10-01/ -c north -m FGA -o results/antigen_h3n2_sim/estimates/ --forecast_L 28 --seed_L 7
+python scripts/run_model.py \
+    -d data/antigen_h3n2_sim/time-stamped/2025-10-01/ \
+    -c north -m FGA \
+    -o results/antigen_h3n2_sim/estimates/ \
+    --forecast_L 28 --seed_L 7
 ```
 
 #### Option B: Run multiple models via SLURM
@@ -142,7 +155,7 @@ python run_model.py -d data/antigen_h3n2_sim/time-stamped/2025-10-01/ -c north -
 The `sbatch_models.py` script submits forecasting model inference jobs via SLURM.
 
 ```bash
-python sbatch_models.py -b build_name -c configs/benchmark_config.yaml
+python scripts/sbatch_models.py -b build_name -c configs/benchmark_config.yaml
 ```
 
 #### Options:
@@ -153,29 +166,48 @@ python sbatch_models.py -b build_name -c configs/benchmark_config.yaml
 #### Example:
 
 ```bash
-python sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
+python scripts/sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
 ```
 
 ### 5. Evaluate Model Performance
 
-The `score_models.py` script computes model scores.
+#### Score frequency predictions
+
+The `score_models.py` script computes frequency prediction scores with variant filtering.
 
 ```bash
-python score_models.py --config configs/benchmark_config.yaml --truth-set path/to/truth.csv --estimates-path path/to/estimates/ --output-path results/scores/
+python scripts/score_models.py \
+    --config configs/benchmark_config.yaml \
+    --truth-set path/to/truth.csv \
+    --estimates-path path/to/estimates/ \
+    --output-path results/scores/
+```
+
+#### Options:
+
+- `--config` - Path to the configuration file with scoring parameters
+- `--truth-set` - Path to the truth set of sequences
+- `--estimates-path` - Path to the model estimates directory
+- `--output-path` - Path to save the output scores
+- `--verbose` - Enable verbose logging
+- `--log-file` - Path to log file (optional)
+
+#### Score growth rate predictions
+
+The `score_growth_rates.py` script performs comprehensive growth rate analysis.
+
+```bash
+python scripts/score_growth_rates.py \
+    --config configs/benchmark_config.yaml \
+    --build build_name \
+    --output-dir results/growth_rates/
 ```
 
 #### Options:
 
 - `--config` - Path to the configuration file
-- `--truth-set` - Path to the truth set of sequences
-- `--estimates-path` - Path to the estimates
-- `--output-path` - Path to save the output
-
-#### Example:
-
-```bash
-python score_models.py --config configs/benchmark_config.yaml --truth-set data/antigen_h3n2_sim/time-stamped/truth/true_values.csv --estimates-path results/antigen_h3n2_sim/estimates/ --output-path results/antigen_h3n2_sim/scores/
-```
+- `--build` - Build name (e.g., flu-simulated-150k-samples)
+- `--output-dir` - Directory to save the analysis outputs
 
 ## Complete Pipeline Example
 
@@ -183,21 +215,41 @@ Here's an example of running the complete pipeline:
 
 ```bash
 # 1. Prepare antigen data
-python prep_antigen_data.py -t data/raw/tips.csv -c data/raw/cases.csv -o data/prepped/ -sd 2022-01-01 -v variant_name
+python scripts/prep_antigen_data.py \
+    -t data/raw/tips.csv -c data/raw/cases.csv \
+    -o data/prepped/ -sd 2022-01-01 -v variant_name
 
-# 2. Calculate variant fitness
-python calc_variant_fitness.py -t data/prepped/tips.csv -i data/immunity.csv -o data/prepped/variant_fitness.csv
+# 2. Assign variants
+python scripts/assign_all_variants.py \
+    --tips data/prepped/tips.tsv \
+    --fasta data/raw/sequences.fasta \
+    --output data/prepped/tips_with_variants.tsv \
+    --work-dir data/prepped/variant_assignment/
 
 # 3. Create training data
-python make_training_data.py -s data/prepped/sequences.csv -c data/prepped/cases.csv -o data/training/ --window-size 90
+python scripts/make_training_data.py \
+    -s data/prepped/seq_counts.tsv -c data/prepped/case_counts.tsv \
+    -o data/training/ --window-size 90
 
 # 4. Run models (individual or batch)
-python run_model.py -d data/training/ -c US -m FGA -o results/estimates/
+python scripts/run_model.py \
+    -d data/training/2025-10-01/ -c north -m FGA \
+    -o results/estimates/
 # Or with SLURM
-python sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
+python scripts/sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
 
-# 5. Score models
-python score_models.py --config configs/benchmark_config.yaml --truth-set data/true_values.csv --estimates-path results/estimates/ --output-path results/scores/
+# 5. Score frequency predictions
+python scripts/score_models.py \
+    --config configs/benchmark_config.yaml \
+    --truth-set data/prepped/seq_counts.tsv \
+    --estimates-path results/estimates/ \
+    --output-path results/scores/
+
+# 6. Score growth rate predictions
+python scripts/score_growth_rates.py \
+    --config configs/benchmark_config.yaml \
+    --build antigen_h3n2_sim \
+    --output-dir results/growth_rates/
 ```
 
 ## Notes

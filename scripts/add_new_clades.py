@@ -355,7 +355,7 @@ if __name__=="__main__":
         divergence_scale = 2.0
         branch_length_scale = 2.0
         divergence_addition = 1.0
-        min_size = 25
+        min_size = 22
 
     if args.add_to_existing:
         short_to_full_clades, aliases = get_clade_map(args.clade_map)

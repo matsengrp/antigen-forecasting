@@ -1,0 +1,24 @@
+site_name: antigen-prime analysis documentation
+site_description: Documentation for benchmarking methods with `antigen-prime`, including fitness calculation, variant assignment, and growth advantage modeling.
+repo_url: https://github.com/matsengrp/antigen-forecasting
+repo_name: matsengrp/antigen-forecasting
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: red
+    accent: red
+nav:
+  - Home: index.md
+  - Calculating Fitness: calculating_fitness.md
+  - Variant Assignment: variant_assignment.md
+  - Growth Advantage Models: growth_advantage_models.md
+  - Model Configuration: model_configuration.md
+  - Empirical Growth Rates: empirical_growth_rates.md
+
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js

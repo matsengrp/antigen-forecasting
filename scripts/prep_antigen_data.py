@@ -164,6 +164,23 @@ def main(args) -> None:
     cases_sep = '\t' if cases_path.endswith('.tsv') else ','
     tips_df = pd.read_csv(tips_path, sep=tips_sep)
     cases_df = pd.read_csv(cases_path, sep=cases_sep)
+
+    # If variant mapping file provided, join variants on nucleotideSequence
+    if args.variant_mapping:
+        print(f"Loading variant mapping from {args.variant_mapping}...")
+        mapping_sep = '\t' if args.variant_mapping.endswith('.tsv') else ','
+        mapping_df = pd.read_csv(args.variant_mapping, sep=mapping_sep)
+
+        # Keep only the columns we need for mapping
+        mapping_cols = ['nucleotideSequence', variant_col]
+        if variant_col not in mapping_df.columns:
+            raise ValueError(f"Variant column '{variant_col}' not found in mapping file")
+        mapping_df = mapping_df[mapping_cols].drop_duplicates()
+
+        # Join on nucleotideSequence
+        tips_df = tips_df.merge(mapping_df, on='nucleotideSequence', how='left')
+        n_mapped = tips_df[variant_col].notna().sum()
+        print(f"  Mapped {n_mapped}/{len(tips_df)} tips to variants")
     
     # Prepare the sequence and case count dataframes
     variant_counts_df = prep_tips_df(tips_df, start_date, variant_col)
@@ -188,6 +205,7 @@ if __name__ == "__main__":
     # Optional arguments
     parser.add_argument("-sd", "--start_date", type=str, default='2025-01-01' ,help="Start date for the analysis.")
     parser.add_argument("-v", "--variant-col-name", type=str, default='variant', help="Name of the column containing the variant information.")
+    parser.add_argument("-m", "--variant-mapping", type=str, default=None, help="Path to variant mapping file (joins on nucleotideSequence).")
     parser.add_argument("-n", "--normalize_cases", action='store_true', help="Normalize case counts to report cases per 100k hosts.")
     parser.add_argument("--deme_population_size", type=int, default=30_000_000, help="Population size of the deme.")
     

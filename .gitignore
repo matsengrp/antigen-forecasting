@@ -3,8 +3,8 @@
 results/**/slurm/
 antigentools.egg-info/
 
-# For now, ignore time-stamped files
-data/**/antigen-outputs/*.csv
+# Ignore large raw antigen-outputs (viruses.csv is ~250M+)
+data/**/antigen-outputs/viruses.csv
 data/toy-example/
 # Ignore compiled Python files
 **/*.pyc
@@ -47,3 +47,10 @@ data/**/tips_forecasting.tsv
 
 # Tar.gz archives of results
 data/**/antigen-outputs/*.tar.gz
+.beads/
+
+# Large files to exclude (>7.5M or intermediate alignment files)
+data/**/viruses.csv
+data/**/distance-matrix.csv
+data/**/nt_muts.json
+data/**/*.alignment

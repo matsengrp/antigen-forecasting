@@ -8,6 +8,122 @@ from antigentools.utils import (
     calculate_overestimation_rate,
 )
 
+
+def calculate_fitness_of_tips(
+    tips_df: pd.DataFrame,
+    host_coordinates: Tuple[float, float],
+    s: float = 0.07,
+    homologous_immunity: float = 0.95
+) -> pd.DataFrame:
+    """
+    Calculate fitness of tips based on infection risk against host coordinates.
+
+    Fitness = infection risk: variants antigenically distant from host immune
+    memory have higher fitness (higher chance of infection).
+
+    Parameters
+    ----------
+    tips_df : pd.DataFrame
+        DataFrame with 'ag1', 'ag2' columns.
+    host_coordinates : Tuple[float, float]
+        Tuple of (ag1, ag2) for host immune memory centroid.
+    s : float, default=0.07
+        Smith conversion factor scaling antigenic distance to infection risk.
+    homologous_immunity : float, default=0.95
+        Immunity against identical antigens (bounds minimum fitness).
+
+    Returns
+    -------
+    pd.DataFrame
+        Copy of tips_df with added 'fitness' column.
+    """
+    result_df = tips_df.copy()
+
+    # Euclidean distance from each tip to host coordinates
+    distances = np.sqrt(
+        (tips_df['ag1'] - host_coordinates[0])**2 +
+        (tips_df['ag2'] - host_coordinates[1])**2
+    )
+
+    # Calculate risk of infection, bounded to [min_risk, 1.0]
+    risk = distances * s
+    min_risk = 1.0 - homologous_immunity
+    risk = np.clip(risk, min_risk, 1.0)
+
+    result_df['fitness'] = risk
+    return result_df
+
+
+def calc_variance_over_time(
+    tips_df: pd.DataFrame,
+    host_memory_df: pd.DataFrame,
+    variant_cols: List[str],
+    s: float = 0.07,
+    homologous_immunity: float = 0.95
+) -> pd.DataFrame:
+    """
+    Calculate mean within-variant fitness variance over time.
+
+    For each timepoint t, calculates fitness for ALL tips using host coordinates
+    at t, then computes mean variance of fitness within each variant group.
+    n_variants counts unique variants in [t-1, t] window only.
+
+    Parameters
+    ----------
+    tips_df : pd.DataFrame
+        DataFrame with 'ag1', 'ag2', 'year', and variant_* columns.
+    host_memory_df : pd.DataFrame
+        DataFrame with 'year', 'ag1', 'ag2' columns (host immune memory).
+    variant_cols : List[str]
+        List of variant column names (e.g., ['variant_ag', 'variant_phylo']).
+    s : float, default=0.07
+        Smith conversion factor.
+    homologous_immunity : float, default=0.95
+        Immunity against identical antigens.
+
+    Returns
+    -------
+    pd.DataFrame
+        Long-format DataFrame with columns: year, method, mean_variance, n_variants.
+    """
+    results = []
+    time_points = sorted(host_memory_df['year'].unique())
+
+    for t in time_points:
+        # Get host coordinates at time t
+        host_row = host_memory_df[host_memory_df['year'] == t].iloc[0]
+        host_coords = (host_row['ag1'], host_row['ag2'])
+
+        # Calculate fitness for ALL tips
+        tips_with_fitness = calculate_fitness_of_tips(
+            tips_df,
+            host_coordinates=host_coords,
+            s=s,
+            homologous_immunity=homologous_immunity
+        )
+
+        # Calculate variance for each variant assignment method
+        for var_col in variant_cols:
+            # Variance across ALL tips
+            variances = tips_with_fitness.groupby(var_col)['fitness'].var()
+            mean_variance = variances.mean()
+
+            # Count variants in [t-1, t] window only
+            year_mask = (tips_df['year'] > t - 1) & (tips_df['year'] <= t)
+            n_variants = tips_df.loc[year_mask, var_col].nunique()
+
+            # Strip 'variant_' prefix for method name
+            method = var_col.replace('variant_', '')
+
+            results.append({
+                'year': t,
+                'method': method,
+                'mean_variance': mean_variance,
+                'n_variants': n_variants
+            })
+
+    return pd.DataFrame(results)
+
 def load_model_rt_values(build: str, model: str, location: str, pivot_date: str, results_path: str = "../results/") -> Optional[pd.DataFrame]:
     """
     Load Rt values directly from model result files.
@@ -138,6 +254,7 @@ def get_filtered_growth_rates_df(
     spline_order=3,
     min_sequence_count=5,
     min_variant_frequency=0.05,
+    min_variant_incidence=50.0,
     skip_first_n_points=2,
     use_freqs=True,
     use_smoothed_incidence=True,
@@ -185,6 +302,8 @@ def get_filtered_growth_rates_df(
         Minimum smoothed sequence count to trust growth rate calculations
     min_variant_frequency : float, default=0.05
         Minimum variant frequency to trust growth rate calculations
+    min_variant_incidence : float, default=50.0
+        Minimum smoothed variant incidence to trust growth rate calculations
     skip_first_n_points : int, default=2
         Number of initial points to skip for each variant (often noisy)
     use_freqs : bool, default=True
@@ -329,6 +448,11 @@ def get_filtered_growth_rates_df(
     growth_rates_df['variant_incidence'] = growth_rates_df['variant_frequency'] * growth_rates_df['cases']
     growth_rates_df['variant_incidence_smoothed'] = growth_rates_df['variant_frequency_smoothed'] * growth_rates_df['cases']
     
+    # Apply variant incidence filtering if specified
+    if min_variant_incidence is not None and min_variant_incidence > 0:
+        incidence_mask = growth_rates_df['variant_incidence_smoothed'] >= min_variant_incidence
+        growth_rates_df = growth_rates_df[incidence_mask].copy()
+    
     # Ensure we have a proper date column for plotting compatibility
     # Use the original date if available, otherwise use week_start
     if 'date' not in growth_rates_df.columns or growth_rates_df['date'].isna().any():
@@ -384,9 +508,18 @@ def get_filtered_growth_rates_df(
         rt_df['date'] = pd.to_datetime(rt_df['date'])
         
         # Try direct merge first (exact date matching)
+        # Include all confidence interval columns if they exist
+        merge_cols = ['date', 'variant', 'median_r', 'model', 'analysis_date']
+        
+        # Add confidence interval columns if they exist in rt_df
+        confidence_cols = ['r_lower_95', 'r_upper_95', 'r_lower_80', 'r_upper_80', 'r_lower_50', 'r_upper_50']
+        for col in confidence_cols:
+            if col in rt_df.columns:
+                merge_cols.append(col)
+        
         growth_rates_df = pd.merge(
             growth_rates_df,
-            rt_df[['date', 'variant', 'median_r', 'model', 'analysis_date']],
+            rt_df[merge_cols],
             on=['date', 'variant'],
             how='left'
         )

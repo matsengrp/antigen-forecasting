@@ -16,7 +16,7 @@ REF_PATH="data/$BUILD/ref_HA.fasta"
 SEQS_PATH="data/$BUILD/antigen-outputs/unique_sequences.fasta"
 ALIGNMENT_PATH="data/$BUILD/pathogen-embed/sequences.alignment"
 DISTANCE_MATRIX_PATH="data/$BUILD/pathogen-embed/distance-matrix.csv"
-EMBEDDING_METHOD="mds"
+EMBEDDING_METHOD="tsne"
 N_COMPONENTS=10
 EMBEDDINGS_PATH="data/$BUILD/pathogen-embed/$EMBEDDING_METHOD-embeddings.csv"
 CLUSTERS_PATH="data/$BUILD/pathogen-embed/seq-clusters.csv"
@@ -38,7 +38,7 @@ pathogen-distance --alignment $ALIGNMENT_PATH --output $DISTANCE_MATRIX_PATH
 
 # Learn embedding from the distance matrix
 echo "Learning $EMBEDDING_METHOD embeddings for $BUILD..."
-pathogen-embed --alignment $ALIGNMENT_PATH --distance-matrix $DISTANCE_MATRIX_PATH --output-dataframe $EMBEDDINGS_PATH $EMBEDDING_METHOD --components $N_COMPONENTS
+pathogen-embed --alignment $ALIGNMENT_PATH --distance-matrix $DISTANCE_MATRIX_PATH --output-dataframe $EMBEDDINGS_PATH $EMBEDDING_METHOD
 
 # Check if embeddings file was created
 if [ ! -f "$EMBEDDINGS_PATH" ]; then

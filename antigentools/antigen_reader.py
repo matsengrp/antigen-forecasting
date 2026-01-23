@@ -252,10 +252,9 @@ class AntigenReader:
                 sequence = row['nucleotideSequence']
                 name = row['name']
                 date = row['year']
-                fitness = row['fitness']
                 # Write metadata to FASTA header
                 if write_details_to_fasta:
-                    fasta_file.write(f'>{name}|{date}|{fitness}\n')
+                    fasta_file.write(f'>{name}|{date}\n')
                 else:
                     fasta_file.write(f'>{name}\n')
                 fasta_file.write(f'{sequence}\n')

@@ -1,17 +1,18 @@
 # Forecasting with `antigen-prime` simulated data
 
-This repository contains a suite of Python scripts designed to prepare, analyze, and forecast variant frequency data using `antigen-prime` and `evofr`. 
-These scripts enable you to process antigen data, calculate variant fitness, create training datasets, run forecasting models, and evaluate model performance.
+This repository contains code, scripts, analysis notebooks, and data for forecasting variant frequencies using simulated pathogen evolution data from `antigen-prime` and growth advantage models from `evofr`.
 
 ## Overview
 
 The workflow typically follows these steps:
 
 1. Prepare antigen data using `prep_antigen_data.py`
-2. Calculate variant fitness with `calc_variant_fitness.py`
+2. Assign variants using `assign_all_variants.py`
 3. Create training datasets with `make_training_data.py`
 4. Run forecasting models using either `run_model.py` directly or `sbatch_models.py` for SLURM-based environments
-5. Score and evaluate models with `score_models.py`
+5. Score and evaluate models:
+   - `score_models.py` for frequency estimates
+   - `score_growth_rates.py` for growth rate estimates
 
 ## Installation
 
@@ -27,15 +28,16 @@ mamba env create -f environment.yaml
 mamba activate antigen
 
 # Install the package
-pip install .
+pip install -e .
 ```
 
-### Extracting the included simulated data
-The relevant files used in this analysis 
+## Data
 
-```bash
-tar xzf data/flu-simulated-150k-samples/antigen-outputs/viruses.tar.gz
-```
+The primary dataset used in this analysis is in `data/flu-final/`, which contains:
+- `time-stamped/` - Sequence and case counts at bi-annual time points (April 1 and October 1)
+- `antigen-outputs/` - Processed simulation outputs
+- `variant-assignment/` - Variant assignment results from phylogenetic and sequence-based methods
+- `tips_with_variants.tsv` - Tip data with assigned variants
 
 ## Usage
 
@@ -235,4 +237,4 @@ NMI provides an information-theoretic perspective.
 
 ## License
 
-[Your license information here]
+MIT License - see [LICENSE](LICENSE) for details.

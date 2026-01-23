@@ -6,6 +6,7 @@ antigentools.egg-info/
 # Ignore large raw antigen-outputs (viruses.csv is ~250M+)
 data/**/antigen-outputs/viruses.csv
 data/toy-example/
+data/flu-simulated-150k-samples-final/
 # Ignore compiled Python files
 **/*.pyc
 

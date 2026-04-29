@@ -6,11 +6,12 @@ This repository contains code, scripts, analysis notebooks, and data for forecas
 
 The workflow typically follows these steps:
 
-1. Prepare antigen data using `prep_antigen_data.py`
-2. Assign variants using `assign_all_variants.py`
-3. Create training datasets with `make_training_data.py`
-4. Run forecasting models using either `run_model.py` directly or `sbatch_models.py` for SLURM-based environments
-5. Score and evaluate models:
+1. Parse `antigen-prime` simulation outputs using `parse_sim_outputs.py`
+2. Prepare antigen data using `prep_antigen_data.py`
+3. Assign variants using `assign_all_variants.py`
+4. Create training datasets with `make_training_data.py`
+5. Run forecasting models using either `run_model.py` directly or `sbatch_models.py` for SLURM-based environments
+6. Score and evaluate models:
    - `score_models.py` for frequency estimates
    - `score_growth_rates.py` for growth rate estimates
 
@@ -43,7 +44,35 @@ The primary dataset used in this analysis is in `data/flu-final/`, which contain
 
 All scripts are in the `scripts/` directory.
 
-### 1. Prepare Antigen Data
+### 1. Parse Simulation Outputs
+
+The `parse_sim_outputs.py` script parses raw `antigen-prime` simulation outputs (`run-out.tips`) into pipeline-ready CSV/FASTA artifacts. Replaces the manual notebook step previously used for this purpose.
+
+```bash
+python scripts/parse_sim_outputs.py --sim-path path/to/run_N/ --output-dir data/build/antigen-outputs/
+```
+
+#### Options:
+
+- `--sim-path` - Path to a `run_N/` directory under `antigen-experiments/`
+- `--output-dir` - Directory to write parsed outputs (typically `data/<build>/antigen-outputs/`)
+
+#### Outputs:
+
+- `tips.csv` - Full parsed tips with `country` column added (no dedup)
+- `unique_tips.csv` - Deduplicated on `name` then `nucleotideSequence` (in this exact order)
+- `unique_sequences.fasta` - FASTA of unique sequences
+- `out_timeseries.csv` - Symlink to `run_N/out_timeseries.csv` (copy fallback)
+
+#### Example:
+
+```bash
+python scripts/parse_sim_outputs.py \
+    --sim-path antigen-experiments/experiments/<exp>/<param-set>/run_0/ \
+    --output-dir data/flu-final/antigen-outputs/
+```
+
+### 2. Prepare Antigen Data
 
 The `prep_antigen_data.py` script prepares antigen-prime simulated data for variant frequency forecasting.
 
@@ -72,7 +101,7 @@ python scripts/prep_antigen_data.py \
     -sd 2022-01-01 -v variant_name --normalize_cases
 ```
 
-### 2. Assign Variants
+### 3. Assign Variants
 
 The `assign_all_variants.py` script assigns variant labels using three methods: antigenic (k-means), sequence-based (t-SNE), and phylogenetic (Augur clades).
 
@@ -91,7 +120,7 @@ python scripts/assign_all_variants.py \
 - `--output` - Path to save the combined tips DataFrame with variant columns
 - `--work-dir` - Working directory for intermediate files
 
-### 3. Create Training Data
+### 4. Create Training Data
 
 The `make_training_data.py` script splits variant and count data into training windows.
 
@@ -119,7 +148,7 @@ python scripts/make_training_data.py \
     --config-path configs/training_config.yaml
 ```
 
-### 4. Run Forecasting Models
+### 5. Run Forecasting Models
 
 #### Option A: Run a single model
 
@@ -169,7 +198,7 @@ python scripts/sbatch_models.py -b build_name -c configs/benchmark_config.yaml
 python scripts/sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
 ```
 
-### 5. Evaluate Model Performance
+### 6. Evaluate Model Performance
 
 #### Score frequency predictions
 
@@ -214,38 +243,44 @@ python scripts/score_growth_rates.py \
 Here's an example of running the complete pipeline:
 
 ```bash
-# 1. Prepare antigen data
+# 1. Parse antigen-prime simulation outputs
+python scripts/parse_sim_outputs.py \
+    --sim-path antigen-experiments/experiments/<exp>/<param-set>/run_0/ \
+    --output-dir data/antigen_h3n2_sim/antigen-outputs/
+
+# 2. Prepare antigen data
 python scripts/prep_antigen_data.py \
-    -t data/raw/tips.csv -c data/raw/cases.csv \
+    -t data/antigen_h3n2_sim/antigen-outputs/tips.csv \
+    -c data/antigen_h3n2_sim/antigen-outputs/out_timeseries.csv \
     -o data/prepped/ -sd 2022-01-01 -v variant_name
 
-# 2. Assign variants
+# 3. Assign variants
 python scripts/assign_all_variants.py \
     --tips data/prepped/tips.tsv \
-    --fasta data/raw/sequences.fasta \
+    --fasta data/antigen_h3n2_sim/antigen-outputs/unique_sequences.fasta \
     --output data/prepped/tips_with_variants.tsv \
     --work-dir data/prepped/variant_assignment/
 
-# 3. Create training data
+# 4. Create training data
 python scripts/make_training_data.py \
     -s data/prepped/seq_counts.tsv -c data/prepped/case_counts.tsv \
     -o data/training/ --window-size 90
 
-# 4. Run models (individual or batch)
+# 5. Run models (individual or batch)
 python scripts/run_model.py \
     -d data/training/2025-10-01/ -c north -m FGA \
     -o results/estimates/
 # Or with SLURM
 python scripts/sbatch_models.py -b antigen_h3n2_sim -c configs/benchmark_config.yaml
 
-# 5. Score frequency predictions
+# 6. Score frequency predictions
 python scripts/score_models.py \
     --config configs/benchmark_config.yaml \
     --truth-set data/prepped/seq_counts.tsv \
     --estimates-path results/estimates/ \
     --output-path results/scores/
 
-# 6. Score growth rate predictions
+# 7. Score growth rate predictions
 python scripts/score_growth_rates.py \
     --config configs/benchmark_config.yaml \
     --build antigen_h3n2_sim \
@@ -257,6 +292,7 @@ python scripts/score_growth_rates.py \
 - Make sure all required input files are in the specified formats
 - For SLURM-based job submission, ensure your SLURM environment is properly configured
 - Check the generated configuration files to verify settings before running models
+- For programmatic path construction across pipeline stages, use `antigentools.paths.SimulationPaths` (`from_sim_path` for batch runs, `from_build` for single-dataset runs like `flu-final`) — it is the single source of truth for where files live
 
 ## Clustering Evaluation Metrics
 

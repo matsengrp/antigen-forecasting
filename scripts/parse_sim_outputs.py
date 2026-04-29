@@ -62,7 +62,7 @@ def parse_run_out_tips(tips_path: Path) -> pd.DataFrame:
         ValueError: If any required column is missing, or if ``location`` contains
             a value outside the pinned map.
     """
-    df = pd.read_csv(tips_path, sep=",")
+    df = pd.read_csv(tips_path)
 
     missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
     if missing:
@@ -121,6 +121,11 @@ def link_or_copy(src: Path, dst: Path) -> None:
     """Symlink ``src`` to ``dst``; fall back to a copy on filesystems that don't
     support symlinks.
 
+    The symlink target is resolved to an absolute path so the link works regardless
+    of ``dst``'s parent directory. ``os.symlink`` interprets relative ``src`` paths
+    relative to ``dst``'s directory, not the caller's CWD, which is the wrong default
+    when the caller passed a CWD-relative ``--sim-path``.
+
     Args:
         src: Source path (must exist).
         dst: Destination path. Parent directory must already exist.
@@ -130,10 +135,9 @@ def link_or_copy(src: Path, dst: Path) -> None:
     """
     if not src.exists():
         raise FileNotFoundError(f"Cannot link/copy missing source: {src}")
-    if dst.exists() or dst.is_symlink():
-        dst.unlink()
+    dst.unlink(missing_ok=True)
     try:
-        os.symlink(src, dst)
+        os.symlink(src.resolve(), dst)
     except OSError:
         shutil.copy(src, dst)
 
@@ -164,6 +168,10 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
 
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
+
     sim_path: Path = args.sim_path
     output_dir: Path = args.output_dir
 
@@ -176,10 +184,6 @@ def main(argv: Sequence[str] | None = None) -> None:
         raise FileNotFoundError(f"out_timeseries.csv not found at {raw_timeseries}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
-    )
 
     logger.info("Reading raw tips from %s", raw_tips)
     tips_df = parse_run_out_tips(raw_tips)

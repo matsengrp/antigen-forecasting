@@ -198,6 +198,41 @@ class TestMain:
         assert ">a\n" in fasta_text
         assert ">c\n" in fasta_text
 
+        # Timeseries link must be readable through the link, not just exist —
+        # catches broken relative symlinks (regression for PR #22 review).
+        assert (
+            output_dir / "out_timeseries.csv"
+        ).read_text() == "date,cases\n2020-01-01,5\n"
+
+    def test_writes_all_outputs_with_relative_sim_path(
+        self, parse_sim_outputs, tmp_path, monkeypatch
+    ):
+        # Regression for PR #22: a relative --sim-path used to produce a symlink
+        # whose target was relative to the destination dir, not CWD, breaking
+        # the timeseries link in the common cluster invocation pattern.
+        monkeypatch.chdir(tmp_path)
+        sim_path = Path("experiments/exp/param/run_0")
+        (sim_path / "output").mkdir(parents=True)
+        _make_tips_csv(
+            sim_path / "output" / "run-out.tips",
+            [
+                _base_row(name="a", nucleotideSequence="X"),
+                _base_row(name="a", nucleotideSequence="Y"),
+                _base_row(name="b", nucleotideSequence="X"),
+            ],
+        )
+        (sim_path / "out_timeseries.csv").write_text("date,cases\n2020-01-01,7\n")
+
+        output_dir = Path("data/test-build/antigen-outputs")
+        parse_sim_outputs.main(
+            ["--sim-path", str(sim_path), "--output-dir", str(output_dir)]
+        )
+
+        # The link must resolve and be readable from CWD.
+        assert (
+            output_dir / "out_timeseries.csv"
+        ).read_text() == "date,cases\n2020-01-01,7\n"
+
     def test_asserts_dedup_actually_drops_rows(self, parse_sim_outputs, tmp_path):
         # If every row is already unique on both keys, dedup is a no-op and the
         # script should fail loudly — that means the input is unexpected.

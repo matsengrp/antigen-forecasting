@@ -50,6 +50,24 @@ def _base_row(**overrides) -> dict:
     return row
 
 
+def _parse_fasta(text: str) -> dict[str, str]:
+    """Parse a FASTA string into a (name -> sequence) dict.
+
+    Assumes the format produced by ``AntigenReader.write_tips_to_fasta`` with
+    default ``write_metadata=False``: alternating ``>name\\n`` headers and
+    single-line sequence bodies.
+    """
+    records: dict[str, str] = {}
+    name: str | None = None
+    for line in text.splitlines():
+        if line.startswith(">"):
+            name = line[1:].strip()
+        elif name is not None:
+            records[name] = line.strip()
+            name = None
+    return records
+
+
 class TestDedupTips:
     def test_pinned_order_name_then_nucleotideseq(self, parse_sim_outputs):
         # Two rows share `name`. drop_duplicates(["name"]) keeps the first → row B
@@ -192,11 +210,12 @@ class TestMain:
             ("c", "SEQ_Z"),
         }
 
-        # FASTA contains 2 records, names match unique_tips.
+        # FASTA records pair the dedup-winning name with its surviving sequence.
+        # name='a' won via name-dedup keeping the first row (SEQ_X), and
+        # name='c' is a clean unique row (SEQ_Z). A regression that picks a
+        # different winning row would change the pairing.
         fasta_text = (output_dir / "unique_sequences.fasta").read_text()
-        assert fasta_text.count(">") == 2
-        assert ">a\n" in fasta_text
-        assert ">c\n" in fasta_text
+        assert _parse_fasta(fasta_text) == {"a": "SEQ_X", "c": "SEQ_Z"}
 
         # Timeseries link must be readable through the link, not just exist —
         # catches broken relative symlinks (regression for PR #22 review).
@@ -233,9 +252,10 @@ class TestMain:
             output_dir / "out_timeseries.csv"
         ).read_text() == "date,cases\n2020-01-01,7\n"
 
-    def test_asserts_dedup_actually_drops_rows(self, parse_sim_outputs, tmp_path):
-        # If every row is already unique on both keys, dedup is a no-op and the
-        # script should fail loudly — that means the input is unexpected.
+    def test_warns_when_dedup_drops_no_rows(self, parse_sim_outputs, tmp_path, caplog):
+        # If every row is already unique on both keys the script should warn
+        # (real ~150k-row sims always dedup substantially) but still complete —
+        # small/synthetic inputs are a legitimate use case.
         sim_path = tmp_path / "experiments" / "exp" / "param" / "run_0"
         (sim_path / "output").mkdir(parents=True)
         tips_path = sim_path / "output" / "run-out.tips"
@@ -249,7 +269,7 @@ class TestMain:
         (sim_path / "out_timeseries.csv").write_text("date,cases\n")
 
         output_dir = tmp_path / "out"
-        with pytest.raises(AssertionError, match="dedup"):
+        with caplog.at_level("WARNING"):
             parse_sim_outputs.main(
                 [
                     "--sim-path",
@@ -258,3 +278,15 @@ class TestMain:
                     str(output_dir),
                 ]
             )
+
+        # All four outputs are written despite the no-op dedup.
+        assert (output_dir / "tips.csv").exists()
+        assert (output_dir / "unique_tips.csv").exists()
+        assert (output_dir / "unique_sequences.fasta").exists()
+        assert (output_dir / "out_timeseries.csv").exists()
+
+        # Warning is emitted with both row counts.
+        warnings = [r for r in caplog.records if r.levelname == "WARNING"]
+        assert any("dedup did not drop any rows" in r.getMessage() for r in warnings), (
+            f"expected a 'dedup did not drop any rows' WARNING; got {warnings}"
+        )

@@ -105,6 +105,11 @@ class TestFromSimPath:
             )
 
     def test_rejects_empty_paramset(self, tmp_path, roots, monkeypatch):
+        # A relative single-component Path is the only practical way to exercise
+        # the empty-param-set check: Path("run_0").parent.name == "" by design,
+        # whereas any tmp_path-rooted absolute path always has a non-empty parent.
+        # chdir into tmp_path so the relative Path passes the sim_path.exists()
+        # precondition.
         monkeypatch.chdir(tmp_path)
         (tmp_path / "run_0").mkdir()
         data_root, results_root = roots

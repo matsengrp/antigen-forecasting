@@ -10,6 +10,17 @@ Outputs (written to ``--output-dir``):
     unique_sequences.fasta FASTA of unique sequences (via AntigenReader).
     out_timeseries.csv     Symlink to run_N/out_timeseries.csv (copy fallback).
 
+Notes for reviewers comparing against the legacy ``data/flu-final/`` reference:
+
+- This script adds a ``country`` column (``location`` -> ``{0:"north", 1:"tropics",
+  2:"south"}``) that is absent from the committed legacy ``unique_tips.csv``. The
+  addition is forward-compatible: ``prep_antigen_data.py`` guards with ``if
+  'country' not in tips_df.columns`` and only adds it when missing.
+- The ``unique_tips.csv`` regression check vs the legacy reference compares row
+  count and ``set(zip(name, nucleotideSequence))`` only — not full byte-equality —
+  because column ordering, float formatting, and the new ``country`` column may
+  differ from the manually produced reference.
+
 Design References:
 - PRIMARY: specs/analysis-pipeline.md (Issue 1, Part A)
 
@@ -194,10 +205,16 @@ def main(argv: Sequence[str] | None = None) -> None:
     logger.info("Wrote %s", tips_out)
 
     unique_df = dedup_tips(tips_df)
-    assert len(unique_df) < len(tips_df), (
-        f"dedup did not drop any rows ({len(tips_df)} -> {len(unique_df)}); "
-        f"input is unexpectedly already-unique on both 'name' and 'nucleotideSequence'"
-    )
+    if len(unique_df) == len(tips_df):
+        # Real antigen-prime sims (~150k tips) always have substantial dedup, so a
+        # no-op is a useful signal for production runs. Soft-warn rather than
+        # assert so the script remains usable on small/synthetic test sims.
+        logger.warning(
+            "dedup did not drop any rows (%d -> %d); input is unexpectedly "
+            "already-unique on both 'name' and 'nucleotideSequence'",
+            len(tips_df),
+            len(unique_df),
+        )
 
     unique_out = output_dir / "unique_tips.csv"
     unique_df.to_csv(unique_out, index=False)

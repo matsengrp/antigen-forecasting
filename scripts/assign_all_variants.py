@@ -16,7 +16,6 @@ Usage:
 import argparse
 import subprocess
 import tempfile
-import json
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -301,8 +300,21 @@ def main():
         tips_df = pd.read_csv(args.tips, sep="\t")
     print(f"  Loaded {len(tips_df)} tips")
 
-    # Deduplicate by sequence for clustering
-    unique_tips_df = tips_df.drop_duplicates(subset=['nucleotideSequence']).reset_index(drop=True)
+    # Defensive contract: --tips must be the canonical name->nucleotideSequence
+    # dedup output of parse_sim_outputs.py (i.e. unique_tips.csv). Feeding the
+    # full tips.csv would silently pick different representative rows on `name`
+    # collisions because the legacy single-column drop_duplicates below is not
+    # equivalent to the two-step dedup. Fail loudly here to close that path.
+    n_name_dupes = len(tips_df) - tips_df["name"].nunique()
+    assert n_name_dupes == 0, (
+        f"--tips must be deduplicated on 'name' (got {n_name_dupes} dupes); "
+        f"pass unique_tips.csv from parse_sim_outputs.py, not the full tips.csv"
+    )
+    n_seq_dupes = len(tips_df) - tips_df["nucleotideSequence"].nunique()
+    assert n_seq_dupes == 0, (
+        f"--tips must be deduplicated on 'nucleotideSequence' (got {n_seq_dupes} dupes)"
+    )
+    unique_tips_df = tips_df.reset_index(drop=True)
     print(f"  {len(unique_tips_df)} unique sequences")
 
     # === Method 1: Antigenic clustering ===

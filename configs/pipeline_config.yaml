@@ -1,0 +1,19 @@
+# Pipeline configuration for run_pipeline.py / run_all_simulations.py.
+#
+# Per-environment instantiations live alongside this file (e.g. configs/local.yaml,
+# configs/remote.yaml). CLI flags on the runner scripts override these values.
+#
+# Design References:
+# - PRIMARY: specs/analysis-pipeline.md (Issue 2)
+
+pipeline:
+  experiments_root: ../antigen-experiments/experiments/
+  data_root: data/
+  results_root: results/
+  window_size: 365
+  buffer_size: 0
+  models: [FGA, GARW]
+  locations: [north, south, tropics]
+  forecast_L: 180
+  seed_L: 14
+  numpyro_seed: 42

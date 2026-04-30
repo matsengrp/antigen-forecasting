@@ -42,7 +42,6 @@ Date: 2025-02-06
 """
 # Package imports
 import argparse
-import numpy as np
 import pandas as pd
 import os
 import yaml
@@ -143,7 +142,8 @@ def main(args) -> None:
     seqs_df['date'] = pd.to_datetime(seqs_df['date'])
     cases_df['date'] = pd.to_datetime(cases_df['date'])
 
-    # Loop through the analysis dates and dump the data
+    # Loop through the analysis dates and dump the data; collect manifest rows.
+    manifest_rows = []
     for timepoint in analysis_dates:
         # Get the start and end dates for the analysis
         start_date = get_analysis_start_date(timepoint, n_days=window_size)
@@ -160,8 +160,23 @@ def main(args) -> None:
 
             os.makedirs(out_path, exist_ok=True)
 
-            seqs_window.to_csv(os.path.join(out_path, 'seq_counts.tsv'), sep='\t', index=False)
-            cases_window.to_csv(os.path.join(out_path, 'case_counts.tsv'), sep='\t', index=False)
+            seq_path = os.path.join(out_path, 'seq_counts.tsv')
+            case_path = os.path.join(out_path, 'case_counts.tsv')
+            seqs_window.to_csv(seq_path, sep='\t', index=False)
+            cases_window.to_csv(case_path, sep='\t', index=False)
+            manifest_rows.append({
+                'date': analysis_date,
+                'seq_counts_path': seq_path,
+                'case_counts_path': case_path,
+            })
+
+    # Write MANIFEST.tsv last so its presence proves all per-date dirs are complete.
+    # Used as the run_pipeline.py sentinel for this step.
+    os.makedirs(out_dir, exist_ok=True)
+    manifest_path = os.path.join(out_dir, 'MANIFEST.tsv')
+    pd.DataFrame(
+        manifest_rows, columns=['date', 'seq_counts_path', 'case_counts_path']
+    ).to_csv(manifest_path, sep='\t', index=False)
 
 
 if __name__ == "__main__":

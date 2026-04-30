@@ -177,7 +177,7 @@ python scripts/score_growth_rates.py \
 
 | File | Description |
 |------|-------------|
-| `window_growth_rates.tsv` | Window-level metrics |
+| `growth_rate_scores.tsv` | Window-level metrics |
 | `variant_growth_rates.tsv` | Variant-level metrics |
 | `vi_convergence_diagnostics.tsv` | Inference diagnostics |
 | `growth-rates/{MODEL}/growth_rates_{loc}_{date}.tsv` | Per-window growth rates |

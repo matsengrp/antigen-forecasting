@@ -251,14 +251,13 @@ class TestPipelineLog:
 
 
 class TestEndToEndSentinelFlow:
-    def test_skip_then_force(self, run_pipeline, fake_sim_path, config_path, tmp_path):
-        """Pre-create every sentinel; first invocation skips all, --force reruns them."""
+    def test_idempotent_rerun_skips_all(
+        self, run_pipeline, fake_sim_path, config_path, tmp_path
+    ):
+        """Pre-create every sentinel; main() marks every step `skipped` in the log."""
         with patch.object(
             subprocess, "run", return_value=_completed_process()
         ) as mock_run:
-            # First run: nothing exists. The fake subprocess "succeeds" but writes
-            # no sentinels, so steps after parse would fail. To isolate sentinel
-            # behavior, pre-create every sentinel and rely on skip-path only.
             from antigentools.paths import SimulationPaths
 
             cfg = yaml.safe_load(config_path.read_text())["pipeline"]

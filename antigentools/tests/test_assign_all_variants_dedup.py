@@ -63,7 +63,7 @@ def test_assertion_fires_on_name_dup(assign_all_variants, tmp_path, monkeypatch)
             "--fast",
         ],
     )
-    with pytest.raises(AssertionError, match="name"):
+    with pytest.raises(ValueError, match="name"):
         assign_all_variants.main()
 
 
@@ -83,5 +83,5 @@ def test_assertion_fires_on_seq_dup(assign_all_variants, tmp_path, monkeypatch):
             "--fast",
         ],
     )
-    with pytest.raises(AssertionError, match="nucleotideSequence"):
+    with pytest.raises(ValueError, match="nucleotideSequence"):
         assign_all_variants.main()

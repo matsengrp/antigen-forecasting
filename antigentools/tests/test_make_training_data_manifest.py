@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -49,19 +50,49 @@ def synthetic_inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
     return seqs, cases, out_dir, cfg
 
 
+def test_raises_when_no_windows_produced(make_training_data, tmp_path):
+    """No analysis date inside the input range -> raise, not header-only TSV."""
+    dates = pd.date_range("2025-01-01", "2025-03-15", freq="D")
+    seq_rows = [
+        {
+            "date": d.strftime("%Y-%m-%d"),
+            "country": "north",
+            "variant": "A",
+            "sequences": 1,
+        }
+        for d in dates
+    ]
+    case_rows = [
+        {"date": d.strftime("%Y-%m-%d"), "country": "north", "cases": 10} for d in dates
+    ]
+    seqs = tmp_path / "seq_counts.tsv"
+    cases = tmp_path / "case_counts.tsv"
+    pd.DataFrame(seq_rows).to_csv(seqs, sep="\t", index=False)
+    pd.DataFrame(case_rows).to_csv(cases, sep="\t", index=False)
+
+    args = SimpleNamespace(
+        sequences=str(seqs),
+        cases=str(cases),
+        output=str(tmp_path / "time-stamped"),
+        window_size=365,
+        buffer_size=0,
+        config_path=str(tmp_path / "benchmark_config.yaml"),
+    )
+    with pytest.raises(RuntimeError, match="No analysis dates"):
+        make_training_data.main(args)
+    assert not (tmp_path / "time-stamped" / "MANIFEST.tsv").exists()
+
+
 def test_manifest_written_with_one_row_per_date(make_training_data, synthetic_inputs):
     seqs, cases, out_dir, cfg = synthetic_inputs
-
-    class _Args:
-        sequences = str(seqs)
-        cases_arg = str(cases)
-        output = str(out_dir)
-        window_size = 365
-        buffer_size = 0
-        config_path = str(cfg)
-
-    args = _Args()
-    args.cases = args.cases_arg
+    args = SimpleNamespace(
+        sequences=str(seqs),
+        cases=str(cases),
+        output=str(out_dir),
+        window_size=365,
+        buffer_size=0,
+        config_path=str(cfg),
+    )
     make_training_data.main(args)
 
     manifest_path = out_dir / "MANIFEST.tsv"

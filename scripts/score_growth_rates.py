@@ -39,6 +39,7 @@ from pathlib import Path
 # Import from antigentools
 from antigentools.utils import get_deme_stats
 from antigentools.analysis import (
+    CONVERGENCE_THRESHOLD,
     get_filtered_growth_rates_df,
     evaluate_growth_rate_performance,
     calculate_variant_mae
@@ -52,7 +53,6 @@ MIN_VARIANT_FREQUENCY = 0.01  # Minimum variant frequency to consider
 EPSILON = 1e-3  # Tolerance threshold for overestimation rate calculations
 MIN_TOTAL_SEQUENCES = 300  # Minimum total sequences per window (set to None to disable)
 MIN_VARIANT_INCIDENCE = 50.0  # Minimum smoothed variant incidence to consider
-CONVERGENCE_THRESHOLD = 0.5  # Threshold for convergence diagnostics
 
 
 def export_growth_rates_data(

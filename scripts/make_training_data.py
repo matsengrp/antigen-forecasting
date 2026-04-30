@@ -170,6 +170,15 @@ def main(args) -> None:
                 'case_counts_path': case_path,
             })
 
+    # An empty manifest must not appear on disk: a header-only TSV would still
+    # satisfy run_pipeline.py's sentinel check on re-run and silently skip
+    # legitimately incomplete state.
+    if not manifest_rows:
+        raise RuntimeError(
+            f"No analysis dates produced training windows from {seqs_path}; "
+            f"expected at least one April-1 / October-1 date inside the input range"
+        )
+
     # Write MANIFEST.tsv last so its presence proves all per-date dirs are complete.
     # Used as the run_pipeline.py sentinel for this step.
     os.makedirs(out_dir, exist_ok=True)

@@ -53,6 +53,7 @@ from typing import Callable, Sequence
 import pandas as pd
 import yaml
 
+from antigentools.analysis import CONVERGENCE_THRESHOLD
 from antigentools.paths import SimulationPaths
 
 
@@ -302,7 +303,8 @@ def _read_convergence_status(
 
     Reads ``{diagnostics_dir}/{model}_{location}_{date}_vi_diagnostics.json`` and
     extracts ``convergence_diagnostics.convergence.converged`` (or
-    ``relative_change`` thresholded at 0.5 if ``converged`` is missing).
+    ``relative_change`` thresholded at ``CONVERGENCE_THRESHOLD`` if ``converged``
+    is missing).
 
     Args:
         diagnostics_dir: ``results/<build>/convergence-diagnostics/``.
@@ -328,7 +330,7 @@ def _read_convergence_status(
         rel = conv.get("relative_change")
         if rel is None:
             return "unknown"
-        converged = rel <= 0.5
+        converged = rel <= CONVERGENCE_THRESHOLD
     return "converged" if converged else "not_converged"
 
 

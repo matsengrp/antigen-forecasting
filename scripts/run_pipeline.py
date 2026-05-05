@@ -491,6 +491,8 @@ def build_steps(
         str(paths.data_root / paths.build),
         "-m",
         str(paths.tips_with_variants),
+	"-v",
+	"variant_ag",
     ]
     steps.append(
         Step(

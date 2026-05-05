@@ -44,6 +44,35 @@ The primary dataset used in this analysis is in `data/flu-final/`, which contain
 
 All scripts are in the `scripts/` directory.
 
+### Orchestrated single-simulation run
+
+The end-to-end pipeline (parse → variant assignment → prep → training data → models → scoring) is wrapped by `run_pipeline.py`. It executes all seven steps in DAG order with idempotent re-runs gated by per-step sentinel files; re-running an already-complete pipeline marks every step `skipped`.
+
+```bash
+python scripts/run_pipeline.py \
+    --sim-path antigen-experiments/experiments/<exp>/<param-set>/run_0/ \
+    --build flu-final \
+    --config configs/pipeline_config.yaml
+```
+
+#### Options:
+
+- `--sim-path` - Path to a `run_N/` directory under `antigen-experiments/`
+- `--batch-name` / `--build` - Mutually exclusive required group. Use `--batch-name` for batch runs (build derived as `<batch>/<sim-id>`); use `--build` for single-dataset mode (e.g. `flu-final`)
+- `--config` - Path to `configs/pipeline_config.yaml` (sources `numpyro_seed`, `models`, `locations`, etc.)
+- `--skip-variant-assignment` - Run only the antigenic k-means baseline; skip the t-SNE and phylogenetic variant pipelines
+- `--skip-forecasting` - Skip `make_training_data`, `run_model`, `score_models`, `score_growth_rates`
+- `--dry-run` - Print planned step sequence with skip decisions; do not execute
+- `--force` - Ignore sentinels and rerun every step; removes affected outputs first (never deletes inputs)
+- `--set-thread-caps` - Pin `OMP_NUM_THREADS=MKL_NUM_THREADS=OPENBLAS_NUM_THREADS=1` and `JAX_PLATFORMS=cpu` in subprocess env (parent runners with `--max-parallel > 1` should pass this)
+
+#### Outputs:
+
+- All per-step files under `data/<build>/` and `results/<build>/` per `SimulationPaths`
+- `results/<build>/pipeline.log` - TSV with columns `step`, `start_time` (ISO 8601), `end_time`, `duration_sec`, `status` (`ok` | `skipped` | `failed`), `command`
+
+The remaining sections document each step individually for users who want to invoke them directly.
+
 ### 1. Parse Simulation Outputs
 
 The `parse_sim_outputs.py` script parses raw `antigen-prime` simulation outputs (`run-out.tips`) into pipeline-ready CSV/FASTA artifacts. Replaces the manual notebook step previously used for this purpose.
@@ -115,7 +144,7 @@ python scripts/assign_all_variants.py \
 
 #### Options:
 
-- `--tips` - Path to the tips TSV file
+- `--tips` - Path to the tips TSV file. **Must be deduplicated on `name` and `nucleotideSequence`** (pass `unique_tips.csv` from `parse_sim_outputs.py`, not the full `tips.csv`); the script asserts this on entry to prevent silent divergence from the canonical `name` -> `nucleotideSequence` two-step dedup.
 - `--fasta` - Path to the sequences FASTA file
 - `--output` - Path to save the combined tips DataFrame with variant columns
 - `--work-dir` - Working directory for intermediate files
@@ -136,6 +165,8 @@ python scripts/make_training_data.py -s path/to/sequences.csv -c path/to/cases.c
 - `--window-size` - Size of the training window in days
 - `--buffer-size` - Number of days to remove from the training set before the analysis date
 - `--config-path` - Path to dump the training configuration file
+
+After all per-date subdirectories are written, a `MANIFEST.tsv` file (columns: `date`, `seq_counts_path`, `case_counts_path`) is emitted at the top of the output directory. `run_pipeline.py` uses this as the step sentinel.
 
 #### Example:
 

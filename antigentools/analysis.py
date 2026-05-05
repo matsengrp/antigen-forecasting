@@ -8,6 +8,11 @@ from antigentools.utils import (
     calculate_overestimation_rate,
 )
 
+# VI relative-change threshold below which a fit is considered converged.
+# Used by both score_growth_rates.py (window-level diagnostics) and
+# run_pipeline.py (per-combo manifest convergence_status column).
+CONVERGENCE_THRESHOLD: float = 0.5
+
 
 def calculate_fitness_of_tips(
     tips_df: pd.DataFrame,

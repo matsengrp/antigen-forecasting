@@ -14,10 +14,10 @@ Required Arguments:
     --output-dir    Directory to save the analysis outputs.
 
 Output:
-    - window_growth_rates.csv        Window-level metrics
-    - variant_growth_rates.csv       Variant-level metrics  
-    - vi_convergence_diagnostics.csv Convergence diagnostics
-    - growth_rates/{MODEL}/growth_rates_{location}_{pivot_date}.tsv
+    - growth_rate_scores.tsv         Window-level metrics (sentinel for run_pipeline.py)
+    - variant_growth_rates.tsv       Variant-level metrics
+    - vi_convergence_diagnostics.tsv Convergence diagnostics
+    - growth-rates/{MODEL}/growth_rates_{location}_{pivot_date}.tsv
 
 Dependencies:
     - Requires Python 3.x
@@ -29,19 +29,17 @@ Date: 2025-04-08
 """
 
 import pandas as pd
-import numpy as np
-import os
 import yaml
 import argparse
 import glob
 import json
-from datetime import datetime
-from typing import Optional, List, Dict, Tuple
+from typing import Dict
 from pathlib import Path
 
 # Import from antigentools
 from antigentools.utils import get_deme_stats
 from antigentools.analysis import (
+    CONVERGENCE_THRESHOLD,
     get_filtered_growth_rates_df,
     evaluate_growth_rate_performance,
     calculate_variant_mae
@@ -55,7 +53,6 @@ MIN_VARIANT_FREQUENCY = 0.01  # Minimum variant frequency to consider
 EPSILON = 1e-3  # Tolerance threshold for overestimation rate calculations
 MIN_TOTAL_SEQUENCES = 300  # Minimum total sequences per window (set to None to disable)
 MIN_VARIANT_INCIDENCE = 50.0  # Minimum smoothed variant incidence to consider
-CONVERGENCE_THRESHOLD = 0.5  # Threshold for convergence diagnostics
 
 
 def export_growth_rates_data(
@@ -287,7 +284,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
                 diagnostics_dict['window'].append(conv_status.get('window', None))
                 diagnostics_dict['final_iteration'].append(conv_status.get('final_iteration', None))
                 
-            except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+            except (FileNotFoundError, json.JSONDecodeError, KeyError):
                 # Append None values to maintain alignment for missing diagnostics
                 for key in ['pivot_date', 'model', 'location', 'inference_method', 'iterations', 
                            'learning_rate', 'num_samples', 'num_iterations', 'initial_loss', 
@@ -355,7 +352,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
     diagnostics_df = pd.DataFrame(diagnostics_dict)
 
     # Print summary statistics
-    print(f"\n=== ANALYSIS SUMMARY ===")
+    print("\n=== ANALYSIS SUMMARY ===")
     print(f"Total analysis windows considered: {total_windows}")
     if MIN_TOTAL_SEQUENCES is not None:
         print(f"Windows skipped (< {MIN_TOTAL_SEQUENCES} sequences): {skipped_low_sequences}")
@@ -363,7 +360,7 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
     print(f"Windows successfully processed: {processed_windows}")
     print(f"Windows with errors: {total_windows - skipped_low_sequences - processed_windows}")
 
-    print(f"\nDataFrame shapes:")
+    print("\nDataFrame shapes:")
     print(f"  results_df: {results_df.shape}")
     print(f"  variant_results_df: {variant_results_df.shape}")
     print(f"  diagnostics_df: {diagnostics_df.shape}")
@@ -373,33 +370,34 @@ def process_all_model_results(config: Dict, build: str, output_dir: str) -> None
         diagnostics_df['converged'] = diagnostics_df['relative_change'].apply(
             lambda x: False if x is None else (x <= CONVERGENCE_THRESHOLD)
         )
-        print(f"\nConvergence diagnostics:")
+        print("\nConvergence diagnostics:")
         print(f"  Available for {diagnostics_df['converged'].notna().sum()} runs")
         print(f"  Models with convergence data: {dict(diagnostics_df['model'].value_counts())}")
         if diagnostics_df['converged'].notna().sum() > 0:
             print(f"  Convergence rate: {diagnostics_df['converged'].mean():.2%} (of runs with data)")
 
     if MIN_TOTAL_SEQUENCES is not None:
-        print(f"\nSequence count filtering:")
+        print("\nSequence count filtering:")
         print(f"  Minimum total sequences required: {MIN_TOTAL_SEQUENCES}")
         if len(results_df) > 0:
             print(f"  Remaining sequence count range: {results_df['n_seqs'].min()}-{results_df['n_seqs'].max()}")
     else:
-        print(f"\nNo sequence count filtering applied")
+        print("\nNo sequence count filtering applied")
         if len(results_df) > 0:
             print(f"  Sequence count range: {results_df['n_seqs'].min()}-{results_df['n_seqs'].max()}")
 
-    # Save results to CSV files
-    window_growth_rates_df_path = Path(output_dir) / "window_growth_rates.tsv"
+    # Save results to TSV files. growth_rate_scores.tsv is the run_pipeline.py
+    # sentinel for this step (matches SimulationPaths.growth_rate_scores).
+    growth_rate_scores_path = Path(output_dir) / "growth_rate_scores.tsv"
     variant_results_df_path = Path(output_dir) / "variant_growth_rates.tsv"
     diagnostics_df_path = Path(output_dir) / "vi_convergence_diagnostics.tsv"
-    
-    results_df.to_csv(window_growth_rates_df_path, index=False, sep='\t')
+
+    results_df.to_csv(growth_rate_scores_path, index=False, sep='\t')
     variant_results_df.to_csv(variant_results_df_path, index=False, sep='\t')
     diagnostics_df.to_csv(diagnostics_df_path, index=False, sep='\t')
-    
-    print(f"\nResults saved to:")
-    print(f"  {window_growth_rates_df_path}")
+
+    print("\nResults saved to:")
+    print(f"  {growth_rate_scores_path}")
     print(f"  {variant_results_df_path}")
     print(f"  {diagnostics_df_path}")
 

@@ -31,6 +31,18 @@ logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
+REQUIRED_SLURM_KEYS: tuple[str, ...] = (
+    "partition",
+    "time",
+    "mem_gb",
+    "cpus_per_task",
+    "max_concurrent",
+    "conda_env",
+    "log_dir",
+    "project_root",
+    "python_bin",
+)
+
 _DEFAULT_SLURM_CONFIG: dict = {
     "partition": "campus-new",
     "time": "08:00:00",
@@ -229,7 +241,11 @@ def load_slurm_config(path: Path | None) -> dict:
             f"{path} must define a top-level 'slurm:' block; got "
             f"{list(loaded.keys()) if isinstance(loaded, dict) else type(loaded).__name__}"
         )
-    return loaded["slurm"]
+    cfg = loaded["slurm"]
+    missing = [k for k in REQUIRED_SLURM_KEYS if k not in cfg]
+    if missing:
+        raise ValueError(f"{path} missing required slurm keys: {missing}")
+    return cfg
 
 
 def write_slurm_artifacts(
@@ -284,7 +300,7 @@ def write_slurm_artifacts(
         #SBATCH --cpus-per-task={cpus}
 
         # 1-indexed; sed line N == SLURM_ARRAY_TASK_ID N.
-        SIM_PATH=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" {sim_list_path})
+        SIM_PATH=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" "$(dirname "$0")/sim_list.txt")
         [ -z "$SIM_PATH" ] && {{ echo "ERROR: empty SIM_PATH for task ${{SLURM_ARRAY_TASK_ID}}"; exit 1; }}
         source activate {slurm_cfg["conda_env"]}
         export OMP_NUM_THREADS={cpus}

@@ -209,6 +209,13 @@ class TestLoadSlurmConfig:
         assert cfg["mem_gb"] == 16
         assert cfg["conda_env"] == "my-env"
 
+    def test_partial_config_raises_with_missing_keys(self, run_all_sims, tmp_path):
+        """A config missing required sub-keys raises ValueError naming them."""
+        cfg_path = tmp_path / "partial.yaml"
+        cfg_path.write_text(yaml.safe_dump({"slurm": {"partition": "campus-new"}}))
+        with pytest.raises(ValueError, match="missing required slurm keys"):
+            run_all_sims.load_slurm_config(cfg_path)
+
 
 class TestWriteSlurmArtifacts:
     def test_submission_dir_created_under_batch(self, run_all_sims, tmp_path):
@@ -284,6 +291,20 @@ class TestWriteSlurmArtifacts:
             "#SBATCH --cpus-per-task=",
         ):
             assert header in content, f"Missing SBATCH directive: {header}"
+
+    def test_sim_list_referenced_portably(self, run_all_sims, tmp_path):
+        """submit_array.sh must not embed an absolute path to sim_list.txt."""
+        results_root = tmp_path / "results"
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=[tmp_path / "exp" / "ps" / "run_0"],
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=tmp_path / "config.yaml",
+            slurm_config_path=None,
+        )
+        content = (submission_dir / "submit_array.sh").read_text()
+        assert 'sim_list.txt"' in content
+        assert str(results_root) not in content
 
     def test_submit_array_sh_has_slurm_task_id(self, run_all_sims, tmp_path):
         results_root = tmp_path / "results"

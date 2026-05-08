@@ -388,6 +388,54 @@ class TestWriteSlurmArtifacts:
         n_in_list = len((submission_dir / "sim_list.txt").read_text().splitlines())
         assert n_in_script == n_in_list
 
+    def test_submit_array_sh_bash_syntax_valid(self, run_all_sims, tmp_path):
+        """bash -n must exit 0 on the generated submit_array.sh.
+
+        sim_path does not need to exist on disk — bash -n checks syntax only.
+        """
+        import subprocess
+
+        results_root = tmp_path / "results"
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=[tmp_path / "exp" / "ps" / "run_0"],
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=tmp_path / "config.yaml",
+            slurm_config_path=None,
+        )
+        submit = submission_dir / "submit_array.sh"
+        result = subprocess.run(["bash", "-n", str(submit)], capture_output=True)
+        assert result.returncode == 0, f"bash -n failed:\n{result.stderr.decode()}"
+
+    def test_sim_list_first_last_lines_are_valid_paths(self, run_all_sims, tmp_path):
+        """First and last lines of sim_list.txt must be non-empty absolute paths
+        that exist on disk and contain output/run-out.tips. Catches off-by-one
+        errors in the --array=1-N range and missing-file bugs in discovery.
+        """
+        root = tmp_path / "experiments"
+        n_sims = 5
+        sim_paths = [
+            _make_valid_sim(root, "exp1", "ps1", f"run_{i}") for i in range(n_sims)
+        ]
+        results_root = tmp_path / "results"
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=sim_paths,
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=tmp_path / "config.yaml",
+            slurm_config_path=None,
+        )
+        lines = (submission_dir / "sim_list.txt").read_text().splitlines()
+        assert len(lines) == n_sims
+        for line in (lines[0], lines[-1]):
+            assert line, "sim_list.txt line must not be empty"
+            p = Path(line)
+            assert p.is_absolute(), f"Expected absolute path, got: {line}"
+            assert p.exists(), f"Path does not exist: {line}"
+            assert (p / "output" / "run-out.tips").exists(), (
+                f"output/run-out.tips missing in: {line}"
+            )
+
 
 class TestRunLocal:
     def test_sequential_calls_once_per_sim(self, run_all_sims, tmp_path):

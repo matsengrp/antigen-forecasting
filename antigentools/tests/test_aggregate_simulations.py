@@ -125,7 +125,7 @@ class TestReadSummaryStats:
 # ---------------------------------------------------------------------------
 
 
-class TestCountUniqueSequences:
+class TestLoadTips:
     def test_counts_rows(self, agg, tmp_path):
         build = "batch/param__run_0"
         tips_dir = tmp_path / build / "antigen-outputs"
@@ -133,7 +133,12 @@ class TestCountUniqueSequences:
         (tips_dir / "unique_tips.csv").write_text(
             "name,year\nseq1,2027.0\nseq2,2027.1\nseq3,2027.2\n"
         )
-        assert agg.count_unique_sequences(tmp_path, build) == 3
+        df = agg.load_tips(tmp_path, build)
+        assert len(df) == 3
+
+    def test_missing_raises(self, agg, tmp_path):
+        with pytest.raises(FileNotFoundError, match="unique_tips.csv"):
+            agg.load_tips(tmp_path, "batch/missing__run_0")
 
 
 # ---------------------------------------------------------------------------
@@ -313,6 +318,12 @@ class TestAggregateSimulations:
         )
         assert len(df) == 1
         row = df.iloc[0]
+        assert (
+            row["build"]
+            == "2026-04-29-all-sims/nonEpitopeAcceptance_0.1_epitopeAcceptance_0.75__run_0"
+        )
+        assert row["batch_name"] == "2026-04-29-all-sims"
+        assert row["experiment"] == "2026-01-06-runs"
         assert row["run"] == 0
         assert row["n_unique_sequences"] == 5
         assert row["epitopeAcceptance"] == 0.75

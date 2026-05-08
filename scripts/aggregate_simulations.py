@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 def _try_numeric(value: str) -> int | float | str:
-    """Cast a string to int, then float, then leave as str."""
+    """Cast a string to int, then float, or leave as str if neither applies."""
     try:
         int_val = int(value)
         # Guard against floats that happen to be whole numbers
@@ -54,6 +54,9 @@ def _try_numeric(value: str) -> int | float | str:
 
 def parse_params_from_name(param_set: str) -> dict[str, int | float | str]:
     """Parse simulation parameters from a param-set directory name.
+
+    Parameter values must not contain underscores; underscores are the
+    key/value separator.
 
     Args:
         param_set: Directory name encoding alternating key/value pairs separated
@@ -165,31 +168,22 @@ def read_summary_stats(summary_path: Path) -> dict[str, int | float | str]:
     return {str(row.parameter): _try_numeric(str(row.value)) for row in df.itertuples()}
 
 
-def count_unique_sequences(data_root: Path, build: str) -> int:
-    """Count unique sequences for a simulation.
+def load_tips(data_root: Path, build: str) -> pd.DataFrame:
+    """Load unique tips for a simulation.
 
     Args:
         data_root: Root of processed data directory.
         build: Build string (e.g. ``"2026-04-29-all-sims/param__run_0"``).
 
     Returns:
-        Number of rows in ``unique_tips.csv``.
-    """
-    tips_path = data_root / build / "antigen-outputs" / "unique_tips.csv"
-    return len(pd.read_csv(tips_path))
-
-
-def load_tips(data_root: Path, build: str) -> pd.DataFrame:
-    """Load unique tips for a simulation.
-
-    Args:
-        data_root: Root of processed data directory.
-        build: Build string.
-
-    Returns:
         DataFrame from ``unique_tips.csv`` with at least ``year``, ``ag1``, ``ag2``.
+
+    Raises:
+        FileNotFoundError: If ``unique_tips.csv`` does not exist.
     """
     tips_path = data_root / build / "antigen-outputs" / "unique_tips.csv"
+    if not tips_path.exists():
+        raise FileNotFoundError(f"unique_tips.csv not found: {tips_path}")
     return pd.read_csv(tips_path)
 
 
@@ -225,7 +219,7 @@ def discover_builds(data_root: Path, batch_name: str) -> list[str]:
 # Frozen column ordering
 # ---------------------------------------------------------------------------
 
-_ID_COLS = ["path", "run", "param_set", "run_id"]
+_ID_COLS = ["build", "batch_name", "experiment", "path", "run", "param_set", "run_id"]
 _BRANCH_COLS = [
     "trunk_epitope_mutations",
     "trunk_non_epitope_mutations",
@@ -250,10 +244,10 @@ def _freeze_columns(
     for col in _ID_COLS:
         ordered[col] = row[col]
     for key in merged_param_keys:
-        ordered[key] = row[key]
+        ordered[key] = row.get(key)
     ordered["n_unique_sequences"] = row["n_unique_sequences"]
     for key in summary_keys:
-        ordered[key] = row[key]
+        ordered[key] = row.get(key)
     ordered["antigenic_movement_per_year"] = row["antigenic_movement_per_year"]
     for col in _BRANCH_COLS:
         ordered[col] = row[col]
@@ -287,8 +281,8 @@ def aggregate_simulations(
     """
     builds = discover_builds(data_root, batch_name)
     rows: list[dict[str, Any]] = []
-    summary_keys: list[str] | None = None
-    merged_param_keys: list[str] | None = None
+    all_param_keys: set[str] = set()
+    all_summary_keys: list[str] = []
 
     for build in builds:
         sim_id = build.split("/", 1)[1]
@@ -302,9 +296,7 @@ def aggregate_simulations(
         name_params = parse_params_from_name(param_set)
         yaml_params = load_params_from_yaml(params_yml)
         merged = validate_and_merge_params(name_params, yaml_params, sim_id)
-
-        if merged_param_keys is None:
-            merged_param_keys = sorted(merged.keys())
+        all_param_keys.update(merged.keys())
 
         # run-out.summary
         summary_path = sim_path / "output" / "run-out.summary"
@@ -318,12 +310,12 @@ def aggregate_simulations(
             )
             continue
 
-        if summary_keys is None:
-            summary_keys = list(summary_stats.keys())
+        if not all_summary_keys:
+            all_summary_keys = list(summary_stats.keys())
 
-        # Unique sequence count and tips
-        n_unique = count_unique_sequences(data_root, build)
+        # Tips (used for both sequence count and antigenic movement)
         tips_df = load_tips(data_root, build)
+        n_unique = len(tips_df)
         antigenic_movement = calculate_antigenic_movement_per_year(tips_df)
 
         # Branch mutations
@@ -339,11 +331,14 @@ def aggregate_simulations(
             branch_stats = {col: float("nan") for col in _BRANCH_COLS}
 
         row: dict[str, Any] = {
+            "build": build,
+            "batch_name": batch_name,
+            "experiment": experiment,
             "path": str(sim_path),
             "run": run_int,
             "param_set": param_set,
             "run_id": run_id,
-            **{k: merged[k] for k in (merged_param_keys or sorted(merged.keys()))},
+            **merged,
             "n_unique_sequences": n_unique,
             **summary_stats,
             "antigenic_movement_per_year": antigenic_movement,
@@ -357,19 +352,12 @@ def aggregate_simulations(
             f"(experiment {experiment!r})"
         )
 
-    assert len(rows) == len([b for b in builds if True]), (
-        "Row count does not match complete build count"
-    )
-
+    merged_param_keys = sorted(all_param_keys)
     df = pd.DataFrame(
-        [
-            _freeze_columns(
-                r,
-                merged_param_keys or [],
-                summary_keys or [],
-            )
-            for r in rows
-        ]
+        [_freeze_columns(r, merged_param_keys, all_summary_keys) for r in rows]
+    )
+    assert len(df) == len(rows), (
+        f"DataFrame row count ({len(df)}) != assembled rows ({len(rows)})"
     )
     return df
 

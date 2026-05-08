@@ -49,7 +49,7 @@ _DEFAULT_SLURM_CONFIG: dict = {
     "mem_gb": 32,
     "cpus_per_task": 4,
     "max_concurrent": 20,
-    "conda_env": "antigen-forecasting",
+    "conda_env": "antigen",
     "log_dir": "logs/slurm/",
     "project_root": str(REPO_ROOT),
     "python_bin": "python",

@@ -389,7 +389,10 @@ class TestWriteSlurmArtifacts:
         assert n_in_script == n_in_list
 
     def test_submit_array_sh_bash_syntax_valid(self, run_all_sims, tmp_path):
-        """bash -n must exit 0 on the generated submit_array.sh."""
+        """bash -n must exit 0 on the generated submit_array.sh.
+
+        sim_path does not need to exist on disk — bash -n checks syntax only.
+        """
         import subprocess
 
         results_root = tmp_path / "results"
@@ -406,7 +409,8 @@ class TestWriteSlurmArtifacts:
 
     def test_sim_list_first_last_lines_are_valid_paths(self, run_all_sims, tmp_path):
         """First and last lines of sim_list.txt must be non-empty absolute paths
-        that exist on disk and contain output/run-out.tips.
+        that exist on disk and contain output/run-out.tips. Catches off-by-one
+        errors in the --array=1-N range and missing-file bugs in discovery.
         """
         root = tmp_path / "experiments"
         n_sims = 5
@@ -422,6 +426,7 @@ class TestWriteSlurmArtifacts:
             slurm_config_path=None,
         )
         lines = (submission_dir / "sim_list.txt").read_text().splitlines()
+        assert len(lines) == n_sims
         for line in (lines[0], lines[-1]):
             assert line, "sim_list.txt line must not be empty"
             p = Path(line)

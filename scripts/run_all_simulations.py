@@ -7,8 +7,8 @@ parallelism via ``ProcessPoolExecutor``) or writes SLURM array-job artifacts and
 Design References:
 - PRIMARY: specs/analysis-pipeline.md (Issue 3)
 
-Implementation Status: 🚧 WIP
-Last Design Review: 2026-05-07
+Implementation Status: ✅ COMPLIANT
+Last Design Review: 2026-05-08
 """
 
 from __future__ import annotations
@@ -170,7 +170,6 @@ def run_local(
     sim_paths: list[Path],
     batch_name: str,
     config_path: Path,
-    results_root: Path,
     max_parallel: int,
 ) -> None:
     """Run simulations locally, sequentially or in parallel.
@@ -183,8 +182,6 @@ def run_local(
         sim_paths: Incomplete simulation paths to process.
         batch_name: Batch name forwarded to ``run_pipeline.py``.
         config_path: Path to ``pipeline_config.yaml``.
-        results_root: Root results directory (unused here; kept for interface
-            symmetry with ``write_slurm_artifacts``).
         max_parallel: Maximum concurrent subprocesses; 1 for serial execution.
     """
     set_thread_caps = max_parallel > 1
@@ -216,6 +213,12 @@ def load_slurm_config(path: Path | None) -> dict:
         ValueError: If ``path`` exists but lacks the ``slurm:`` top-level key.
     """
     if path is None:
+        logger.warning(
+            "No --slurm-config provided; using built-in defaults. "
+            "The default project_root (%s) is the local repo path and will likely "
+            "be wrong on the cluster — pass --slurm-config configs/slurm_config.yaml.",
+            _DEFAULT_SLURM_CONFIG["project_root"],
+        )
         return dict(_DEFAULT_SLURM_CONFIG)
     if not path.exists():
         raise FileNotFoundError(f"SLURM config not found: {path}")
@@ -282,6 +285,7 @@ def write_slurm_artifacts(
 
         # 1-indexed; sed line N == SLURM_ARRAY_TASK_ID N.
         SIM_PATH=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" {sim_list_path})
+        [ -z "$SIM_PATH" ] && {{ echo "ERROR: empty SIM_PATH for task ${{SLURM_ARRAY_TASK_ID}}"; exit 1; }}
         source activate {slurm_cfg["conda_env"]}
         export OMP_NUM_THREADS={cpus}
         export MKL_NUM_THREADS={cpus}
@@ -289,8 +293,8 @@ def write_slurm_artifacts(
         export JAX_PLATFORMS=cpu
         {slurm_cfg["python_bin"]} {slurm_cfg["project_root"]}/scripts/run_pipeline.py \\
             --sim-path "$SIM_PATH" \\
-            --batch-name {batch_name} \\
-            --config {config_path}
+            --batch-name "{batch_name}" \\
+            --config "{config_path}"
         """
     )
 
@@ -329,7 +333,7 @@ def _load_results_root(config_path: Path) -> Path:
     cfg = loaded["pipeline"]
     if "results_root" not in cfg:
         raise ValueError(f"{config_path} missing required key: results_root")
-    return Path(cfg["results_root"])
+    return (config_path.parent / cfg["results_root"]).resolve()
 
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
@@ -431,7 +435,6 @@ def main(argv: Sequence[str] | None = None) -> None:
             sim_paths=pending,
             batch_name=args.batch_name,
             config_path=args.config,
-            results_root=results_root,
             max_parallel=args.max_parallel,
         )
     else:

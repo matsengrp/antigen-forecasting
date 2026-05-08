@@ -6,5 +6,5 @@ slurm:
   max_concurrent: 20
   conda_env: antigen-forecasting
   log_dir: logs/slurm/
-  project_root: /fh/fast/matsen_e/zthornto/antigen-forecasting
+  project_root: /fh/fast/matsen_e/<user>/antigen-forecasting  # replace with your path
   python_bin: python

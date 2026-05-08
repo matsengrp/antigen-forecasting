@@ -380,7 +380,6 @@ class TestRunLocal:
                 sim_paths=sim_paths,
                 batch_name="batch1",
                 config_path=tmp_path / "config.yaml",
-                results_root=tmp_path / "results",
                 max_parallel=1,
             )
         assert len(called) == 3
@@ -395,7 +394,6 @@ class TestRunLocal:
                 sim_paths=[tmp_path / "run_0"],
                 batch_name="batch1",
                 config_path=tmp_path / "config.yaml",
-                results_root=tmp_path / "results",
                 max_parallel=1,
             )
         assert "--set-thread-caps" not in called[0]
@@ -425,7 +423,6 @@ class TestRunLocal:
                     sim_paths=sim_paths,
                     batch_name="batch1",
                     config_path=tmp_path / "config.yaml",
-                    results_root=tmp_path / "results",
                     max_parallel=2,
                 )
 
@@ -442,10 +439,46 @@ class TestRunLocal:
                 sim_paths=[],
                 batch_name="batch1",
                 config_path=tmp_path / "config.yaml",
-                results_root=tmp_path / "results",
                 max_parallel=1,
             )
         assert called == []
+
+
+class TestLoadResultsRoot:
+    def test_returns_absolute_path(self, run_all_sims, tmp_path):
+        cfg_path = tmp_path / "pipeline_config.yaml"
+        cfg_path.write_text(
+            yaml.safe_dump({"pipeline": {"results_root": str(tmp_path / "results")}})
+        )
+        result = run_all_sims._load_results_root(cfg_path)
+        assert result.is_absolute()
+        assert result == (tmp_path / "results").resolve()
+
+    def test_relative_path_resolves_against_config_dir(self, run_all_sims, tmp_path):
+        sub = tmp_path / "configs"
+        sub.mkdir()
+        cfg_path = sub / "pipeline_config.yaml"
+        cfg_path.write_text(
+            yaml.safe_dump({"pipeline": {"results_root": "../results"}})
+        )
+        result = run_all_sims._load_results_root(cfg_path)
+        assert result == (tmp_path / "results").resolve()
+
+    def test_missing_config_raises(self, run_all_sims, tmp_path):
+        with pytest.raises(FileNotFoundError, match="Pipeline config not found"):
+            run_all_sims._load_results_root(tmp_path / "nonexistent.yaml")
+
+    def test_missing_pipeline_key_raises(self, run_all_sims, tmp_path):
+        cfg_path = tmp_path / "bad.yaml"
+        cfg_path.write_text(yaml.safe_dump({"other": {}}))
+        with pytest.raises(ValueError, match="pipeline"):
+            run_all_sims._load_results_root(cfg_path)
+
+    def test_missing_results_root_key_raises(self, run_all_sims, tmp_path):
+        cfg_path = tmp_path / "bad.yaml"
+        cfg_path.write_text(yaml.safe_dump({"pipeline": {"window_size": 365}}))
+        with pytest.raises(ValueError, match="results_root"):
+            run_all_sims._load_results_root(cfg_path)
 
 
 class TestParseArgs:
@@ -535,3 +568,136 @@ class TestParseArgs:
         )
         assert args.mode == "slurm"
         assert args.slurm_config == slurm_cfg
+
+
+def _write_pipeline_config(path: "Path", results_root: "Path") -> None:
+    """Write a minimal pipeline_config.yaml for main() integration tests."""
+    import yaml as _yaml
+
+    path.write_text(
+        _yaml.safe_dump(
+            {
+                "pipeline": {
+                    "experiments_root": str(path.parent),
+                    "data_root": str(path.parent / "data"),
+                    "results_root": str(results_root),
+                    "window_size": 365,
+                    "buffer_size": 0,
+                    "models": ["FGA"],
+                    "locations": ["north"],
+                    "forecast_L": 180,
+                    "seed_L": 14,
+                    "numpyro_seed": 42,
+                }
+            }
+        )
+    )
+
+
+class TestMain:
+    def test_slurm_mode_writes_artifacts(self, run_all_sims, tmp_path):
+        """main() in slurm mode discovers sims and writes submission artifacts."""
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "ps1", "run_0")
+        _make_valid_sim(root, "exp1", "ps1", "run_1")
+        results_root = tmp_path / "results"
+        cfg_path = tmp_path / "config.yaml"
+        _write_pipeline_config(cfg_path, results_root)
+
+        run_all_sims.main(
+            [
+                "--experiments-root",
+                str(root),
+                "--experiment",
+                "exp1",
+                "--param-set",
+                "ps1",
+                "--batch-name",
+                "my-batch",
+                "--config",
+                str(cfg_path),
+                "--mode",
+                "slurm",
+            ]
+        )
+
+        batch_dir = results_root / "my-batch"
+        submission_dirs = list(batch_dir.glob("slurm_submission_*"))
+        assert len(submission_dirs) == 1
+        submission_dir = submission_dirs[0]
+        assert (submission_dir / "sim_list.txt").exists()
+        assert (submission_dir / "submit_array.sh").exists()
+        lines = (submission_dir / "sim_list.txt").read_text().splitlines()
+        assert len(lines) == 2
+
+    def test_slurm_mode_skips_complete_sims(self, run_all_sims, tmp_path):
+        """Sims with both sentinels pre-created are omitted from sim_list.txt."""
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "ps1", "run_0")
+        _make_valid_sim(root, "exp1", "ps1", "run_1")
+        results_root = tmp_path / "results"
+        cfg_path = tmp_path / "config.yaml"
+        _write_pipeline_config(cfg_path, results_root)
+
+        # Pre-create sentinels for run_0 to mark it complete.
+        complete_dir = results_root / "my-batch" / "ps1__run_0"
+        complete_dir.mkdir(parents=True)
+        (complete_dir / "scores.tsv").write_text("")
+        (complete_dir / "growth_rate_scores.tsv").write_text("")
+
+        run_all_sims.main(
+            [
+                "--experiments-root",
+                str(root),
+                "--experiment",
+                "exp1",
+                "--param-set",
+                "ps1",
+                "--batch-name",
+                "my-batch",
+                "--config",
+                str(cfg_path),
+                "--mode",
+                "slurm",
+            ]
+        )
+
+        batch_dir = results_root / "my-batch"
+        submission_dirs = list(batch_dir.glob("slurm_submission_*"))
+        assert len(submission_dirs) == 1
+        lines = (submission_dirs[0] / "sim_list.txt").read_text().splitlines()
+        assert len(lines) == 1
+        assert "run_1" in lines[0]
+
+    def test_slurm_mode_all_complete_writes_nothing(self, run_all_sims, tmp_path):
+        """When all sims are complete, no submission dir is created."""
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "ps1", "run_0")
+        results_root = tmp_path / "results"
+        cfg_path = tmp_path / "config.yaml"
+        _write_pipeline_config(cfg_path, results_root)
+
+        complete_dir = results_root / "my-batch" / "ps1__run_0"
+        complete_dir.mkdir(parents=True)
+        (complete_dir / "scores.tsv").write_text("")
+        (complete_dir / "growth_rate_scores.tsv").write_text("")
+
+        run_all_sims.main(
+            [
+                "--experiments-root",
+                str(root),
+                "--experiment",
+                "exp1",
+                "--param-set",
+                "ps1",
+                "--batch-name",
+                "my-batch",
+                "--config",
+                str(cfg_path),
+                "--mode",
+                "slurm",
+            ]
+        )
+
+        batch_dir = results_root / "my-batch"
+        assert not list(batch_dir.glob("slurm_submission_*"))

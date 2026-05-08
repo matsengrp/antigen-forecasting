@@ -1,0 +1,1221 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for benchmarking methods with `antigen-prime`, including fitness calculation, variant assignment, and growth advantage modeling.">
+      
+      
+      
+      
+        <link rel="prev" href="../model_configuration/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Empirical Growth Rates - antigen-prime analysis documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="red" data-md-color-accent="red">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#empirical-growth-rates" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="antigen-prime analysis documentation" class="md-header__button md-logo" aria-label="antigen-prime analysis documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            antigen-prime analysis documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Empirical Growth Rates
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/matsengrp/antigen-forecasting" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    matsengrp/antigen-forecasting
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="antigen-prime analysis documentation" class="md-nav__button md-logo" aria-label="antigen-prime analysis documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    antigen-prime analysis documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/matsengrp/antigen-forecasting" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    matsengrp/antigen-forecasting
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../calculating_fitness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Calculating Fitness
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../variant_assignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Variant Assignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../growth_advantage_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Growth Advantage Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../model_configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Model Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Empirical Growth Rates
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Empirical Growth Rates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculation-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calculation Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calculation Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-date-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Date Alignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-complete-frequency-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Complete Frequency Matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-spline-smoothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Spline Smoothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spline-smoothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spline Smoothing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spline Smoothing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-smoothing-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-Smoothing Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filtering-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filtering Criteria
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Filtering Criteria">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#segment-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segment Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#output-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#evaluation-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluation Metrics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Evaluation Metrics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#window-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Window-Level
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variant-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variant-Level
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scoring-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoring Script
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scoring Script">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outputs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calculation-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calculation Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calculation Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-date-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Date Alignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-complete-frequency-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Complete Frequency Matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-spline-smoothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Spline Smoothing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spline-smoothing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spline Smoothing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spline Smoothing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#post-smoothing-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-Smoothing Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filtering-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filtering Criteria
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Filtering Criteria">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#segment-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segment Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#output-columns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Columns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#evaluation-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Evaluation Metrics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Evaluation Metrics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#window-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Window-Level
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variant-level" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variant-Level
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scoring-script" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scoring Script
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scoring Script">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#outputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Outputs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="empirical-growth-rates">Empirical Growth Rates</h1>
+<p>This page documents the calculation of empirical growth rates (<span class="arithmatex">\(r_{\text{data}}\)</span>) for model evaluation.</p>
+<h2 id="definition">Definition</h2>
+<p>The instantaneous growth rate for variant <span class="arithmatex">\(v\)</span> at time <span class="arithmatex">\(t\)</span>:</p>
+<div class="arithmatex">\[
+r_v(t) = \frac{\log I_v(t) - \log I_v(t - \Delta t)}{\Delta t}
+\]</div>
+<p>where <span class="arithmatex">\(I_v(t)\)</span> is variant incidence:</p>
+<div class="arithmatex">\[
+I_v(t) = \pi_v(t) \cdot C(t)
+\]</div>
+<ul>
+<li><span class="arithmatex">\(\pi_v(t)\)</span>: variant frequency</li>
+<li><span class="arithmatex">\(C(t)\)</span>: total case count</li>
+</ul>
+<hr />
+<h2 id="calculation-pipeline">Calculation Pipeline</h2>
+<pre><code>seq_counts.tsv + case_counts.tsv
+    ↓ align to weekly boundaries
+variant × time frequency matrix
+    ↓ spline smoothing
+smoothed frequencies + incidence
+    ↓ log-difference
+empirical growth rates (r_data)
+</code></pre>
+<h3 id="step-1-date-alignment">Step 1: Date Alignment</h3>
+<p>Dates are aligned to weekly boundaries (Monday week starts) for consistent merging between sequence and case data.</p>
+<h3 id="step-2-complete-frequency-matrix">Step 2: Complete Frequency Matrix</h3>
+<p>A complete variant × time matrix is constructed:
+- All variant-time combinations represented
+- Missing combinations filled with 0
+- Frequencies calculated as <span class="arithmatex">\(\pi_v(t) = n_v(t) / N(t)\)</span></p>
+<h3 id="step-3-spline-smoothing">Step 3: Spline Smoothing</h3>
+<p>Raw counts and frequencies are smoothed to reduce noise.</p>
+<hr />
+<h2 id="spline-smoothing">Spline Smoothing</h2>
+<p>Univariate splines minimize the penalized least squares objective:</p>
+<div class="arithmatex">\[
+\hat{f}(t) = \text{argmin}_f \sum_i (y_i - f(t_i))^2 + s \int (f''(t))^2 dt
+\]</div>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s</code></td>
+<td>1.0</td>
+<td>Smoothing factor (larger = smoother)</td>
+</tr>
+<tr>
+<td><code>k</code></td>
+<td>3</td>
+<td>Spline degree (cubic)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="post-smoothing-processing">Post-Smoothing Processing</h3>
+<ol>
+<li><strong>Clip</strong> smoothed frequencies to <span class="arithmatex">\([0, 1]\)</span></li>
+<li><strong>Re-normalize</strong> frequencies to sum to 1.0 at each time point</li>
+<li><strong>Calculate incidence</strong>: <span class="arithmatex">\(I_v(t) = \pi_v^{\text{smooth}}(t) \cdot C(t)\)</span></li>
+</ol>
+<hr />
+<h2 id="filtering-criteria">Filtering Criteria</h2>
+<p>Points are filtered before computing growth rates:</p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>Default</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>min_sequence_count</code></td>
+<td>10</td>
+<td>Low counts → unstable frequencies</td>
+</tr>
+<tr>
+<td><code>min_variant_frequency</code></td>
+<td>0.01</td>
+<td>Rare variants → noisy growth rates</td>
+</tr>
+<tr>
+<td><code>min_variant_incidence</code></td>
+<td>50</td>
+<td>Low incidence → unreliable estimates</td>
+</tr>
+<tr>
+<td><code>min_segment_length</code></td>
+<td>3</td>
+<td>Short segments → insufficient data</td>
+</tr>
+<tr>
+<td><code>skip_first_n_points</code></td>
+<td>2</td>
+<td>Initial points often noisy</td>
+</tr>
+</tbody>
+</table>
+<h3 id="segment-filtering">Segment Filtering</h3>
+<p>Growth rates are only trusted for contiguous segments of valid data. The <code>connect_gaps</code> option controls whether gaps in data are bridged or treated as segment breaks.</p>
+<hr />
+<h2 id="implementation">Implementation</h2>
+<p>The pipeline is implemented in <code>antigentools/analysis.py</code>:</p>
+<pre><code class="language-python">from antigentools.analysis import get_filtered_growth_rates_df
+
+growth_rates_df = get_filtered_growth_rates_df(
+    build=&quot;flu-simulated-150k-samples&quot;,
+    model=&quot;GARW&quot;,
+    location=&quot;tropics&quot;,
+    pivot_date=&quot;2040-10-01&quot;,
+    spline_smoothing_factor=1.0,
+    spline_order=3,
+    min_sequence_count=10,
+    min_variant_frequency=0.01,
+    min_variant_incidence=50.0
+)
+</code></pre>
+<h3 id="output-columns">Output Columns</h3>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>variant</code></td>
+<td>Variant identifier</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>Observation date</td>
+</tr>
+<tr>
+<td><code>sequences</code></td>
+<td>Raw sequence count</td>
+</tr>
+<tr>
+<td><code>smoothed_sequences</code></td>
+<td>Spline-smoothed count</td>
+</tr>
+<tr>
+<td><code>variant_frequency</code></td>
+<td>Raw frequency</td>
+</tr>
+<tr>
+<td><code>variant_frequency_smoothed</code></td>
+<td>Smoothed + renormalized frequency</td>
+</tr>
+<tr>
+<td><code>cases</code></td>
+<td>Total case count</td>
+</tr>
+<tr>
+<td><code>variant_incidence_smoothed</code></td>
+<td><span class="arithmatex">\(\pi_v^{\text{smooth}} \cdot C\)</span></td>
+</tr>
+<tr>
+<td><code>growth_rate_r_data</code></td>
+<td>Empirical growth rate</td>
+</tr>
+<tr>
+<td><code>median_r</code></td>
+<td>Model-predicted growth rate</td>
+</tr>
+<tr>
+<td><code>abs_error</code></td>
+<td>$</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="evaluation-metrics">Evaluation Metrics</h2>
+<h3 id="window-level">Window-Level</h3>
+<p>Aggregate performance per analysis window (pivot date + location):</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Formula</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Correlation</td>
+<td><span class="arithmatex">\(\rho(r_{\text{model}}, r_{\text{data}})\)</span></td>
+</tr>
+<tr>
+<td>MAE</td>
+<td>$\frac{1}{n}\sum</td>
+</tr>
+<tr>
+<td>RMSE</td>
+<td><span class="arithmatex">\(\sqrt{\frac{1}{n}\sum (r_{\text{model}} - r_{\text{data}})^2}\)</span></td>
+</tr>
+<tr>
+<td><span class="arithmatex">\(R^2\)</span></td>
+<td><span class="arithmatex">\(1 - SS_{\text{res}} / SS_{\text{tot}}\)</span></td>
+</tr>
+</tbody>
+</table>
+<h3 id="variant-level">Variant-Level</h3>
+<p>Per-variant metrics within each window:</p>
+<pre><code class="language-python">from antigentools.analysis import calculate_variant_mae
+
+variant_metrics = calculate_variant_mae(
+    growth_rates_df,
+    min_sequence_count=10,
+    min_variant_frequency=0.01,
+    min_variant_incidence=50.0
+)
+</code></pre>
+<p>Additional variant-level outputs:
+- <code>normalized_mae</code>: MAE / max(<span class="arithmatex">\(|r_{\text{data}}|\)</span>)
+- <code>total_sequences</code>: Sum of sequences for variant
+- <code>max_variant_frequency</code>: Peak frequency achieved</p>
+<hr />
+<h2 id="scoring-script">Scoring Script</h2>
+<p>Batch evaluation across all windows:</p>
+<pre><code class="language-bash">python scripts/score_growth_rates.py \
+    --config configs/benchmark_config.yaml \
+    --build flu-simulated-150k-samples \
+    --output-dir results/flu-simulated-150k-samples/
+</code></pre>
+<h3 id="outputs">Outputs</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>growth_rate_scores.tsv</code></td>
+<td>Window-level metrics</td>
+</tr>
+<tr>
+<td><code>variant_growth_rates.tsv</code></td>
+<td>Variant-level metrics</td>
+</tr>
+<tr>
+<td><code>vi_convergence_diagnostics.tsv</code></td>
+<td>Inference diagnostics</td>
+</tr>
+<tr>
+<td><code>growth-rates/{MODEL}/growth_rates_{loc}_{date}.tsv</code></td>
+<td>Per-window growth rates</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

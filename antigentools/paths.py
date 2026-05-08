@@ -241,5 +241,9 @@ class SimulationPaths:
         return self.results / "growth_rate_scores.tsv"
 
     @property
+    def vi_convergence_diagnostics(self) -> Path:
+        return self.results / "vi_convergence_diagnostics.tsv"
+
+    @property
     def pipeline_log(self) -> Path:
         return self.results / "pipeline.log"

@@ -1,25 +1,24 @@
 import glob
 import re
-import os
 import json
 import Bio.Phylo as bp
 import pandas as pd
 
 
 BRANCHES_COLUMNS = [
-    'name',
-    'date',
-    'fitness',
-    'trunk',
-    'tip',
-    'marked',
-    'location',
-    'layout',
-    'sequence',
-    'ag1',
-    'ag2',
-    'n_epitope_mutations',
-    'n_non_epitope_mutations',
+    "name",
+    "date",
+    "fitness",
+    "trunk",
+    "tip",
+    "marked",
+    "location",
+    "layout",
+    "sequence",
+    "ag1",
+    "ag2",
+    "n_epitope_mutations",
+    "n_non_epitope_mutations",
 ]
 
 
@@ -74,34 +73,48 @@ class AntigenReader:
                     # Calculate case counts over time
                     cases = calculate_case_counts_over_time(cases)
                     # Add antigenic movement column
-                    antigenic_movement_df = pd.DataFrame({
-                        "parameter": "antigenic_movement_per_year",
-                        "value": calculate_antigenic_movement_per_year(tips),
-                    }, index=[0])
-                    epitope_mutation_ratio_df = pd.DataFrame({
-                        "parameter": "high_low_epitope_mutation_ratio",
-                        "value": calculate_high_low_epitope_mutation_ratio(tips),
-                    }, index=[0])
-                    summary_file = pd.concat([summary_file, antigenic_movement_df, epitope_mutation_ratio_df], ignore_index=True)
+                    antigenic_movement_df = pd.DataFrame(
+                        {
+                            "parameter": "antigenic_movement_per_year",
+                            "value": calculate_antigenic_movement_per_year(tips),
+                        },
+                        index=[0],
+                    )
+                    epitope_mutation_ratio_df = pd.DataFrame(
+                        {
+                            "parameter": "high_low_epitope_mutation_ratio",
+                            "value": calculate_high_low_epitope_mutation_ratio(tips),
+                        },
+                        index=[0],
+                    )
+                    summary_file = pd.concat(
+                        [
+                            summary_file,
+                            antigenic_movement_df,
+                            epitope_mutation_ratio_df,
+                        ],
+                        ignore_index=True,
+                    )
 
                 for key, value in values.items():
                     summary_file[key] = value
-                
+
                 summary_file["path"] = path
                 self.runs.append(path)
                 self.summary_files[path] = summary_file
 
             except FileNotFoundError:
-                #print(f"Failed simulation for directory: {path}")
+                # print(f"Failed simulation for directory: {path}")
                 failed_sim += 1
             run_counter += 1
-            print(f"Progress: {run_counter} / {len(runs)} simulations attempted to be read.")
+            print(
+                f"Progress: {run_counter} / {len(runs)} simulations attempted to be read."
+            )
         self.runs.sort()
         print(f"{failed_sim} / {len(runs)} simulations failed.")
 
-
     @staticmethod
-    def _read_run(path: str, outdir_path: str="output", file_prefix: str="run-out"):
+    def _read_run(path: str, outdir_path: str = "output", file_prefix: str = "run-out"):
         cases = pd.read_csv(f"{path}/out_timeseries.csv")
         try:
             tree = bp.read(f"{path}/{outdir_path}/{file_prefix}.trees", "newick")
@@ -116,40 +129,51 @@ class AntigenReader:
         cases = calculate_attack_rate(cases)
 
         return cases, tree, tips
-    
-    def calculate_branch_stats(self, branch_file_path: str = "simulations/*/*/output/*.branches", high_low_model: bool = True) -> pd.DataFrame:
+
+    def calculate_branch_stats(
+        self,
+        branch_file_path: str = "simulations/*/*/output/*.branches",
+        high_low_model: bool = True,
+    ) -> pd.DataFrame:
         """Read branch files and count mutation types along the tree.
 
         Args:
             branch_file_path (str, optional): Path pattern to locate the branch files. Defaults to "simulations/*/*/output/*.branches".
             high_low_model (bool, optional): Whether accomodate extra columns produced by the high-low model. Defaults to False.
-        
+
         Returns
             pd.DataFrame: DataFrame with mutation counts for each run.
         """
         branch_files = glob.glob(branch_file_path)
         n_files = len(branch_files)
         n_done = 0
-        print(f'LOG: Reading branch files.')
+        print("LOG: Reading branch files.")
         for branches in branch_files:
-            out_name = branches.split('/')[1:3]
-            out_name = '/'.join(out_name) + '/' + 'mutation_stats'
-            mut_count_dict = count_branch_mutations(branches, high_low_model=high_low_model)
-            #branches_df = self._create_branches_df(branches)
-            with open('simulations/'+ out_name + '.json', 'w', encoding='utf-8',) as f:
-                base_path = '/'.join(branches.split('/')[:-2])
+            out_name = branches.split("/")[1:3]
+            out_name = "/".join(out_name) + "/" + "mutation_stats"
+            mut_count_dict = count_branch_mutations(
+                branches, high_low_model=high_low_model
+            )
+            # branches_df = self._create_branches_df(branches)
+            with open(
+                "simulations/" + out_name + ".json",
+                "w",
+                encoding="utf-8",
+            ) as f:
+                base_path = "/".join(branches.split("/")[:-2])
                 params = process_file_path(base_path)
                 mut_count_dict.update(params)
                 # self.set_branches(base_path, branches_df)
                 self.set_branches_stats(base_path, mut_count_dict)
                 f.write(json.dumps(mut_count_dict))
-            n_done +=1
-            print(f'LOG: {n_done} / {n_files} branch files processed.')
+            n_done += 1
+            print(f"LOG: {n_done} / {n_files} branch files processed.")
 
-
-    def parse_branch_files(self, branch_file_path: str = "simulations/*/*/output/*.branches"):
+    def parse_branch_files(
+        self, branch_file_path: str = "simulations/*/*/output/*.branches"
+    ):
         """Parse branch files for each run.
-        
+
         Args:
             branch_file_path (str, optional): Path pattern to locate the branch files. Defaults to "simulations/*/*/output/*.branches".
 
@@ -159,25 +183,34 @@ class AntigenReader:
         branch_files = glob.glob(branch_file_path)
         n_files = len(branch_files)
         n_done = 0
-        print(f'LOG: Reading branch files.')
+        print("LOG: Reading branch files.")
         for branches in branch_files:
-            out_name = branches.split('/')[1:3]
-            out_name = '/'.join(out_name) + '/' + 'mutation_stats'
+            out_name = branches.split("/")[1:3]
+            out_name = "/".join(out_name) + "/" + "mutation_stats"
             mut_count_dict = count_branch_mutations(branches)
             branches_df = self._create_branches_df(branches)
-            with open('simulations/'+ out_name + '.json', 'w', encoding='utf-8',) as f:
-                base_path = '/'.join(branches.split('/')[:-2])
+            with open(
+                "simulations/" + out_name + ".json",
+                "w",
+                encoding="utf-8",
+            ) as f:
+                base_path = "/".join(branches.split("/")[:-2])
                 params = process_file_path(base_path)
                 mut_count_dict.update(params)
                 self.set_branches(base_path, branches_df)
                 self.set_branches_stats(base_path, mut_count_dict)
                 f.write(json.dumps(mut_count_dict))
-            n_done +=1
+            n_done += 1
             complete_percent = n_done / n_files
-            print(f'LOG: {n_done}/{n_files} branch files read: {round(complete_percent,2) * 100}% complete')
+            print(
+                f"LOG: {n_done}/{n_files} branch files read: {round(complete_percent, 2) * 100}% complete"
+            )
 
-    
-    def aggregate_branch_stats(self, input_path = "simulations/*/*/mutation_stats.json", output_path = "mutation_stats.csv"):
+    def aggregate_branch_stats(
+        self,
+        input_path="simulations/*/*/mutation_stats.json",
+        output_path="mutation_stats.csv",
+    ):
         """Aggregate branch stats into a single dataframe and write to csv.
 
         Args:
@@ -187,14 +220,13 @@ class AntigenReader:
         files = glob.glob(input_path)
         dfs = []
         for file in files:
-            with open(file, 'r') as f:
+            with open(file, "r") as f:
                 data = json.load(f)
             df = pd.DataFrame([data])
             dfs.append(df)
         df = pd.concat(dfs)
         df.to_csv(output_path, index=False)
 
-    
     def _create_branches_df(self, branches_path: str) -> pd.DataFrame:
         """Create a dataframe from the branches dictionary.
 
@@ -204,30 +236,38 @@ class AntigenReader:
         Returns:
             pd.DataFrame: Branches dataframe.
         """
-        with open(branches_path, 'r') as f:
+        with open(branches_path, "r") as f:
             branches_lines = f.readlines()
-        
+
         bad_chars = '{} "" \n'
-        rgx = re.compile('[%s]' % bad_chars)
+        rgx = re.compile("[%s]" % bad_chars)
         entry_list = []
         # Step one: loop through branches lines and perform cleanup
         for line in branches_lines:
-            text = rgx.sub('', line)
-            text = text.split('\t')
+            text = rgx.sub("", line)
+            text = text.split("\t")
             child = text[0]
             parent = text[1]
-            child_dict = dict(zip(BRANCHES_COLUMNS, child.split(',')))
-            parent_dict = dict(zip(BRANCHES_COLUMNS, parent.split(',')))
+            child_dict = dict(zip(BRANCHES_COLUMNS, child.split(",")))
+            parent_dict = dict(zip(BRANCHES_COLUMNS, parent.split(",")))
             entry_list.append(child_dict)
             entry_list.append(parent_dict)
         branches_df = pd.DataFrame(entry_list)
-        branches_df = branches_df.apply(pd.to_numeric, errors='ignore')
+        branches_df = branches_df.apply(pd.to_numeric, errors="ignore")
         # Drop duplicates
-        branches_df_clean = branches_df.drop_duplicates(subset=['name', 'date'], keep='last', inplace=False)
+        branches_df_clean = branches_df.drop_duplicates(
+            subset=["name", "date"], keep="last", inplace=False
+        )
         return branches_df_clean
-    
 
-    def write_tips_to_fasta(self, dataframe: pd.DataFrame, output_path: str, write_metadata: bool = False, write_details_to_fasta: bool = False, variant_col: str = 'variant') -> None:
+    def write_tips_to_fasta(
+        self,
+        dataframe: pd.DataFrame,
+        output_path: str,
+        write_metadata: bool = False,
+        write_details_to_fasta: bool = False,
+        variant_col: str = "variant",
+    ) -> None:
         """
         Write DataFrame contents to a FASTA file with metadata.
 
@@ -241,24 +281,32 @@ class AntigenReader:
         Returns:
             None
         """
-        with open(output_path, 'w') as fasta_file:
+        with open(output_path, "w") as fasta_file:
             if write_metadata:
-                metadata = dataframe[['name', 'year', 'country', variant_col, 'fitness']]  # Select relevant columns
+                metadata = dataframe[
+                    ["name", "year", "country", variant_col, "fitness"]
+                ]  # Select relevant columns
                 # Rename columns to work with nextstrain
-                metadata = metadata.rename(columns={'name': 'strain', variant_col: 'clade_membership'})
-                metadata.to_csv(output_path.replace('.fasta', '_metadata.tsv'), sep='\t', index=False)
+                metadata = metadata.rename(
+                    columns={"name": "strain", variant_col: "clade_membership"}
+                )
+                metadata.to_csv(
+                    output_path.replace(".fasta", "_metadata.tsv"),
+                    sep="\t",
+                    index=False,
+                )
 
             for index, row in dataframe.iterrows():
-                sequence = row['nucleotideSequence']
-                name = row['name']
-                date = row['year']
+                sequence = row["nucleotideSequence"]
+                name = row["name"]
+                date = row["year"]
                 # Write metadata to FASTA header
                 if write_details_to_fasta:
-                    fasta_file.write(f'>{name}|{date}\n')
+                    fasta_file.write(f">{name}|{date}\n")
                 else:
-                    fasta_file.write(f'>{name}\n')
-                fasta_file.write(f'{sequence}\n')
-    
+                    fasta_file.write(f">{name}\n")
+                fasta_file.write(f"{sequence}\n")
+
     def get_cases(self, path: str) -> pd.DataFrame:
         return self.cases.get(path)
 
@@ -270,7 +318,7 @@ class AntigenReader:
 
     def get_summary_file(self, path: str) -> pd.DataFrame:
         return self.summary_files.get(path)
-    
+
     def get_branches(self, path: str) -> pd.DataFrame:
         return self.branches.get(path)
 
@@ -294,7 +342,7 @@ class AntigenReader:
 
     def set_branches_stats(self, path: str, branches_stats: dict):
         self.branches_stats[path] = branches_stats
-    
+
     def parse_host(self, host_string: str) -> list:
         """
         Parse the host string into a numpy array.
@@ -311,25 +359,29 @@ class AntigenReader:
         """
         host_memory = []
         # Check for naive host
-        if host_string == '\n':
+        if host_string == "\n":
             return host_memory
         host_string = host_string.strip()
         # If there are multiple entries, split them [this means we have ')()']
-        if host_string.count(')(') > 0:
-            host_string = host_string.split(')(')
+        if host_string.count(")(") > 0:
+            host_string = host_string.split(")(")
             # Remove the parentheses and split the string on commas
-            host_string = [host.replace('(', '').replace(')', '') for host in host_string]
-            host_memory = [host.split(',') for host in host_string]
+            host_string = [
+                host.replace("(", "").replace(")", "") for host in host_string
+            ]
+            host_memory = [host.split(",") for host in host_string]
             # Make entries in sublists floats
-            host_memory = [[float(coord) for coord in infection] for infection in host_memory]
+            host_memory = [
+                [float(coord) for coord in infection] for infection in host_memory
+            ]
         else:
             # Remove leading and trailing parentheses
             host_string = host_string[1:-1]
-            host_memory = host_string.split(',')
+            host_memory = host_string.split(",")
             # Make entries floats
             host_memory = [[float(coord) for coord in host_memory]]
         return host_memory
-    
+
     def load_memories(self, memory_path: str) -> tuple:
         """
         Load the immune memory file and return a dictionary of host memories.
@@ -348,10 +400,10 @@ class AntigenReader:
         contact_rates = {}
         with open(memory_path, "r") as f:
             for line in f:
-                if 'date' in line:
+                if "date" in line:
                     date = line.split()[1]
                     host_memories[date] = {}
-                elif 'contactRate' in line:
+                elif "contactRate" in line:
                     contact_rate = line.split()[1]
                     contact_rate[date] = {}
                 else:
@@ -365,11 +417,98 @@ class AntigenReader:
         return (host_memories, contact_rates)
 
 
-# Note: The following functions need to be imported from the original module
+# Note: The following functions still need to be imported from the original module
 # or implemented separately:
 # - process_file_path
 # - calculate_attack_rate
 # - calculate_case_counts_over_time
-# - calculate_antigenic_movement_per_year
 # - calculate_high_low_epitope_mutation_ratio
-# - count_branch_mutations
+
+
+def count_branch_mutations(
+    branches_path: str, high_low_model: bool = True
+) -> dict[str, float]:
+    """Count trunk and side-branch epitope/non-epitope mutations from a .branches file.
+
+    Args:
+        branches_path: Path to the ``run-out.branches`` file.
+        high_low_model: Accepted for API compatibility; currently unused.
+
+    Returns:
+        Dict with keys: ``trunk_epitope_mutations``, ``trunk_non_epitope_mutations``,
+        ``trunk_epitope_to_non-epitope_ratio``, ``side_branch_epitope_mutations``,
+        ``side_branch_non_epitope_mutations``, ``side_branch_epitope_to_non-epitope_ratio``.
+        Ratio is ``float("nan")`` when the denominator is zero.
+
+    Raises:
+        FileNotFoundError: If ``branches_path`` does not exist.
+    """
+    from pathlib import Path as _Path
+
+    path = _Path(branches_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Branches file not found: {path}")
+
+    with open(path, "r") as f:
+        branches_lines = f.readlines()
+
+    bad_chars = '{} "" \n'
+    rgx = re.compile("[%s]" % bad_chars)
+    entry_list = []
+    for line in branches_lines:
+        text = rgx.sub("", line)
+        parts = text.split("\t")
+        if len(parts) < 2:
+            continue
+        child = parts[0]
+        parent = parts[1]
+        for raw in (child, parent):
+            values = raw.split(",")
+            if len(values) == len(BRANCHES_COLUMNS):
+                entry_list.append(dict(zip(BRANCHES_COLUMNS, values)))
+
+    df = pd.DataFrame(entry_list)
+    df = df.apply(pd.to_numeric, errors="ignore")
+    df = df.drop_duplicates(subset=["name", "date"], keep="last")
+
+    trunk = df[df["trunk"] == 1]
+    side = df[df["trunk"] != 1]
+
+    def _ratio(num: float, den: float) -> float:
+        return float("nan") if den == 0 else num / den
+
+    trunk_epi = float(trunk["n_epitope_mutations"].sum())
+    trunk_non = float(trunk["n_non_epitope_mutations"].sum())
+    side_epi = float(side["n_epitope_mutations"].sum())
+    side_non = float(side["n_non_epitope_mutations"].sum())
+
+    return {
+        "trunk_epitope_mutations": trunk_epi,
+        "trunk_non_epitope_mutations": trunk_non,
+        "trunk_epitope_to_non-epitope_ratio": _ratio(trunk_epi, trunk_non),
+        "side_branch_epitope_mutations": side_epi,
+        "side_branch_non_epitope_mutations": side_non,
+        "side_branch_epitope_to_non-epitope_ratio": _ratio(side_epi, side_non),
+    }
+
+
+def calculate_antigenic_movement_per_year(tips_df: "pd.DataFrame") -> float:
+    """Compute average antigenic movement per year using a sliding window.
+
+    Implementation ported from ``antigenexp.analysis``. Placeholder — replace body
+    with the ported implementation before use.
+
+    Args:
+        tips_df: DataFrame with columns ``year`` (float), ``ag1`` (float), ``ag2`` (float).
+
+    Returns:
+        Average antigenic movement per year (float).
+
+    Raises:
+        ValueError: If fewer than 2 distinct years are present.
+        NotImplementedError: Until the body is ported from ``antigenexp.analysis``.
+    """
+    raise NotImplementedError(
+        "calculate_antigenic_movement_per_year must be ported from antigenexp.analysis "
+        "before use. Ask the user to paste the implementation."
+    )

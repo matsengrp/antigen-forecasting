@@ -10,11 +10,13 @@ theme:
     accent: red
 nav:
   - Home: index.md
+  - Running Simulations: running_simulations.md
   - Calculating Fitness: calculating_fitness.md
   - Variant Assignment: variant_assignment.md
   - Growth Advantage Models: growth_advantage_models.md
   - Model Configuration: model_configuration.md
   - Empirical Growth Rates: empirical_growth_rates.md
+  - Aggregating Simulations: aggregate_simulations.md
 
 markdown_extensions:
   - pymdownx.arithmatex:

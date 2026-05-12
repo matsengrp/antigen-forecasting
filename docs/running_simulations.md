@@ -171,4 +171,4 @@ results/<batch-name>/slurm_submission_<timestamp>/
     submit_array.sh     # executable SLURM array script
 ```
 
-`aggregate.tsv` is written separately (Issue 5) and never by this script.
+`sim_stats.csv` is written separately by `aggregate_simulations.py` and never by this script.

@@ -4,6 +4,8 @@ This repository contains the code and data needed to reproduce the analysis in o
 
 ## Content
 
+- [Running Simulations](running_simulations.md)
+- [Aggregating Simulations](aggregate_simulations.md)
 - [Calculating Fitness](calculating_fitness.md)
 - [Variant Assignment](variant_assignment.md)
 - [Growth Advantage Models](growth_advantage_models.md)

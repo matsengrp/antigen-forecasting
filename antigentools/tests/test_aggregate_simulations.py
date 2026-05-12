@@ -142,6 +142,45 @@ class TestLoadTips:
 
 
 # ---------------------------------------------------------------------------
+# calculate_antigenic_movement_per_year
+# ---------------------------------------------------------------------------
+
+
+class TestCalculateAntigeicMovementPerYear:
+    def test_known_linear_movement(self):
+        from antigentools.antigen_reader import calculate_antigenic_movement_per_year
+
+        # 3 viruses spaced 1 year apart, moving 1 unit/year in ag1
+        df = pd.DataFrame(
+            {
+                "year": [2025.0, 2026.0, 2027.0],
+                "ag1": [0.0, 1.0, 2.0],
+                "ag2": [0.0, 0.0, 0.0],
+            }
+        )
+        result = calculate_antigenic_movement_per_year(df)
+        assert math.isclose(result, 1.0, rel_tol=1e-6)
+
+    def test_single_tip_returns_zero(self):
+        from antigentools.antigen_reader import calculate_antigenic_movement_per_year
+
+        df = pd.DataFrame({"year": [2026.0], "ag1": [1.0], "ag2": [0.0]})
+        assert calculate_antigenic_movement_per_year(df) == 0.0
+
+    def test_all_same_time_returns_zero(self):
+        from antigentools.antigen_reader import calculate_antigenic_movement_per_year
+
+        df = pd.DataFrame(
+            {
+                "year": [2026.0, 2026.0, 2026.0],
+                "ag1": [0.0, 1.0, 2.0],
+                "ag2": [0.0, 0.0, 0.0],
+            }
+        )
+        assert calculate_antigenic_movement_per_year(df) == 0.0
+
+
+# ---------------------------------------------------------------------------
 # count_branch_mutations (from antigentools.antigen_reader)
 # ---------------------------------------------------------------------------
 
@@ -291,18 +330,7 @@ def _make_sim_tree(
 
 
 class TestAggregateSimulations:
-    def test_end_to_end(self, agg, tmp_path, monkeypatch):
-        # Monkeypatch calculate_antigenic_movement_per_year to return a fixed value
-        monkeypatch.setattr(
-            "antigentools.antigen_reader.calculate_antigenic_movement_per_year",
-            lambda df: 1.4,
-        )
-        monkeypatch.setattr(
-            agg,
-            "calculate_antigenic_movement_per_year",
-            lambda df: 1.4,
-        )
-
+    def test_end_to_end(self, agg, tmp_path):
         experiments_root, data_root = _make_sim_tree(
             tmp_path,
             batch_name="2026-04-29-all-sims",
@@ -331,10 +359,7 @@ class TestAggregateSimulations:
         assert "trunk_epitope_mutations" in df.columns
         assert row["trunk_epitope_mutations"] == 3.0
 
-    def test_missing_summary_warns_and_skips(self, agg, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            agg, "calculate_antigenic_movement_per_year", lambda df: 1.4
-        )
+    def test_missing_summary_warns_and_skips(self, agg, tmp_path):
         experiments_root, data_root = _make_sim_tree(
             tmp_path,
             batch_name="batch",

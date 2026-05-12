@@ -1,6 +1,7 @@
 import glob
 import re
 import json
+import numpy as np
 import Bio.Phylo as bp
 import pandas as pd
 
@@ -492,23 +493,72 @@ def count_branch_mutations(
     }
 
 
-def calculate_antigenic_movement_per_year(tips_df: "pd.DataFrame") -> float:
-    """Compute average antigenic movement per year using a sliding window.
+def calculate_antigenic_movement_per_year(
+    tips_df: pd.DataFrame,
+    date_col: str = "year",
+    phenotype_cols: list[str] | None = None,
+    window_size: float = 1.0,
+) -> float:
+    """Calculate antigenic movement per year using sliding windows.
 
-    Implementation ported from ``antigenexp.analysis``. Placeholder — replace body
-    with the ported implementation before use.
+    Creates overlapping time windows of specified size, calculates antigenic
+    movement within each window, then normalizes by window duration to get
+    movement per year.
 
     Args:
-        tips_df: DataFrame with columns ``year`` (float), ``ag1`` (float), ``ag2`` (float).
+        tips_df: Date-sorted DataFrame of tips with antigenic coordinates.
+        date_col: Column name of the date. Defaults to ``"year"``.
+        phenotype_cols: Column names of antigenic coordinates.
+            Defaults to ``["ag1", "ag2"]``.
+        window_size: Size of time window in years. Defaults to ``1.0``.
 
     Returns:
-        Average antigenic movement per year (float).
-
-    Raises:
-        ValueError: If fewer than 2 distinct years are present.
-        NotImplementedError: Until the body is ported from ``antigenexp.analysis``.
+        Average antigenic movement per year.
     """
-    raise NotImplementedError(
-        "calculate_antigenic_movement_per_year must be ported from antigenexp.analysis "
-        "before use. Ask the user to paste the implementation."
-    )
+    if phenotype_cols is None:
+        phenotype_cols = ["ag1", "ag2"]
+
+    if len(tips_df) < 2:
+        return 0.0
+
+    tips_df = tips_df.sort_values(date_col).reset_index(drop=True)
+
+    min_time = tips_df[date_col].min()
+    max_time = tips_df[date_col].max()
+    total_duration = max_time - min_time
+
+    if total_duration <= 0:
+        return 0.0
+
+    window_movements = []
+    current_start = min_time
+    while current_start + window_size <= max_time:
+        window_end = current_start + window_size
+        window_mask = (tips_df[date_col] >= current_start) & (
+            tips_df[date_col] <= window_end
+        )
+        window_tips = tips_df[window_mask]
+
+        if len(window_tips) >= 2:
+            first_virus = window_tips.iloc[0]
+            last_virus = window_tips.iloc[-1]
+            dist = np.linalg.norm(
+                first_virus[phenotype_cols].to_numpy()
+                - last_virus[phenotype_cols].to_numpy()
+            )
+            actual_duration = last_virus[date_col] - first_virus[date_col]
+            if actual_duration > 0:
+                window_movements.append(dist / actual_duration)
+
+        current_start += window_size / 2
+
+    if not window_movements:
+        first_virus = tips_df.iloc[0]
+        last_virus = tips_df.iloc[-1]
+        total_dist = np.linalg.norm(
+            first_virus[phenotype_cols].to_numpy()
+            - last_virus[phenotype_cols].to_numpy()
+        )
+        return float(total_dist / total_duration)
+
+    return float(np.mean(window_movements))

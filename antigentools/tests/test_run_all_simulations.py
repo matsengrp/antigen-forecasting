@@ -368,8 +368,13 @@ class TestWriteSlurmArtifacts:
         ):
             assert header in content, f"Missing SBATCH directive: {header}"
 
-    def test_sim_list_referenced_portably(self, run_all_sims, tmp_path):
-        """submit_array.sh must not embed an absolute path to sim_list.txt."""
+    def test_sim_list_referenced_by_absolute_path(self, run_all_sims, tmp_path):
+        """submit_array.sh must reference sim_list.txt by absolute path.
+
+        sbatch copies the batch script to a spool dir, so $(dirname "$0") no
+        longer points at the submission dir; a relative reference fails with
+        "sed: can't read .../sim_list.txt". The absolute path must be embedded.
+        """
         results_root = tmp_path / "results"
         submission_dir = run_all_sims.write_slurm_artifacts(
             sim_paths=[tmp_path / "exp" / "ps" / "run_0"],
@@ -380,8 +385,9 @@ class TestWriteSlurmArtifacts:
             max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
-        assert 'sim_list.txt"' in content
-        assert str(results_root) not in content
+        sim_list = (submission_dir / "sim_list.txt").resolve()
+        assert str(sim_list) in content
+        assert 'dirname "$0"' not in content
 
     def test_submit_array_sh_has_slurm_task_id(self, run_all_sims, tmp_path):
         results_root = tmp_path / "results"

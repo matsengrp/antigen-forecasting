@@ -345,7 +345,9 @@ def write_slurm_artifacts(
     # so a relative --config would no longer resolve from there.
     config_path = config_path.resolve()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-    submission_dir = results_root / batch_name / f"slurm_submission_{timestamp}"
+    submission_dir = (
+        results_root / batch_name / f"slurm_submission_{timestamp}"
+    ).resolve()
     submission_dir.mkdir(parents=True, exist_ok=True)
 
     sim_list_path = submission_dir / "sim_list.txt"
@@ -366,8 +368,11 @@ def write_slurm_artifacts(
         #SBATCH --mem={slurm_cfg["mem_gb"]}G
         #SBATCH --cpus-per-task={cpus}
 
+        # Absolute path: sbatch copies this script to a spool dir, so a
+        # location relative to the script no longer finds the submission dir.
+        SIM_LIST="{submission_dir}/sim_list.txt"
         # 1-indexed; sed line N == SLURM_ARRAY_TASK_ID N.
-        SIM_PATH=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" "$(dirname "$0")/sim_list.txt")
+        SIM_PATH=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" "$SIM_LIST")
         [ -z "$SIM_PATH" ] && {{ echo "ERROR: empty SIM_PATH for task ${{SLURM_ARRAY_TASK_ID}}"; exit 1; }}
         source activate {slurm_cfg["conda_env"]}
         # run_pipeline.py and its subscripts read data/, results/, and relative

@@ -72,6 +72,7 @@ REQUIRED_CONFIG_KEYS: tuple[str, ...] = (
     "forecast_L",
     "seed_L",
     "numpyro_seed",
+    "variant_assignment_threads",
 )
 
 PIPELINE_LOG_COLUMNS: tuple[str, ...] = (
@@ -467,6 +468,8 @@ def build_steps(
         str(paths.tips_with_variants),
         "--work-dir",
         str(paths.variant_assignment),
+        "--threads",
+        str(cfg["variant_assignment_threads"]),
     ]
     if skip_variant_assignment:
         assign_cmd.append("--fast")
@@ -491,8 +494,8 @@ def build_steps(
         str(paths.data_root / paths.build),
         "-m",
         str(paths.tips_with_variants),
-	"-v",
-	"variant_ag",
+        "-v",
+        "variant_ag",
     ]
     steps.append(
         Step(
@@ -659,8 +662,14 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     cfg = load_pipeline_config(args.config)
 
-    data_root = Path(cfg["data_root"])
-    results_root = Path(cfg["results_root"])
+    # Resolve data/results roots relative to the config file's parent, matching
+    # run_all_simulations._load_results_root. Resolving relative to CWD instead
+    # would place run_pipeline's outputs where run_all_simulations' skip-complete
+    # check does not look (config lives in configs/, so the two disagreed by a
+    # configs/ prefix). Absolute config values are used verbatim.
+    config_dir = args.config.resolve().parent
+    data_root = (config_dir / cfg["data_root"]).resolve()
+    results_root = (config_dir / cfg["results_root"]).resolve()
     if args.batch_name is not None:
         paths = SimulationPaths.from_sim_path(
             sim_path=args.sim_path,

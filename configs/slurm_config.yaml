@@ -1,8 +1,13 @@
 slurm:
   partition: campus-new
-  time: "08:00:00"
-  mem_gb: 32
-  cpus_per_task: 4
+  # Walltime per run. Placeholder for a whole-experiment sweep with the full
+  # 3-method variant assignment (iqtree + embedding dominate); tune from the
+  # pilot's `sacct -j <id> --format=Elapsed`.
+  time: "24:00:00"
+  # Memory per array task. 64 GB is a pilot value; tune from `sacct MaxRSS`.
+  mem_gb: 64
+  # Keep in sync with pipeline_config.yaml variant_assignment_threads.
+  cpus_per_task: 16
   max_concurrent: 20  # max simultaneous array tasks (%N suffix in --array)
   conda_env: antigen
   log_dir: logs/slurm/  # relative to project_root; created automatically by SLURM

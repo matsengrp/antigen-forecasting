@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import stat
+import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -29,11 +30,15 @@ def run_all_sims():
 def _make_valid_sim(
     experiments_root: Path, experiment: str, param_set: str, run_id: str
 ) -> Path:
-    """Create a sim directory with the two required input files."""
-    sim_path = experiments_root / experiment / param_set / run_id
+    """Create a sim directory with all required input files.
+
+    Runs live at ``<experiments_root>/<experiment>/simulations/<config>/run_*/``.
+    """
+    sim_path = experiments_root / experiment / "simulations" / param_set / run_id
     sim_path.mkdir(parents=True)
     (sim_path / "output").mkdir()
     (sim_path / "output" / "run-out.tips").write_text("name\n")
+    (sim_path / "output" / "run-out.fasta").write_text(">a\nACGT\n")
     (sim_path / "out_timeseries.csv").write_text("year\n")
     return sim_path
 
@@ -43,43 +48,109 @@ class TestDiscoverSimPaths:
         root = tmp_path / "experiments"
         sim0 = _make_valid_sim(root, "exp1", "ps1", "run_0")
         sim1 = _make_valid_sim(root, "exp1", "ps1", "run_1")
-        found = run_all_sims.discover_sim_paths(root, "exp1", "ps1")
+        found, skipped = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
         assert set(found) == {sim0, sim1}
+        assert skipped == []
 
     def test_returns_sorted_paths(self, run_all_sims, tmp_path):
         root = tmp_path / "experiments"
         for i in range(5):
             _make_valid_sim(root, "exp1", "ps1", f"run_{i}")
-        found = run_all_sims.discover_sim_paths(root, "exp1", "ps1")
+        found, _ = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
         assert found == sorted(found)
 
     def test_no_run_dirs_raises(self, run_all_sims, tmp_path):
         root = tmp_path / "experiments"
-        (root / "exp1" / "ps1").mkdir(parents=True)
+        (root / "exp1" / "simulations" / "ps1").mkdir(parents=True)
         with pytest.raises(ValueError, match="No run_\\*"):
-            run_all_sims.discover_sim_paths(root, "exp1", "ps1")
+            run_all_sims.discover_sim_paths(root, "exp1", "ps1", all_configs=False)
 
-    def test_missing_tips_raises(self, run_all_sims, tmp_path):
+    def test_missing_simulations_dir_raises(self, run_all_sims, tmp_path):
+        root = tmp_path / "experiments"
+        (root / "exp1").mkdir(parents=True)
+        with pytest.raises(FileNotFoundError, match="simulations/"):
+            run_all_sims.discover_sim_paths(root, "exp1", "ps1", all_configs=False)
+
+    def test_missing_tips_is_skipped(self, run_all_sims, tmp_path):
         root = tmp_path / "experiments"
         sim = _make_valid_sim(root, "exp1", "ps1", "run_0")
         (sim / "output" / "run-out.tips").unlink()
-        with pytest.raises(FileNotFoundError, match="run-out.tips"):
-            run_all_sims.discover_sim_paths(root, "exp1", "ps1")
+        found, skipped = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
+        assert found == []
+        assert len(skipped) == 1
+        assert skipped[0][0] == sim
+        assert "tips" in skipped[0][1]
 
-    def test_missing_timeseries_raises(self, run_all_sims, tmp_path):
+    def test_missing_timeseries_is_skipped(self, run_all_sims, tmp_path):
         root = tmp_path / "experiments"
         sim = _make_valid_sim(root, "exp1", "ps1", "run_0")
         (sim / "out_timeseries.csv").unlink()
-        with pytest.raises(FileNotFoundError, match="out_timeseries.csv"):
-            run_all_sims.discover_sim_paths(root, "exp1", "ps1")
+        found, skipped = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
+        assert found == []
+        assert len(skipped) == 1
+        assert "timeseries" in skipped[0][1]
+
+    def test_legacy_timeseries_name_accepted(self, run_all_sims, tmp_path):
+        """Older runs with out.timeseries (not .csv) are still valid."""
+        root = tmp_path / "experiments"
+        sim = _make_valid_sim(root, "exp1", "ps1", "run_0")
+        (sim / "out_timeseries.csv").unlink()
+        (sim / "out.timeseries").write_text("year\n")
+        found, skipped = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
+        assert found == [sim]
+        assert skipped == []
+
+    def test_missing_fasta_is_skipped(self, run_all_sims, tmp_path):
+        root = tmp_path / "experiments"
+        sim = _make_valid_sim(root, "exp1", "ps1", "run_0")
+        (sim / "output" / "run-out.fasta").unlink()
+        found, skipped = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
+        assert found == []
+        assert "fasta" in skipped[0][1]
 
     def test_ignores_files_named_run(self, run_all_sims, tmp_path):
         """Files named run_* at the sim level are not returned."""
         root = tmp_path / "experiments"
         sim = _make_valid_sim(root, "exp1", "ps1", "run_0")
-        (root / "exp1" / "ps1" / "run_extra.txt").write_text("")
-        found = run_all_sims.discover_sim_paths(root, "exp1", "ps1")
+        (root / "exp1" / "simulations" / "ps1" / "run_extra.txt").write_text("")
+        found, _ = run_all_sims.discover_sim_paths(
+            root, "exp1", "ps1", all_configs=False
+        )
         assert found == [sim]
+
+    def test_all_configs_discovers_across_cells(self, run_all_sims, tmp_path):
+        root = tmp_path / "experiments"
+        sim_a = _make_valid_sim(root, "exp1", "muP_0.1", "run_0")
+        sim_b = _make_valid_sim(root, "exp1", "muP_0.2", "run_0")
+        found, skipped = run_all_sims.discover_sim_paths(
+            root, "exp1", None, all_configs=True
+        )
+        assert set(found) == {sim_a, sim_b}
+        assert skipped == []
+
+    def test_param_set_and_all_configs_mutually_exclusive(self, run_all_sims, tmp_path):
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "ps1", "run_0")
+        with pytest.raises(ValueError, match="exactly one"):
+            run_all_sims.discover_sim_paths(root, "exp1", "ps1", all_configs=True)
+
+    def test_neither_param_set_nor_all_configs_raises(self, run_all_sims, tmp_path):
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "ps1", "run_0")
+        with pytest.raises(ValueError, match="exactly one"):
+            run_all_sims.discover_sim_paths(root, "exp1", None, all_configs=False)
 
 
 class TestIsSimComplete:
@@ -227,6 +298,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         assert submission_dir.exists()
         assert submission_dir.name.startswith("slurm_submission_")
@@ -241,6 +313,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         lines = (submission_dir / "sim_list.txt").read_text().splitlines()
         assert lines == [str(p) for p in sim_paths]
@@ -253,6 +326,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         submit = submission_dir / "submit_array.sh"
         assert submit.exists()
@@ -267,6 +341,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         assert "#SBATCH --array=1-5" in content
@@ -279,6 +354,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         for header in (
@@ -301,6 +377,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         assert 'sim_list.txt"' in content
@@ -314,6 +391,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         assert "${SLURM_ARRAY_TASK_ID}" in content
@@ -329,6 +407,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         # Match {word} but not ${...} (SLURM bash variable references).
@@ -361,12 +440,89 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=slurm_cfg_path,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         assert "#SBATCH --partition=my-partition" in content
         assert "#SBATCH --mem=16G" in content
         assert "source activate my-env" in content
         assert "python3" in content
+
+    def test_template_cds_into_project_root(self, run_all_sims, tmp_path):
+        """The task must cd into project_root so relative data/results resolve."""
+        results_root = tmp_path / "results"
+        slurm_cfg_path = tmp_path / "slurm_config.yaml"
+        slurm_cfg_path.write_text(
+            yaml.safe_dump(
+                {
+                    "slurm": {
+                        "partition": "my-partition",
+                        "time": "04:00:00",
+                        "mem_gb": 16,
+                        "cpus_per_task": 2,
+                        "max_concurrent": 10,
+                        "conda_env": "my-env",
+                        "log_dir": "logs/",
+                        "project_root": "/my/project",
+                        "python_bin": "python3",
+                    }
+                }
+            )
+        )
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=[tmp_path / "exp" / "ps" / "run_0"],
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=tmp_path / "config.yaml",
+            slurm_config_path=slurm_cfg_path,
+            max_concurrent_override=None,
+        )
+        content = (submission_dir / "submit_array.sh").read_text()
+        assert 'cd "/my/project"' in content
+
+    def test_config_path_forwarded_absolute(self, run_all_sims, tmp_path):
+        """--config must be rendered as an absolute path (task cd's away)."""
+        results_root = tmp_path / "results"
+        rel_config = Path("config.yaml")
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=[tmp_path / "exp" / "ps" / "run_0"],
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=rel_config,
+            slurm_config_path=None,
+            max_concurrent_override=None,
+        )
+        content = (submission_dir / "submit_array.sh").read_text()
+        assert str(rel_config.resolve()) in content
+
+    def test_max_concurrent_override_applied(self, run_all_sims, tmp_path):
+        """--max-concurrent override wins over the config value in the %N throttle."""
+        results_root = tmp_path / "results"
+        sim_paths = [tmp_path / "exp" / "ps" / f"run_{i}" for i in range(4)]
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=sim_paths,
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=tmp_path / "config.yaml",
+            slurm_config_path=None,  # default max_concurrent is 20
+            max_concurrent_override=3,
+        )
+        content = (submission_dir / "submit_array.sh").read_text()
+        assert "#SBATCH --array=1-4%3" in content
+
+    def test_max_concurrent_none_uses_config_value(self, run_all_sims, tmp_path):
+        """Without an override, the config's max_concurrent is used."""
+        results_root = tmp_path / "results"
+        submission_dir = run_all_sims.write_slurm_artifacts(
+            sim_paths=[tmp_path / "exp" / "ps" / "run_0"],
+            batch_name="batch1",
+            results_root=results_root,
+            config_path=tmp_path / "config.yaml",
+            slurm_config_path=None,  # default max_concurrent is 20
+            max_concurrent_override=None,
+        )
+        content = (submission_dir / "submit_array.sh").read_text()
+        assert "%20" in content
 
     def test_sim_list_count_matches_array_n(self, run_all_sims, tmp_path):
         """The --array=1-N directive must equal the number of lines in sim_list.txt."""
@@ -380,6 +536,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         content = (submission_dir / "submit_array.sh").read_text()
         m = re.search(r"--array=1-(\d+)", content)
@@ -402,6 +559,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         submit = submission_dir / "submit_array.sh"
         result = subprocess.run(["bash", "-n", str(submit)], capture_output=True)
@@ -424,6 +582,7 @@ class TestWriteSlurmArtifacts:
             results_root=results_root,
             config_path=tmp_path / "config.yaml",
             slurm_config_path=None,
+            max_concurrent_override=None,
         )
         lines = (submission_dir / "sim_list.txt").read_text().splitlines()
         assert len(lines) == n_sims
@@ -615,6 +774,119 @@ class TestParseArgs:
         )
         assert args.max_parallel == 8
 
+    def test_all_configs_flag_parsed(self, run_all_sims, tmp_path):
+        args = run_all_sims._parse_args(
+            [
+                "--experiments-root",
+                str(tmp_path),
+                "--experiment",
+                "exp1",
+                "--all-configs",
+                "--batch-name",
+                "batch1",
+                "--config",
+                str(tmp_path / "config.yaml"),
+                "--mode",
+                "slurm",
+            ]
+        )
+        assert args.all_configs is True
+        assert args.param_set is None
+
+    def test_param_set_and_all_configs_conflict_exits(self, run_all_sims, tmp_path):
+        with pytest.raises(SystemExit):
+            run_all_sims._parse_args(
+                [
+                    "--experiments-root",
+                    str(tmp_path),
+                    "--experiment",
+                    "exp1",
+                    "--param-set",
+                    "ps1",
+                    "--all-configs",
+                    "--batch-name",
+                    "batch1",
+                    "--config",
+                    str(tmp_path / "config.yaml"),
+                    "--mode",
+                    "slurm",
+                ]
+            )
+
+    def test_neither_scope_flag_exits(self, run_all_sims, tmp_path):
+        with pytest.raises(SystemExit):
+            run_all_sims._parse_args(
+                [
+                    "--experiments-root",
+                    str(tmp_path),
+                    "--experiment",
+                    "exp1",
+                    "--batch-name",
+                    "batch1",
+                    "--config",
+                    str(tmp_path / "config.yaml"),
+                    "--mode",
+                    "slurm",
+                ]
+            )
+
+    def test_max_concurrent_parsed(self, run_all_sims, tmp_path):
+        args = run_all_sims._parse_args(
+            [
+                "--experiments-root",
+                str(tmp_path),
+                "--experiment",
+                "exp1",
+                "--all-configs",
+                "--batch-name",
+                "batch1",
+                "--config",
+                str(tmp_path / "config.yaml"),
+                "--mode",
+                "slurm",
+                "--max-concurrent",
+                "5",
+            ]
+        )
+        assert args.max_concurrent == 5
+
+    def test_max_concurrent_defaults_none(self, run_all_sims, tmp_path):
+        args = run_all_sims._parse_args(
+            [
+                "--experiments-root",
+                str(tmp_path),
+                "--experiment",
+                "exp1",
+                "--all-configs",
+                "--batch-name",
+                "batch1",
+                "--config",
+                str(tmp_path / "config.yaml"),
+                "--mode",
+                "slurm",
+            ]
+        )
+        assert args.max_concurrent is None
+
+    def test_submit_flag_parsed(self, run_all_sims, tmp_path):
+        args = run_all_sims._parse_args(
+            [
+                "--experiments-root",
+                str(tmp_path),
+                "--experiment",
+                "exp1",
+                "--all-configs",
+                "--batch-name",
+                "batch1",
+                "--config",
+                str(tmp_path / "config.yaml"),
+                "--mode",
+                "slurm",
+                "--submit",
+            ]
+        )
+        assert args.submit is True
+
     def test_slurm_mode_with_slurm_config(self, run_all_sims, tmp_path):
         slurm_cfg = tmp_path / "slurm_config.yaml"
         args = run_all_sims._parse_args(
@@ -737,6 +1009,73 @@ class TestMain:
         lines = (submission_dirs[0] / "sim_list.txt").read_text().splitlines()
         assert len(lines) == 1
         assert "run_1" in lines[0]
+
+    def test_submit_flag_invokes_sbatch(self, run_all_sims, tmp_path):
+        """--submit calls sbatch on the generated submit_array.sh."""
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "ps1", "run_0")
+        results_root = tmp_path / "results"
+        cfg_path = tmp_path / "config.yaml"
+        _write_pipeline_config(cfg_path, results_root)
+
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="Submitted batch job 12345\n", stderr=""
+        )
+        with patch.object(
+            run_all_sims.subprocess, "run", return_value=completed
+        ) as mock_run:
+            run_all_sims.main(
+                [
+                    "--experiments-root",
+                    str(root),
+                    "--experiment",
+                    "exp1",
+                    "--param-set",
+                    "ps1",
+                    "--batch-name",
+                    "my-batch",
+                    "--config",
+                    str(cfg_path),
+                    "--mode",
+                    "slurm",
+                    "--submit",
+                ]
+            )
+        assert mock_run.call_count == 1
+        called_cmd = mock_run.call_args[0][0]
+        assert called_cmd[0] == "sbatch"
+        assert called_cmd[1].endswith("submit_array.sh")
+
+    def test_all_configs_mode_writes_artifacts(self, run_all_sims, tmp_path):
+        """--all-configs discovers runs across every sweep cell."""
+        root = tmp_path / "experiments"
+        _make_valid_sim(root, "exp1", "muP_0.1", "run_0")
+        _make_valid_sim(root, "exp1", "muP_0.2", "run_0")
+        results_root = tmp_path / "results"
+        cfg_path = tmp_path / "config.yaml"
+        _write_pipeline_config(cfg_path, results_root)
+
+        run_all_sims.main(
+            [
+                "--experiments-root",
+                str(root),
+                "--experiment",
+                "exp1",
+                "--all-configs",
+                "--batch-name",
+                "my-batch",
+                "--config",
+                str(cfg_path),
+                "--mode",
+                "slurm",
+            ]
+        )
+
+        batch_dir = results_root / "my-batch"
+        submission_dirs = list(batch_dir.glob("slurm_submission_*"))
+        assert len(submission_dirs) == 1
+        lines = (submission_dirs[0] / "sim_list.txt").read_text().splitlines()
+        assert len(lines) == 2
 
     def test_slurm_mode_all_complete_writes_nothing(self, run_all_sims, tmp_path):
         """When all sims are complete, no submission dir is created."""

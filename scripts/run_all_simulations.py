@@ -56,49 +56,108 @@ _DEFAULT_SLURM_CONFIG: dict = {
 }
 
 
+def _validate_sim_inputs(sim_path: Path) -> str | None:
+    """Return a reason string if ``sim_path`` lacks a required input, else None.
+
+    Validation is by glob rather than by fixed filename because the antigen
+    output prefix is configurable (``run-out.*`` is only the default) and the
+    timeseries exists as either ``out_timeseries.csv`` (newer runs) or
+    ``out.timeseries`` (older runs). A ``*.fasta`` under ``output/`` is required
+    because the full (non-``--fast``) variant assignment needs sequences.
+
+    Args:
+        sim_path: Path to a ``run_N/`` directory.
+
+    Returns:
+        A short human-readable reason the run is unusable, or None if valid.
+    """
+    if not list((sim_path / "output").glob("*.tips")):
+        return "no output/*.tips"
+    has_timeseries = (sim_path / "out_timeseries.csv").exists() or (
+        sim_path / "out.timeseries"
+    ).exists()
+    if not has_timeseries:
+        return "no out_timeseries.csv or out.timeseries"
+    if not list((sim_path / "output").glob("*.fasta")):
+        return "no output/*.fasta (required for full variant assignment)"
+    return None
+
+
 def discover_sim_paths(
     experiments_root: Path,
     experiment: str,
-    param_set: str,
-) -> list[Path]:
-    """Discover and validate simulation directories under a param-set.
+    param_set: str | None,
+    all_configs: bool,
+) -> tuple[list[Path], list[tuple[Path, str]]]:
+    """Discover simulation directories under an experiment's sweep.
 
-    Globs ``<experiments_root>/<experiment>/<param_set>/run_*/`` for directories
-    and asserts each contains both required input files before enqueuing.
-    Discovery never touches ``data/`` or ``results/``.
+    Runs live at ``<experiments_root>/<experiment>/simulations/<config>/run_*/``.
+    With ``all_configs``, every sweep cell under ``simulations/`` is discovered;
+    otherwise only ``simulations/<param_set>/``. Each candidate run is validated
+    by :func:`_validate_sim_inputs`; runs missing inputs are returned in the
+    skipped list rather than aborting the batch. Discovery never touches
+    ``data/`` or ``results/``.
 
     Args:
-        experiments_root: Root of the antigen-experiments directory.
-        experiment: Experiment name (e.g. ``"2026-01-06-mutation-bug-fix-runs"``).
-        param_set: Parameter-set subdirectory name.
+        experiments_root: Root of the antigen-experiments ``experiments/`` dir.
+        experiment: Experiment name (e.g. ``"2026-07-04-reviewer-runs"``).
+        param_set: Single sweep-cell (config) name; None when ``all_configs``.
+        all_configs: If True, sweep every config under ``simulations/`` and
+            ``param_set`` must be None; if False, ``param_set`` is required.
 
     Returns:
-        Sorted list of valid ``run_N/`` paths.
+        ``(valid, skipped)`` where ``valid`` is a sorted list of usable
+        ``run_N/`` paths and ``skipped`` is a list of ``(run_path, reason)``.
 
     Raises:
-        ValueError: If no ``run_*/`` directories are found under the param-set.
-        FileNotFoundError: If any sim dir is missing ``output/run-out.tips`` or
-            ``out_timeseries.csv``.
+        ValueError: If the ``param_set``/``all_configs`` combination is invalid,
+            or no ``run_*/`` directories exist in scope.
+        FileNotFoundError: If ``<experiment>/simulations/`` does not exist.
     """
-    base = experiments_root / experiment / param_set
-    candidates = sorted(p for p in base.glob("run_*/") if p.is_dir())
+    if all_configs == (param_set is not None):
+        raise ValueError(
+            "Pass exactly one of --param-set or --all-configs "
+            f"(param_set={param_set!r}, all_configs={all_configs})"
+        )
+    sim_container = experiments_root / experiment / "simulations"
+    if not sim_container.is_dir():
+        raise FileNotFoundError(
+            f"No simulations/ directory under {experiments_root / experiment}; "
+            f"expected <experiment>/simulations/<config>/run_*/"
+        )
+
+    if all_configs:
+        config_dirs = sorted(p for p in sim_container.glob("*/") if p.is_dir())
+        if not config_dirs:
+            raise ValueError(f"No config directories found under {sim_container}")
+        candidates = [
+            run_dir
+            for cfg_dir in config_dirs
+            for run_dir in sorted(cfg_dir.glob("run_*/"))
+            if run_dir.is_dir()
+        ]
+        scope = sim_container
+    else:
+        assert param_set is not None  # Guaranteed by the guard above.
+        base = sim_container / param_set
+        candidates = sorted(p for p in base.glob("run_*/") if p.is_dir())
+        scope = base
+
     if not candidates:
         raise ValueError(
-            f"No run_*/ directories found under {base}; check --experiment and "
-            f"--param-set values"
+            f"No run_*/ directories found under {scope}; check --experiment "
+            f"and --param-set/--all-configs values"
         )
+
+    valid: list[Path] = []
+    skipped: list[tuple[Path, str]] = []
     for sim_path in candidates:
-        tips = sim_path / "output" / "run-out.tips"
-        timeseries = sim_path / "out_timeseries.csv"
-        if not tips.exists():
-            raise FileNotFoundError(
-                f"Missing required file output/run-out.tips in {sim_path}"
-            )
-        if not timeseries.exists():
-            raise FileNotFoundError(
-                f"Missing required file out_timeseries.csv in {sim_path}"
-            )
-    return candidates
+        reason = _validate_sim_inputs(sim_path)
+        if reason is None:
+            valid.append(sim_path)
+        else:
+            skipped.append((sim_path, reason))
+    return valid, skipped
 
 
 def _sim_id_from_path(sim_path: Path) -> str:
@@ -254,6 +313,7 @@ def write_slurm_artifacts(
     results_root: Path,
     config_path: Path,
     slurm_config_path: Path | None,
+    max_concurrent_override: int | None,
 ) -> Path:
     """Write ``sim_list.txt`` and ``submit_array.sh`` for a SLURM array job.
 
@@ -272,11 +332,18 @@ def write_slurm_artifacts(
         config_path: Path to ``pipeline_config.yaml``; forwarded to each task.
         slurm_config_path: Optional path to ``slurm_config.yaml``; None uses
             built-in defaults.
+        max_concurrent_override: If not None, replaces the config's
+            ``max_concurrent`` (the ``%N`` array throttle) for this submission.
 
     Returns:
         Path to the created submission directory.
     """
     slurm_cfg = load_slurm_config(slurm_config_path)
+    if max_concurrent_override is not None:
+        slurm_cfg = {**slurm_cfg, "max_concurrent": max_concurrent_override}
+    # Forward an absolute config path: the array task ``cd``s into project_root,
+    # so a relative --config would no longer resolve from there.
+    config_path = config_path.resolve()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
     submission_dir = results_root / batch_name / f"slurm_submission_{timestamp}"
     submission_dir.mkdir(parents=True, exist_ok=True)
@@ -303,6 +370,9 @@ def write_slurm_artifacts(
         SIM_PATH=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" "$(dirname "$0")/sim_list.txt")
         [ -z "$SIM_PATH" ] && {{ echo "ERROR: empty SIM_PATH for task ${{SLURM_ARRAY_TASK_ID}}"; exit 1; }}
         source activate {slurm_cfg["conda_env"]}
+        # run_pipeline.py and its subscripts read data/, results/, and relative
+        # reference files as CWD-relative paths, so run from project_root.
+        cd "{slurm_cfg["project_root"]}"
         export OMP_NUM_THREADS={cpus}
         export MKL_NUM_THREADS={cpus}
         export OPENBLAS_NUM_THREADS={cpus}
@@ -371,11 +441,17 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         type=str,
         help="Experiment directory name (e.g. 2026-01-06-mutation-bug-fix-runs).",
     )
-    parser.add_argument(
+    scope_group = parser.add_mutually_exclusive_group(required=True)
+    scope_group.add_argument(
         "--param-set",
-        required=True,
         type=str,
-        help="Parameter-set subdirectory name.",
+        default=None,
+        help="Single sweep-cell (config) name under <experiment>/simulations/.",
+    )
+    scope_group.add_argument(
+        "--all-configs",
+        action="store_true",
+        help="Discover every sweep cell under <experiment>/simulations/*/run_*.",
     )
     parser.add_argument(
         "--batch-name",
@@ -410,6 +486,24 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         default=None,
         help="Path to slurm_config.yaml (slurm mode only; uses defaults if omitted).",
     )
+    parser.add_argument(
+        "--max-concurrent",
+        type=int,
+        default=None,
+        help=(
+            "Override slurm_config.yaml max_concurrent (the %%N array throttle) for "
+            "this submission only (slurm mode)."
+        ),
+    )
+    parser.add_argument(
+        "--submit",
+        action="store_true",
+        help=(
+            "In slurm mode, submit the array via sbatch after writing artifacts. "
+            "Without this flag, artifacts are staged and the sbatch command is "
+            "printed for manual submission."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -422,14 +516,19 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     results_root = _load_results_root(args.config)
 
-    all_sims = discover_sim_paths(
-        args.experiments_root, args.experiment, args.param_set
+    all_sims, skipped = discover_sim_paths(
+        args.experiments_root, args.experiment, args.param_set, args.all_configs
     )
+    if skipped:
+        logger.warning("Skipping %d run(s) with missing inputs:", len(skipped))
+        for sim_path, reason in skipped:
+            logger.warning("  SKIP %s (%s)", sim_path, reason)
+    scope = "all configs" if args.all_configs else args.param_set
     logger.info(
-        "Discovered %d simulation(s) under %s/%s",
+        "Discovered %d valid simulation(s) under %s/%s",
         len(all_sims),
         args.experiment,
-        args.param_set,
+        scope,
     )
 
     pending: list[Path] = []
@@ -460,8 +559,22 @@ def main(argv: Sequence[str] | None = None) -> None:
             results_root=results_root,
             config_path=args.config,
             slurm_config_path=args.slurm_config,
+            max_concurrent_override=args.max_concurrent,
         )
-        print(f"SLURM artifacts written to: {submission_dir}")
+        submit_script = submission_dir / "submit_array.sh"
+        if args.submit:
+            result = subprocess.run(
+                ["sbatch", str(submit_script)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            job_line = result.stdout.strip()
+            logger.info("Submitted array job: %s", job_line)
+            print(job_line)
+        else:
+            print(f"SLURM artifacts written to: {submission_dir}")
+            print(f"To submit: sbatch {submit_script}")
 
 
 if __name__ == "__main__":

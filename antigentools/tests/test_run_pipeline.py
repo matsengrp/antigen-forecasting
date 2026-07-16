@@ -57,6 +57,7 @@ def config_path(tmp_path: Path) -> Path:
             "forecast_L": 180,
             "seed_L": 14,
             "numpyro_seed": 42,
+            "variant_assignment_threads": 16,
         }
     }
     path = tmp_path / "pipeline_config.yaml"
@@ -293,3 +294,72 @@ class TestEndToEndSentinelFlow:
             log_df = pd.read_csv(paths.pipeline_log, sep="\t")
             assert (log_df["status"] == "skipped").all(), log_df.to_string()
             assert mock_run.call_count == 0
+
+    def test_relative_roots_resolve_against_config_dir(
+        self, run_pipeline, fake_sim_path, tmp_path
+    ):
+        """Relative data/results roots resolve against the config's parent, not CWD.
+
+        This must match run_all_simulations._load_results_root so that
+        skip-complete detection looks where run_pipeline actually writes.
+        """
+        from antigentools.paths import SimulationPaths
+
+        configs_dir = tmp_path / "configs"
+        configs_dir.mkdir()
+        cfg_path = configs_dir / "pipeline_config.yaml"
+        cfg_path.write_text(
+            yaml.safe_dump(
+                {
+                    "pipeline": {
+                        "experiments_root": str(tmp_path / "experiments"),
+                        "data_root": "../data",
+                        "results_root": "../results",
+                        "window_size": 365,
+                        "buffer_size": 0,
+                        "models": ["FGA"],
+                        "locations": ["north"],
+                        "forecast_L": 180,
+                        "seed_L": 14,
+                        "numpyro_seed": 42,
+                        "variant_assignment_threads": 16,
+                    }
+                }
+            )
+        )
+        # ../data and ../results from configs/ resolve to tmp_path/{data,results}.
+        paths = SimulationPaths.from_build(
+            build="flu-final",
+            sim_path=fake_sim_path,
+            data_root=tmp_path / "data",
+            results_root=tmp_path / "results",
+        )
+        for sentinel in [
+            paths.unique_tips,
+            paths.tips_with_variants,
+            paths.seq_counts,
+            paths.case_counts,
+            paths.time_stamped_manifest,
+            paths.estimates_manifest,
+            paths.scores,
+            paths.growth_rate_scores,
+        ]:
+            sentinel.parent.mkdir(parents=True, exist_ok=True)
+            sentinel.write_text("done")
+
+        with patch.object(subprocess, "run", return_value=_completed_process()):
+            run_pipeline.main(
+                [
+                    "--sim-path",
+                    str(fake_sim_path),
+                    "--build",
+                    "flu-final",
+                    "--config",
+                    str(cfg_path),
+                ]
+            )
+        # pipeline.log must land under tmp_path/results (config-relative), and
+        # every step must be skipped because the sentinels were pre-created there.
+        assert paths.pipeline_log.exists()
+        log_df = pd.read_csv(paths.pipeline_log, sep="\t")
+        assert (log_df["status"] == "skipped").all(), log_df.to_string()

@@ -8,8 +8,11 @@
 
 pipeline:
   experiments_root: ../antigen-experiments/experiments/
-  data_root: data/
-  results_root: results/
+  # Resolved relative to this config file's parent (configs/), so ../data and
+  # ../results point at the repo root. run_all_simulations.py and run_pipeline.py
+  # must agree on this base for skip-complete detection to work.
+  data_root: ../data
+  results_root: ../results
   window_size: 365
   buffer_size: 0
   models: [FGA, GARW]
@@ -17,3 +20,7 @@ pipeline:
   forecast_L: 180
   seed_L: 14
   numpyro_seed: 42
+  # Threads for the sequence-embedding (augur align, pathogen-embed) and
+  # phylogenetic (iqtree) tracks of assign_all_variants.py. Keep in sync with
+  # slurm_config.yaml cpus_per_task so a SLURM task does not oversubscribe.
+  variant_assignment_threads: 16

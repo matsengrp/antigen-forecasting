@@ -1,9 +1,10 @@
 slurm:
   partition: campus-new
   # Walltime per run. The full 3-method variant assignment (iqtree + embedding)
-  # dominates: a light config's run measured ~17 h. Heavier (higher-mutation)
-  # configs may need more; raise toward the partition max if any TIME OUT.
-  time: "24:00:00"
+  # dominates: a light config's run measured ~17 h. campus-new allows up to
+  # 30 days, so 3 days gives heavier (higher-mutation) configs wide margin; an
+  # overestimate is free since the task ends when the pipeline finishes.
+  time: "3-00:00:00"
   # Memory per array task. A light config's run peaked at ~3.3 GB (sacct
   # MaxRSS), so 64 GB was far too much. 32 GB keeps a wide margin for
   # higher-mutation configs whose O(n^2) embedding distance matrix grows.

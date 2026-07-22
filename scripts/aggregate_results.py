@@ -12,8 +12,10 @@ Emitted tables:
 - ``fitness_variance_over_time.csv`` — within-variant fitness variance over time
   (only when a centroid history file is available; see ``--experiments-root`` /
   ``--histories-name``).
-- ``growth_rate_scores_all.csv`` / ``scores_all.csv`` — the per-run forecasting
-  score TSVs stacked together.
+- ``growth_rate_scores_all.csv`` — the per-run growth-rate score TSVs stacked.
+- ``scores_summary.csv`` — per-run frequency scores summarized to
+  ``(model, location, lead)`` means (the raw per-point ``scores.tsv`` is far too
+  large to commit, so it is collapsed rather than concatenated).
 
 Progress streams to stdout and to ``--log-file`` so status is visible at a glance
 on the HPC (``tail -f`` the log). Runs missing an input are skipped with a logged
@@ -41,6 +43,19 @@ from antigentools import variant_agreement as va
 logger = logging.getLogger(__name__)
 
 METHOD_COLS: tuple[str, ...] = ("variant_ag", "variant_tsne", "variant_phylo")
+
+# scores.tsv is per-forecast-point (model x location x pivot_date x lead x variant
+# x date), which concatenated across runs is far too large to commit (~GB). We
+# summarize it per run by averaging the metric columns over the high-cardinality
+# date/variant/pivot dimensions, keeping only these grouping keys.
+SCORE_SUMMARY_KEYS: tuple[str, ...] = ("model", "location", "lead")
+SCORE_METRIC_COLS: tuple[str, ...] = (
+    "MAE",
+    "MSE",
+    "loglik",
+    "coverage_posterior",
+    "coverage_predictive",
+)
 
 
 def setup_logging(verbose: bool, log_file: Path | None) -> None:
@@ -213,15 +228,40 @@ def process_run(
     scores_path = sim_dir / "scores.tsv"
     if scores_path.exists():
         try:
-            result["scores"] = _tag(
-                pd.read_csv(scores_path, sep="\t"), batch, config, run
-            )
+            summary = _summarize_scores(pd.read_csv(scores_path, sep="\t"))
+            if summary is None or summary.empty:
+                result["notes"].append("scores present but not summarizable")
+            else:
+                result["scores"] = _tag(summary, batch, config, run)
         except Exception as exc:  # noqa: BLE001
             result["notes"].append(f"scores unreadable ({exc})")
     else:
         result["notes"].append("no scores.tsv")
 
     return result
+
+
+def _summarize_scores(scores_df: pd.DataFrame) -> pd.DataFrame | None:
+    """Collapse a run's per-point scores.tsv to a small committable summary.
+
+    Groups by the low-cardinality keys present among ``SCORE_SUMMARY_KEYS`` and
+    averages the metric columns present among ``SCORE_METRIC_COLS`` over the
+    date/variant/pivot dimensions, adding an ``n_points`` count.
+
+    Args:
+        scores_df: The raw per-forecast-point scores table.
+
+    Returns:
+        A summarized DataFrame, or None if no usable keys or metrics are present.
+    """
+    keys = [k for k in SCORE_SUMMARY_KEYS if k in scores_df.columns]
+    metrics = [m for m in SCORE_METRIC_COLS if m in scores_df.columns]
+    if not keys or not metrics:
+        return None
+    grouped = scores_df.groupby(keys, dropna=False)
+    summary = grouped[metrics].mean()
+    summary["n_points"] = grouped.size()
+    return summary.reset_index()
 
 
 def _compute_fitness_variance(
@@ -444,8 +484,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     _concat_and_write(
         [r["scores"] for r in results if r["scores"] is not None],
-        output_dir / "scores_all.csv",
-        "scores_all",
+        output_dir / "scores_summary.csv",
+        "scores_summary",
     )
 
     elapsed = time.monotonic() - t0

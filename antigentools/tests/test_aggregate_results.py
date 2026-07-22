@@ -46,9 +46,18 @@ def _make_run(
         }
     ).to_csv(sim_results / "growth_rate_scores.tsv", sep="\t", index=False)
     if with_scores:
-        pd.DataFrame({"model": ["FGA"], "location": ["north"], "MAE": [0.05]}).to_csv(
-            sim_results / "scores.tsv", sep="\t", index=False
-        )
+        # Per-forecast-point rows (variant x date) that the summary collapses.
+        pd.DataFrame(
+            {
+                "model": ["FGA", "FGA", "GARW", "GARW"],
+                "location": ["north", "north", "north", "north"],
+                "lead": [0, 0, 30, 30],
+                "variant": [1, 2, 1, 2],
+                "date": ["2027-04-01"] * 4,
+                "MAE": [0.04, 0.06, 0.10, 0.12],
+                "coverage_predictive": [0.9, 0.9, 0.8, 0.8],
+            }
+        ).to_csv(sim_results / "scores.tsv", sep="\t", index=False)
 
     if with_tips:
         sim_data = data_root / batch / sim_id
@@ -148,6 +157,23 @@ class TestMain:
         assert {"batch", "config", "run"}.issubset(gr.columns)
         assert len(gr) == 4 * 2  # 4 runs x 2 rows each.
 
+        # scores are summarized (collapsed over variant/date), not concatenated:
+        # each run's 4 per-point rows reduce to 2 (model, location, lead) groups.
+        scores = pd.read_csv(out_dir / "scores_summary.csv")
+        assert {
+            "batch",
+            "config",
+            "run",
+            "model",
+            "location",
+            "lead",
+            "MAE",
+            "n_points",
+        }.issubset(scores.columns)
+        assert len(scores) == 4 * 2  # 4 runs x 2 groups each.
+        assert (scores["n_points"] == 2).all()
+        assert not (out_dir / "scores_all.csv").exists()
+
     def test_missing_scores_skipped_not_fatal(self, aggregate_results, tmp_path):
         results_root = tmp_path / "results"
         data_root = tmp_path / "data"
@@ -168,8 +194,8 @@ class TestMain:
             ]
         )
 
-        # scores_all covers only the run that had scores.tsv.
-        scores = pd.read_csv(out_dir / "scores_all.csv")
+        # scores_summary covers only the run that had scores.tsv.
+        scores = pd.read_csv(out_dir / "scores_summary.csv")
         assert set(scores["run"].unique()) == {0}
         # growth-rate scores cover both runs (aggregation did not abort).
         gr = pd.read_csv(out_dir / "growth_rate_scores_all.csv")

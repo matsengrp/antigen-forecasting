@@ -67,3 +67,6 @@ results/**/growth-rates/
 results/**/convergence-diagnostics/
 # Large per-run assigned-variants table (input to aggregation, not committed).
 data/**/tips_with_variants.tsv
+# Defunct raw per-point scores concatenation (too large to commit; superseded by
+# scores_summary.csv from scripts/aggregate_results.py).
+results/aggregated/**/scores_all.csv

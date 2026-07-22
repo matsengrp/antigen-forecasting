@@ -58,3 +58,12 @@ data/**/*.alignment
 
 # Beads file
 AGENTS.md
+
+# Large per-run sweep result trees; aggregate to results/aggregated/ and commit
+# only those small CSVs (see scripts/aggregate_results.py). results/aggregated/
+# does not match these patterns.
+results/**/estimates/
+results/**/growth-rates/
+results/**/convergence-diagnostics/
+# Large per-run assigned-variants table (input to aggregation, not committed).
+data/**/tips_with_variants.tsv

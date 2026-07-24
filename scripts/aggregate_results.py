@@ -44,6 +44,10 @@ logger = logging.getLogger(__name__)
 
 METHOD_COLS: tuple[str, ...] = ("variant_ag", "variant_tsne", "variant_phylo")
 
+# Population-total immune-memory deme label in out.histories.csv, most-preferred
+# first: "global" in the current schema, "total" in the older flu-final one.
+POP_TOTAL_DEMES: tuple[str, ...] = ("global", "total")
+
 # scores.tsv is per-forecast-point (model x location x pivot_date x lead x variant
 # x date), which concatenated across runs is far too large to commit (~GB). We
 # summarize it per run by averaging the metric columns over the high-cardinality
@@ -305,9 +309,22 @@ def _compute_fitness_variance(
     try:
         histories_df = pd.read_csv(history_path)
         if "deme" in histories_df.columns:
-            histories_df = histories_df[histories_df["deme"] == "total"].copy()
+            # The population-total immune-memory centroid is labeled "global" in
+            # these histories ("total" in the older flu-final schema).
+            demes = set(histories_df["deme"])
+            label = next((d for d in POP_TOTAL_DEMES if d in demes), None)
+            if label is None:
+                logger.debug(
+                    "no population-total deme %s in %s (have %s)",
+                    POP_TOTAL_DEMES,
+                    history_path,
+                    sorted(demes),
+                )
+                return None
+            histories_df = histories_df[histories_df["deme"] == label].copy()
         method_cols = [c for c in METHOD_COLS if c in tips_df.columns]
-        return calc_variance_over_time(tips_df, histories_df, method_cols)
+        result = calc_variance_over_time(tips_df, histories_df, method_cols)
+        return result if result is not None and not result.empty else None
     except Exception as exc:  # noqa: BLE001 - variance is best-effort.
         logger.debug("fitness variance failed for %s/run_%s: %s", config, run, exc)
         return None

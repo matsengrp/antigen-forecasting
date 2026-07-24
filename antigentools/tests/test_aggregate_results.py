@@ -253,3 +253,84 @@ class TestMain:
         log_text = log_file.read_text()
         assert "SKIP" in log_text
         assert "0 processed, 1 skipped" in log_text
+
+
+def _make_histories(
+    experiments_root: Path,
+    experiment: str,
+    config: str,
+    run: int,
+    deme_label: str,
+) -> None:
+    """Write a synthetic out.histories.csv with a population-total deme row."""
+    run_dir = experiments_root / experiment / "simulations" / config / f"run_{run}"
+    run_dir.mkdir(parents=True)
+    rows = []
+    for year in range(4):
+        for deme in ["north", "tropics", "south", deme_label]:
+            rows.append(
+                {
+                    "year": float(year),
+                    "deme": deme,
+                    "ag1": 6.0 + year,
+                    "ag2": 3.0 + 0.1 * year,
+                    "naive_fraction": 0.15,
+                    "experienced_hosts": 8000,
+                }
+            )
+    pd.DataFrame(rows).to_csv(run_dir / "out.histories.csv", index=False)
+
+
+def _tips_with_coords() -> pd.DataFrame:
+    """Tips with ag1/ag2/year and variant columns, enough for within-variant variance."""
+    return pd.DataFrame(
+        {
+            "year": [0.5, 0.6, 1.5, 1.6, 2.5, 2.6],
+            "year_bin": [0, 0, 1, 1, 2, 2],
+            "ag1": [6.1, 6.4, 7.2, 7.5, 8.1, 8.6],
+            "ag2": [3.0, 3.2, 3.4, 3.1, 3.6, 3.9],
+            "variant_ag": [0, 0, 1, 1, 2, 2],
+            "variant_tsne": [0, 1, 1, 1, 2, 2],
+            "variant_phylo": [0, 0, 0, 1, 1, 2],
+        }
+    )
+
+
+class TestFitnessVariance:
+    def test_global_deme_produces_variance(self, aggregate_results, tmp_path):
+        exp_root = tmp_path / "experiments"
+        _make_histories(exp_root, "expA", "cfgA", 0, "global")
+        out = aggregate_results._compute_fitness_variance(
+            _tips_with_coords(), exp_root, "expA", "cfgA", 0, "out.histories.csv"
+        )
+        assert out is not None and not out.empty
+        assert {"year", "method", "mean_variance"}.issubset(out.columns)
+        assert set(out["method"].unique()) == {"ag", "tsne", "phylo"}
+
+    def test_total_deme_fallback(self, aggregate_results, tmp_path):
+        exp_root = tmp_path / "experiments"
+        _make_histories(exp_root, "expA", "cfgA", 0, "total")
+        out = aggregate_results._compute_fitness_variance(
+            _tips_with_coords(), exp_root, "expA", "cfgA", 0, "out.histories.csv"
+        )
+        assert out is not None and not out.empty
+
+    def test_no_population_total_deme_returns_none(self, aggregate_results, tmp_path):
+        exp_root = tmp_path / "experiments"
+        # Only regional demes, no global/total aggregate row.
+        _make_histories(exp_root, "expA", "cfgA", 0, "north")
+        out = aggregate_results._compute_fitness_variance(
+            _tips_with_coords(), exp_root, "expA", "cfgA", 0, "out.histories.csv"
+        )
+        assert out is None
+
+    def test_missing_file_returns_none(self, aggregate_results, tmp_path):
+        out = aggregate_results._compute_fitness_variance(
+            _tips_with_coords(),
+            tmp_path / "experiments",
+            "expA",
+            "cfgA",
+            0,
+            "out.histories.csv",
+        )
+        assert out is None

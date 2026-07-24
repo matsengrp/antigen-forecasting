@@ -16,7 +16,11 @@ Usage:
 import argparse
 from pathlib import Path
 import pandas as pd
-from antigentools.analysis import calc_variance_over_time
+from antigentools.analysis import (
+    POP_TOTAL_DEMES,
+    calc_variance_over_time,
+    select_population_total_deme,
+)
 
 
 def main():
@@ -63,8 +67,19 @@ def main():
         tips_df = tips_df[tips_df['year'] >= -args.burn_in].copy()
         tips_df['year'] = tips_df['year'] + args.burn_in
 
-    # Filter to total deme (population-averaged host memory)
-    host_memory_df = histories_df[histories_df['deme'] == 'total'].copy()
+    # Filter to the population-total deme (population-averaged host memory). The label is
+    # 'global' in current antigen output and 'total' in the older flu-final schema;
+    # hardcoding either one silently produced an empty result on the other.
+    deme_label = select_population_total_deme(histories_df)
+    if deme_label is None:
+        if 'deme' in histories_df.columns:
+            raise ValueError(
+                f"{args.histories} has no population-total deme "
+                f"{POP_TOTAL_DEMES}; found {sorted(set(histories_df['deme']))}"
+            )
+        host_memory_df = histories_df.copy()
+    else:
+        host_memory_df = histories_df[histories_df['deme'] == deme_label].copy()
 
     # Auto-detect variant columns
     variant_cols = [col for col in tips_df.columns if col.startswith('variant_')]

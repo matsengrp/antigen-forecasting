@@ -39,14 +39,17 @@ from typing import Sequence
 import pandas as pd
 
 from antigentools import variant_agreement as va
+from antigentools.analysis import POP_TOTAL_DEMES as analysis_pop_total_demes
 
 logger = logging.getLogger(__name__)
 
 METHOD_COLS: tuple[str, ...] = ("variant_ag", "variant_tsne", "variant_phylo")
 
 # Population-total immune-memory deme label in out.histories.csv, most-preferred
-# first: "global" in the current schema, "total" in the older flu-final one.
-POP_TOTAL_DEMES: tuple[str, ...] = ("global", "total")
+# first: "global" in the current schema, "total" in the older flu-final one. Re-exported
+# from antigentools.analysis so this and calc_variant_fitness_variance.py share one
+# definition.
+POP_TOTAL_DEMES = analysis_pop_total_demes
 
 # scores.tsv is per-forecast-point (model x location x pivot_date x lead x variant
 # x date), which concatenated across runs is far too large to commit (~GB). We

@@ -8,9 +8,38 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from antigentools.analysis import (
+    POP_TOTAL_DEMES,
     calculate_fitness_of_tips,
-    calc_variance_over_time
+    calc_variance_over_time,
+    select_population_total_deme
 )
+
+
+class TestSelectPopulationTotalDeme:
+    """Test select_population_total_deme.
+
+    The population-total deme is labeled 'global' in current antigen output and 'total'
+    in the older flu-final schema. Hardcoding either one made
+    calc_variant_fitness_variance.py silently emit an empty result on the other.
+    """
+
+    def test_prefers_global_over_total(self):
+        df = pd.DataFrame({'deme': ['north', 'total', 'global']})
+        assert select_population_total_deme(df) == 'global'
+
+    def test_falls_back_to_total(self):
+        df = pd.DataFrame({'deme': ['north', 'total']})
+        assert select_population_total_deme(df) == 'total'
+
+    def test_returns_none_when_absent(self):
+        df = pd.DataFrame({'deme': ['north', 'tropics', 'south']})
+        assert select_population_total_deme(df) is None
+
+    def test_returns_none_without_deme_column(self):
+        assert select_population_total_deme(pd.DataFrame({'year': [0.0]})) is None
+
+    def test_preference_order_is_pinned(self):
+        assert POP_TOTAL_DEMES == ('global', 'total')
 
 
 class TestCalculateFitnessOfTips:

@@ -13,6 +13,33 @@ from antigentools.utils import (
 # run_pipeline.py (per-combo manifest convergence_status column).
 CONVERGENCE_THRESHOLD: float = 0.5
 
+# Deme labels carrying the population-total immune-memory centroid in a histories file,
+# most-preferred first. Current antigen output labels it "global"; the older flu-final
+# schema used "total". Shared by aggregate_results.py and calc_variant_fitness_variance.py
+# so the two cannot drift apart again.
+POP_TOTAL_DEMES: Tuple[str, ...] = ("global", "total")
+
+
+def select_population_total_deme(histories_df: pd.DataFrame) -> Optional[str]:
+    """Return the histories frame's population-total deme label, or None if absent.
+
+    Parameters
+    ----------
+    histories_df : pd.DataFrame
+        Histories frame that may carry a 'deme' column.
+
+    Returns
+    -------
+    Optional[str]
+        The first label from POP_TOTAL_DEMES present in the frame, or None. A frame
+        with no 'deme' column at all is already population-total, so returns None and
+        the caller should use it unfiltered.
+    """
+    if 'deme' not in histories_df.columns:
+        return None
+    demes = set(histories_df['deme'])
+    return next((d for d in POP_TOTAL_DEMES if d in demes), None)
+
 
 def calculate_fitness_of_tips(
     tips_df: pd.DataFrame,

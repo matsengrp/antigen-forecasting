@@ -19,20 +19,16 @@ Candidate thresholds (all must hold, on complete runs only):
     antigenic_movement_per_year          in [1.0, 2.0]
     trunk_epitope_to_non-epitope_ratio   >= 1.3
 
-Aggregation runs sequentially: it reduces small per-run output files, so a process
-pool would only add overhead (and cannot pickle the dynamically imported
-summarize_sims worker).
-
 Usage (run from the antigen-forecasting repo root; experiments live in a sibling
 repo):
-    python scripts/find_candidate_runs.py \\
+    python scripts/find_candidate_runs.py -j 8 \\
         --experiments-root ../antigen-experiments/experiments
 
     # Restrict to specific experiments (glob patterns, relative to the root):
     python scripts/find_candidate_runs.py 2026-07-04-reviewer-runs
 
     # Force re-aggregation even where a sim_stats.csv already exists:
-    python scripts/find_candidate_runs.py --refresh
+    python scripts/find_candidate_runs.py --refresh -j 8
 """
 
 from __future__ import annotations
@@ -41,6 +37,7 @@ import argparse
 import importlib.util
 import logging
 import operator
+import sys
 from pathlib import Path
 from typing import Callable, Sequence
 
@@ -93,10 +90,17 @@ def load_summarize_sims(summarize_sims_path: Path):
             "antigen-experiments/scripts/summarize_sims.py."
         )
 
-    spec = importlib.util.spec_from_file_location("summarize_sims", summarize_sims_path)
+    module_name = "summarize_sims"
+    # summarize_sims parallelises with a ProcessPoolExecutor (n_jobs > 1), whose
+    # workers pickle its functions by (module_name, qualname) and re-import the
+    # module by name. Loading purely by file path leaves it unimportable by name,
+    # so register it on sys.path and in sys.modules before executing it.
+    sys.path.insert(0, str(summarize_sims_path.parent))
+    spec = importlib.util.spec_from_file_location(module_name, summarize_sims_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not load a module spec from {summarize_sims_path}.")
     module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
@@ -132,7 +136,7 @@ def discover_experiments(experiments_root: Path, patterns: Sequence[str]) -> lis
 
 
 def resolve_experiment_sim_stats(
-    experiment: Path, summarize_sims_module, refresh: bool
+    experiment: Path, summarize_sims_module, n_jobs: int, refresh: bool
 ) -> pd.DataFrame | None:
     """Return one experiment's sim_stats, reusing or generating it as needed.
 
@@ -158,10 +162,8 @@ def resolve_experiment_sim_stats(
 
     logger.info("Aggregating %s -> %s", experiment.name, sim_stats_path)
     try:
-        # n_jobs=1: summarize_sims' sequential path avoids a ProcessPoolExecutor,
-        # which cannot pickle this dynamically imported module's worker function.
         df = summarize_sims_module.summarize_sims(
-            str(experiment), output_path=str(sim_stats_path), n_jobs=1
+            str(experiment), output_path=str(sim_stats_path), n_jobs=n_jobs
         )
     except summarize_sims_module.BranchSchemaError as error:
         # Legacy experiments predate the current antigen-prime `.branches` schema,
@@ -183,6 +185,7 @@ def resolve_experiment_sim_stats(
 def build_sim_stats(
     experiments: Sequence[Path],
     summarize_sims_module,
+    n_jobs: int,
     refresh: bool,
 ) -> pd.DataFrame:
     """Combine per-experiment sim_stats into one canonical-layout DataFrame.
@@ -194,7 +197,9 @@ def build_sim_stats(
     """
     frames: list[pd.DataFrame] = []
     for experiment in experiments:
-        df = resolve_experiment_sim_stats(experiment, summarize_sims_module, refresh)
+        df = resolve_experiment_sim_stats(
+            experiment, summarize_sims_module, n_jobs, refresh
+        )
         if df is not None:
             frames.append(df)
 
@@ -332,6 +337,13 @@ def main(argv: Sequence[str] | None = None) -> None:
         ),
     )
     parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=1,
+        help="Parallel workers passed to summarize_sims (-1 uses all CPUs).",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -353,7 +365,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         )
     logger.info("Found %d experiment director(ies).", len(experiments))
 
-    sim_stats = build_sim_stats(experiments, summarize_sims_module, args.refresh)
+    sim_stats = build_sim_stats(
+        experiments, summarize_sims_module, args.jobs, args.refresh
+    )
     sim_stats.to_csv(args.sim_stats_output, index=False)
     logger.info("Wrote %d rows to %s.", len(sim_stats), args.sim_stats_output)
 

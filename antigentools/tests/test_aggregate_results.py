@@ -334,3 +334,138 @@ class TestFitnessVariance:
             "out.histories.csv",
         )
         assert out is None
+
+
+def _make_raw_histories(
+    experiments_root: Path,
+    experiment: str,
+    config: str,
+    run: int,
+    filename: str = "out.histories.raw.csv",
+) -> None:
+    """Write a synthetic out.histories.raw.csv with per-host immune memory rows."""
+    run_dir = experiments_root / experiment / "simulations" / config / f"run_{run}"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    rows = []
+    for year in range(4):
+        for deme in ("north", "tropics", "south"):
+            for host_id in range(8):
+                # Two memory entries per host, drifting with the year.
+                for infection_index in range(2):
+                    rows.append(
+                        {
+                            "year": float(year),
+                            "deme": deme,
+                            "host_id": host_id,
+                            "infection_index": infection_index,
+                            "ag1": 6.0 + year + 0.3 * host_id + infection_index,
+                            "ag2": 3.0 + 0.1 * year,
+                            "naive_fraction": 0.2,
+                        }
+                    )
+    pd.DataFrame(rows).to_csv(run_dir / filename, index=False)
+
+
+def _named_tips_with_coords() -> pd.DataFrame:
+    """Like _tips_with_coords but with the 'name' column the host-immunity path needs."""
+    tips = _tips_with_coords()
+    tips.insert(0, "name", [f"tip{i}" for i in range(len(tips))])
+    return tips
+
+
+def _host_immunity_config(aggregate_results, **overrides):
+    """Build a HostImmunityConfig with test-friendly defaults."""
+    kwargs = {
+        "enabled": True,
+        "histories_name": "out.histories.raw.csv",
+        "n_hosts": 5,
+        "seed": 42,
+    }
+    kwargs.update(overrides)
+    return aggregate_results.HostImmunityConfig(**kwargs)
+
+
+class TestHostImmunityVariance:
+    """The opt-in per-host immune-history variance path."""
+
+    def test_produces_variance_matching_the_centroid_schema(
+        self, aggregate_results, tmp_path
+    ):
+        exp_root = tmp_path / "experiments"
+        _make_raw_histories(exp_root, "expA", "cfgA", 0)
+
+        out = aggregate_results._compute_host_immunity_variance(
+            _named_tips_with_coords(),
+            exp_root,
+            "expA",
+            "cfgA",
+            0,
+            _host_immunity_config(aggregate_results),
+        )
+
+        assert out is not None and not out.empty
+        # Identical columns to _compute_fitness_variance, so the two aggregated tables
+        # can be plotted against each other without any reshaping.
+        assert list(out.columns) == ["year", "method", "mean_variance", "n_variants"]
+        assert set(out["method"].unique()) == {"ag", "tsne", "phylo"}
+
+    def test_missing_raw_file_returns_none(self, aggregate_results, tmp_path):
+        out = aggregate_results._compute_host_immunity_variance(
+            _named_tips_with_coords(),
+            tmp_path / "experiments",
+            "expA",
+            "cfgA",
+            0,
+            _host_immunity_config(aggregate_results),
+        )
+        assert out is None
+
+    def test_unreadable_histories_returns_none_rather_than_raising(
+        self, aggregate_results, tmp_path
+    ):
+        # Fitness variance is best-effort: one broken run must not abort the batch.
+        exp_root = tmp_path / "experiments"
+        run_dir = exp_root / "expA" / "simulations" / "cfgA" / "run_0"
+        run_dir.mkdir(parents=True)
+        (run_dir / "out.histories.raw.csv").write_text("year,deme\n0.0,north\n")
+
+        out = aggregate_results._compute_host_immunity_variance(
+            _named_tips_with_coords(),
+            exp_root,
+            "expA",
+            "cfgA",
+            0,
+            _host_immunity_config(aggregate_results),
+        )
+        assert out is None
+
+    def test_using_all_hosts_is_supported(self, aggregate_results, tmp_path):
+        exp_root = tmp_path / "experiments"
+        _make_raw_histories(exp_root, "expA", "cfgA", 0)
+
+        out = aggregate_results._compute_host_immunity_variance(
+            _named_tips_with_coords(),
+            exp_root,
+            "expA",
+            "cfgA",
+            0,
+            _host_immunity_config(aggregate_results, n_hosts=None),
+        )
+        assert out is not None and not out.empty
+
+    def test_seed_is_respected(self, aggregate_results, tmp_path):
+        exp_root = tmp_path / "experiments"
+        _make_raw_histories(exp_root, "expA", "cfgA", 0)
+        tips = _named_tips_with_coords()
+
+        def run_with(seed):
+            return aggregate_results._compute_host_immunity_variance(
+                tips,
+                exp_root,
+                "expA",
+                "cfgA",
+                0,
+                _host_immunity_config(aggregate_results, seed=seed),
+            )["mean_variance"].to_numpy()
+
+        assert (run_with(42) == run_with(42)).all()

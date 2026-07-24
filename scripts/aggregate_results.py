@@ -10,8 +10,12 @@ Emitted tables:
 - ``variant_counts_over_time.csv`` — distinct variants per year bin per method.
 - ``method_agreement_nid.csv`` — NID between each pair of assignment methods.
 - ``fitness_variance_over_time.csv`` — within-variant fitness variance over time
-  (only when a centroid history file is available; see ``--experiments-root`` /
-  ``--histories-name``).
+  from the population immune-memory centroid (only when a centroid history file
+  is available; see ``--experiments-root`` / ``--histories-name``).
+- ``host_immunity_variance_over_time.csv`` — the same quantity computed against
+  individual hosts' full immune histories instead of the centroid. Identical
+  columns, so the two are directly comparable. Opt-in via ``--host-immunity``,
+  since each run reads a ~100 MB ``out.histories.raw.csv``.
 - ``growth_rate_scores_all.csv`` — the per-run growth-rate score TSVs stacked.
 - ``scores_summary.csv`` — per-run frequency scores summarized to
   ``(model, location, lead)`` means (the raw per-point ``scores.tsv`` is far too
@@ -33,6 +37,7 @@ import concurrent.futures
 import logging
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
@@ -40,6 +45,7 @@ import pandas as pd
 
 from antigentools import variant_agreement as va
 from antigentools.analysis import POP_TOTAL_DEMES as analysis_pop_total_demes
+from antigentools.analysis import select_population_total_deme
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +56,20 @@ METHOD_COLS: tuple[str, ...] = ("variant_ag", "variant_tsne", "variant_phylo")
 # from antigentools.analysis so this and calc_variant_fitness_variance.py share one
 # definition.
 POP_TOTAL_DEMES = analysis_pop_total_demes
+
+# Per-host immune-history fitness settings. Pinned here rather than exposed as flags:
+# the point of the aggregated table is cross-run comparability, and the science
+# parameters must match scripts/calc_host_immunity_fitness.py exactly. Only the host
+# sample size and seed are tunable, since those trade runtime against Monte Carlo noise.
+HOST_IMMUNITY_DELTA_T: float = 1.0
+SMITH_CONVERSION: float = 0.07
+HOMOLOGOUS_IMMUNITY: float = 0.95
+N_VARIANT_WINDOW: float = 1.0
+HOST_WEIGHTING: str = "population"
+MAX_BLOCK_ELEMENTS: int = 8_000_000
+DEFAULT_HOST_IMMUNITY_HISTORIES: str = "out.histories.raw.csv"
+DEFAULT_HOST_IMMUNITY_N_HOSTS: int = 1000
+DEFAULT_HOST_IMMUNITY_SEED: int = 42
 
 # scores.tsv is per-forecast-point (model x location x pivot_date x lead x variant
 # x date), which concatenated across runs is far too large to commit (~GB). We
@@ -159,6 +179,7 @@ def process_run(
     experiments_root: Path | None,
     experiment: str,
     histories_name: str | None,
+    host_immunity: HostImmunityConfig,
 ) -> dict:
     """Reduce one run's outputs to tagged per-run DataFrames.
 
@@ -174,10 +195,12 @@ def process_run(
             histories, or None to skip fitness variance.
         experiment: Experiment folder name under ``experiments_root``.
         histories_name: Filename of the per-run centroid/history file, or None.
+        host_immunity: Per-host immune-history variance settings; disabled by default.
 
     Returns:
-        A dict with keys ``sim_id, config, run, counts, nid, variance, gr_scores,
-        scores, notes``. The five DataFrame slots are None when unavailable.
+        A dict with keys ``sim_id, config, run, counts, nid, variance,
+        host_variance, gr_scores, scores, notes``. The six DataFrame slots are None
+        when unavailable.
     """
     sim_id = sim_dir.name
     config, run = parse_run_identity(sim_dir)
@@ -188,6 +211,7 @@ def process_run(
         "counts": None,
         "nid": None,
         "variance": None,
+        "host_variance": None,
         "gr_scores": None,
         "scores": None,
         "notes": [],
@@ -220,6 +244,17 @@ def process_run(
                 result["notes"].append("fitness_variance skipped: no centroid history")
             else:
                 result["variance"] = _tag(variance, batch, config, run)
+
+        if experiments_root is not None and host_immunity.enabled:
+            host_variance = _compute_host_immunity_variance(
+                tips_df, experiments_root, experiment, config, run, host_immunity
+            )
+            if host_variance is None:
+                result["notes"].append(
+                    "host_immunity_variance skipped: no raw histories"
+                )
+            else:
+                result["host_variance"] = _tag(host_variance, batch, config, run)
 
     gr_path = sim_dir / "growth_rate_scores.tsv"
     if gr_path.exists():
@@ -271,6 +306,103 @@ def _summarize_scores(scores_df: pd.DataFrame) -> pd.DataFrame | None:
     return summary.reset_index()
 
 
+@dataclass(frozen=True)
+class HostImmunityConfig:
+    """Settings for the per-host immune-history fitness variance.
+
+    Off by default: each run reads a ~100 MB ``out.histories.raw.csv`` at roughly
+    0.7 GB resident, so enabling it changes the memory profile enough that ``--jobs``
+    has to come down. Passed as one object so both ``process_run`` call sites stay
+    readable.
+
+    Attributes:
+        enabled: Whether to compute it at all.
+        histories_name: Raw per-host histories filename within the run directory.
+        n_hosts: Hosts sampled per timepoint; None uses every host.
+        seed: RNG seed for host sampling.
+    """
+
+    enabled: bool
+    histories_name: str
+    n_hosts: int | None
+    seed: int
+
+
+def _run_dir(
+    experiments_root: Path, experiment: str, config: str, run: int
+) -> Path:
+    """Return the run's source directory under the antigen-experiments tree."""
+    return experiments_root / experiment / "simulations" / config / f"run_{run}"
+
+
+def _compute_host_immunity_variance(
+    tips_df: pd.DataFrame,
+    experiments_root: Path,
+    experiment: str,
+    config: str,
+    run: int,
+    host_immunity: HostImmunityConfig,
+) -> pd.DataFrame | None:
+    """Compute fitness variance from per-host immune histories, or None if unavailable.
+
+    Scores every tip against a sample of individual hosts' full immune memories rather
+    than the population centroid, then collapses to the same long schema
+    ``_compute_fitness_variance`` emits, so the two outputs are directly comparable.
+
+    Like its centroid sibling this is best-effort: a missing file or schema mismatch
+    returns None and the caller records a note.
+
+    Args:
+        tips_df: The run's tips table (has ``name, ag1, ag2, year, variant_*``).
+        experiments_root: Root of ``antigen-experiments/experiments/``.
+        experiment: Experiment folder name.
+        config: Sweep-config name.
+        run: Run number.
+        host_immunity: Sampling settings.
+
+    Returns:
+        Long DataFrame (``year, method, mean_variance, n_variants``), or None.
+    """
+    from antigentools.host_immunity import (
+        load_raw_histories,
+        risk_of_infection_over_time,
+        variance_from_risk,
+    )
+
+    history_path = (
+        _run_dir(experiments_root, experiment, config, run)
+        / host_immunity.histories_name
+    )
+    if not history_path.exists():
+        return None
+    try:
+        histories_df = load_raw_histories(history_path)
+        method_cols = [c for c in METHOD_COLS if c in tips_df.columns]
+        risk_df = risk_of_infection_over_time(
+            tips_df,
+            histories_df,
+            delta_t=HOST_IMMUNITY_DELTA_T,
+            n_hosts=host_immunity.n_hosts,
+            seed=host_immunity.seed,
+            smith_conversion=SMITH_CONVERSION,
+            homologous_immunity=HOMOLOGOUS_IMMUNITY,
+            max_block_elements=MAX_BLOCK_ELEMENTS,
+        )
+        result = variance_from_risk(
+            risk_df,
+            tips_df,
+            method_cols,
+            n_variant_window=N_VARIANT_WINDOW,
+            host_weighting=HOST_WEIGHTING,
+        )
+        return result if result is not None and not result.empty else None
+    except Exception as exc:  # noqa: BLE001 - variance is best-effort.
+        logger.debug(
+            "host immunity variance failed for %s/run_%s: %s", config, run, exc
+        )
+        return None
+
+
 def _compute_fitness_variance(
     tips_df: pd.DataFrame,
     experiments_root: Path,
@@ -300,12 +432,7 @@ def _compute_fitness_variance(
     from antigentools.analysis import calc_variance_over_time
 
     history_path = (
-        experiments_root
-        / experiment
-        / "simulations"
-        / config
-        / f"run_{run}"
-        / histories_name
+        _run_dir(experiments_root, experiment, config, run) / histories_name
     )
     if not history_path.exists():
         return None
@@ -314,14 +441,13 @@ def _compute_fitness_variance(
         if "deme" in histories_df.columns:
             # The population-total immune-memory centroid is labeled "global" in
             # these histories ("total" in the older flu-final schema).
-            demes = set(histories_df["deme"])
-            label = next((d for d in POP_TOTAL_DEMES if d in demes), None)
+            label = select_population_total_deme(histories_df)
             if label is None:
                 logger.debug(
                     "no population-total deme %s in %s (have %s)",
                     POP_TOTAL_DEMES,
                     history_path,
-                    sorted(demes),
+                    sorted(set(histories_df["deme"])),
                 )
                 return None
             histories_df = histories_df[histories_df["deme"] == label].copy()
@@ -399,6 +525,40 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         help="Log file path (default: <output-dir>/aggregate.log).",
     )
     parser.add_argument(
+        "--host-immunity",
+        action="store_true",
+        help=(
+            "Also compute fitness variance from per-host immune histories "
+            "(out.histories.raw.csv), emitting host_immunity_variance_over_time.csv. "
+            "Requires --experiments-root. Each run reads a ~100 MB file at ~0.7 GB "
+            "resident, so lower --jobs accordingly (-j 4 needs ~3 GB)."
+        ),
+    )
+    parser.add_argument(
+        "--host-immunity-histories-name",
+        default=DEFAULT_HOST_IMMUNITY_HISTORIES,
+        help=(
+            f"Raw per-host histories filename within each run directory "
+            f"(default: {DEFAULT_HOST_IMMUNITY_HISTORIES})."
+        ),
+    )
+    parser.add_argument(
+        "--host-immunity-n-hosts",
+        type=int,
+        default=DEFAULT_HOST_IMMUNITY_N_HOSTS,
+        help=(
+            f"Hosts sampled per timepoint; 0 or less uses every host "
+            f"(default: {DEFAULT_HOST_IMMUNITY_N_HOSTS}, which tracks the all-hosts "
+            f"result to well under one percent)."
+        ),
+    )
+    parser.add_argument(
+        "--host-immunity-seed",
+        type=int,
+        default=DEFAULT_HOST_IMMUNITY_SEED,
+        help=f"Host-sampling RNG seed (default: {DEFAULT_HOST_IMMUNITY_SEED}).",
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="DEBUG-level logging."
     )
     return parser.parse_args(argv)
@@ -427,6 +587,26 @@ def main(argv: Sequence[str] | None = None) -> None:
             "--histories-name)."
         )
 
+    host_immunity = HostImmunityConfig(
+        enabled=args.host_immunity and args.experiments_root is not None,
+        histories_name=args.host_immunity_histories_name,
+        n_hosts=args.host_immunity_n_hosts if args.host_immunity_n_hosts > 0 else None,
+        seed=args.host_immunity_seed,
+    )
+    if args.host_immunity and args.experiments_root is None:
+        logger.warning(
+            "--host-immunity ignored: it needs --experiments-root to locate %s.",
+            args.host_immunity_histories_name,
+        )
+    elif host_immunity.enabled:
+        logger.info(
+            "Host-immunity variance enabled (%s, n_hosts=%s, seed=%d). Each run reads "
+            "a large raw histories file; keep --jobs low.",
+            host_immunity.histories_name,
+            host_immunity.n_hosts if host_immunity.n_hosts else "all",
+            host_immunity.seed,
+        )
+
     t0 = time.monotonic()
     results: list[dict] = []
     skipped: list[tuple[str, str]] = []
@@ -436,7 +616,14 @@ def main(argv: Sequence[str] | None = None) -> None:
         note = "; ".join(res["notes"]) if res["notes"] else "ok"
         produced = [
             k
-            for k in ("counts", "nid", "variance", "gr_scores", "scores")
+            for k in (
+                "counts",
+                "nid",
+                "variance",
+                "host_variance",
+                "gr_scores",
+                "scores",
+            )
             if res[k] is not None
         ]
         if not produced:
@@ -464,6 +651,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                     args.experiments_root,
                     experiment,
                     args.histories_name,
+                    host_immunity,
                 ): sim_dir
                 for sim_dir in runs
             }
@@ -478,6 +666,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                 args.experiments_root,
                 experiment,
                 args.histories_name,
+                host_immunity,
             )
             _record(i, res)
 
@@ -496,6 +685,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         [r["variance"] for r in results if r["variance"] is not None],
         output_dir / "fitness_variance_over_time.csv",
         "fitness_variance_over_time",
+    )
+    _concat_and_write(
+        [r["host_variance"] for r in results if r["host_variance"] is not None],
+        output_dir / "host_immunity_variance_over_time.csv",
+        "host_immunity_variance_over_time",
     )
     _concat_and_write(
         [r["gr_scores"] for r in results if r["gr_scores"] is not None],

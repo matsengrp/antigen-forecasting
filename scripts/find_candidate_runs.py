@@ -19,16 +19,20 @@ Candidate thresholds (all must hold, on complete runs only):
     antigenic_movement_per_year          in [1.0, 2.0]
     trunk_epitope_to_non-epitope_ratio   >= 1.3
 
+Aggregation runs sequentially: it reduces small per-run output files, so a process
+pool would only add overhead (and cannot pickle the dynamically imported
+summarize_sims worker).
+
 Usage (run from the antigen-forecasting repo root; experiments live in a sibling
 repo):
-    python scripts/find_candidate_runs.py -j 8 \\
+    python scripts/find_candidate_runs.py \\
         --experiments-root ../antigen-experiments/experiments
 
     # Restrict to specific experiments (glob patterns, relative to the root):
     python scripts/find_candidate_runs.py 2026-07-04-reviewer-runs
 
     # Force re-aggregation even where a sim_stats.csv already exists:
-    python scripts/find_candidate_runs.py --refresh -j 8
+    python scripts/find_candidate_runs.py --refresh
 """
 
 from __future__ import annotations
@@ -128,7 +132,7 @@ def discover_experiments(experiments_root: Path, patterns: Sequence[str]) -> lis
 
 
 def resolve_experiment_sim_stats(
-    experiment: Path, summarize_sims_module, n_jobs: int, refresh: bool
+    experiment: Path, summarize_sims_module, refresh: bool
 ) -> pd.DataFrame | None:
     """Return one experiment's sim_stats, reusing or generating it as needed.
 
@@ -154,8 +158,10 @@ def resolve_experiment_sim_stats(
 
     logger.info("Aggregating %s -> %s", experiment.name, sim_stats_path)
     try:
+        # n_jobs=1: summarize_sims' sequential path avoids a ProcessPoolExecutor,
+        # which cannot pickle this dynamically imported module's worker function.
         df = summarize_sims_module.summarize_sims(
-            str(experiment), output_path=str(sim_stats_path), n_jobs=n_jobs
+            str(experiment), output_path=str(sim_stats_path), n_jobs=1
         )
     except summarize_sims_module.BranchSchemaError as error:
         # Legacy experiments predate the current antigen-prime `.branches` schema,
@@ -177,7 +183,6 @@ def resolve_experiment_sim_stats(
 def build_sim_stats(
     experiments: Sequence[Path],
     summarize_sims_module,
-    n_jobs: int,
     refresh: bool,
 ) -> pd.DataFrame:
     """Combine per-experiment sim_stats into one canonical-layout DataFrame.
@@ -189,9 +194,7 @@ def build_sim_stats(
     """
     frames: list[pd.DataFrame] = []
     for experiment in experiments:
-        df = resolve_experiment_sim_stats(
-            experiment, summarize_sims_module, n_jobs, refresh
-        )
+        df = resolve_experiment_sim_stats(experiment, summarize_sims_module, refresh)
         if df is not None:
             frames.append(df)
 
@@ -329,13 +332,6 @@ def main(argv: Sequence[str] | None = None) -> None:
         ),
     )
     parser.add_argument(
-        "-j",
-        "--jobs",
-        type=int,
-        default=1,
-        help="Parallel workers passed to summarize_sims (-1 uses all CPUs).",
-    )
-    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -357,9 +353,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         )
     logger.info("Found %d experiment director(ies).", len(experiments))
 
-    sim_stats = build_sim_stats(
-        experiments, summarize_sims_module, args.jobs, args.refresh
-    )
+    sim_stats = build_sim_stats(experiments, summarize_sims_module, args.refresh)
     sim_stats.to_csv(args.sim_stats_output, index=False)
     logger.info("Wrote %d rows to %s.", len(sim_stats), args.sim_stats_output)
 

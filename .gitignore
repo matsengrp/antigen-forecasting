@@ -70,6 +70,10 @@ data/**/tips_with_variants.tsv
 # Defunct raw per-point scores concatenation (too large to commit; superseded by
 # scores_summary.csv from scripts/aggregate_results.py).
 results/aggregated/**/scores_all.csv
+# Timestamped SLURM staging dirs written by run_all_simulations.py and
+# submit_aggregation.sh; regenerated on every submission.
+results/**/slurm_submission_*/
+results/**/aggregation_submission_*/
 
 # Local working specs/notes (not committed docs).
 specs/

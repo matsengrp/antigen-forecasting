@@ -105,7 +105,8 @@ cat > "$SBATCH_SCRIPT" <<EOF
 
 set -euo pipefail
 
-source activate ${CONDA_ENV}
+mamba activate ${CONDA_ENV}
+
 cd "${PROJECT_ROOT}"
 
 # Aggregation parallelism is process-level (-j); keep each worker's BLAS

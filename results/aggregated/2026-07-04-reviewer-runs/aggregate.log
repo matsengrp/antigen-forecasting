@@ -1,77 +1,181 @@
-2026-07-24 11:40:34 - INFO - Aggregating batch 2026-07-04-reviewer-runs: 51 run(s) discovered, -j=8, output -> results/aggregated/2026-07-04-reviewer-runs
-2026-07-24 11:40:35 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
-2026-07-24 11:40:35 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:35 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:36 - INFO - [1/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_0 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [2/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_12 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [3/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_17 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [4/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_16 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [5/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_11 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [6/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_10 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [7/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_15 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
-2026-07-24 11:40:36 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
-2026-07-24 11:40:36 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:36 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:36 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:36 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:36 - INFO - [8/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_14 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [9/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_18 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [10/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_2 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [11/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_19 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [12/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_20 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [13/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_21 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:36 - INFO - [14/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_22 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:37 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
-2026-07-24 11:40:37 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:37 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:37 - INFO - [15/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_26 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:37 - INFO - [16/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_24 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:37 - INFO - [17/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_23 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:37 - INFO - [18/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_27 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:37 - INFO - [19/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_3 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:37 - INFO - [20/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_29 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:38 - INFO - [21/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_28 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:38 - INFO - [22/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_4 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:38 - INFO - [23/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_9 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:38 - INFO - [24/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_6 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:38 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
-2026-07-24 11:40:38 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:38 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:39 - INFO - [25/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_1.0__run_18 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:39 - INFO - [26/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_7 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:39 - INFO - [27/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_1.0__run_15 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:39 - INFO - [28/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_0 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:39 - INFO - [29/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_15 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:39 - INFO - [30/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_1 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:40 - INFO - [31/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_10 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:40 - INFO - [32/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_13 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:40 - INFO - [33/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_12 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:40 - INFO - [34/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_11 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:40 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
-2026-07-24 11:40:40 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:40 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
-2026-07-24 11:40:40 - INFO - [35/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_14 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [36/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_17 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [37/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_23 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [38/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_16 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [39/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_28 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [40/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_20 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [41/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_18 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [42/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_4 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [43/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_2 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [44/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_22 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:41 - INFO - [45/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_6 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - [46/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_8 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - [47/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_29 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - [48/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0__run_11 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - [49/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_5 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - [50/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0__run_17 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - [51/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0__run_3 -> ok [counts,nid,variance,gr_scores,scores]
-2026-07-24 11:40:42 - INFO - Writing aggregated tables to results/aggregated/2026-07-04-reviewer-runs
-2026-07-24 11:40:42 - INFO -   variant_counts_over_time: wrote 4488 rows -> results/aggregated/2026-07-04-reviewer-runs/variant_counts_over_time.csv
-2026-07-24 11:40:42 - INFO -   method_agreement_nid: wrote 141 rows -> results/aggregated/2026-07-04-reviewer-runs/method_agreement_nid.csv
-2026-07-24 11:40:42 - INFO -   fitness_variance_over_time: wrote 4590 rows -> results/aggregated/2026-07-04-reviewer-runs/fitness_variance_over_time.csv
-2026-07-24 11:40:42 - INFO -   growth_rate_scores_all: wrote 13263 rows -> results/aggregated/2026-07-04-reviewer-runs/growth_rate_scores_all.csv
-2026-07-24 11:40:43 - INFO -   scores_summary: wrote 55660 rows -> results/aggregated/2026-07-04-reviewer-runs/scores_summary.csv
-2026-07-24 11:40:43 - INFO - Done: 51 processed, 0 skipped, 8.4s elapsed.
+2026-07-24 17:12:31 - INFO - Aggregating batch 2026-07-04-reviewer-runs: 51 run(s) discovered, -j=8, output -> results/aggregated/2026-07-04-reviewer-runs
+2026-07-24 17:12:31 - INFO - Host-immunity variance enabled (out.histories.raw.csv, n_hosts=1000, seed=42). Each run reads a large raw histories file; keep --jobs low.
+2026-07-24 17:12:32 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
+2026-07-24 17:12:32 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:32 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:34 - INFO - Read 2211652 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_0/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:34 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:34 - INFO - Read 2187351 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_17/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:34 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:34 - INFO - Read 2080526 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_15/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:34 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:34 - INFO - Read 1737475 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_10/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:34 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:34 - INFO - Read 2093888 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_11/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:34 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:34 - INFO - Read 2382577 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_14/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:34 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:34 - INFO - [1/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_0 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:12:35 - INFO - [2/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_17 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:12:35 - INFO - Read 2298479 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_16/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:35 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:35 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
+2026-07-24 17:12:35 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:35 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:35 - INFO - Read 3201253 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_12/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:35 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:36 - INFO - [3/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_12 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:12:37 - INFO - Read 2281740 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_18/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:37 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:37 - INFO - Read 1908848 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_19/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:37 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:39 - INFO - Read 2011425 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_2/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:39 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:47 - INFO - [4/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_10 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:47 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
+2026-07-24 17:12:47 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:47 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:48 - INFO - [5/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_15 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:48 - INFO - Read 1843817 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_20/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:48 - INFO - [6/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_14 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:48 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:49 - INFO - [7/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_11 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:50 - INFO - [8/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_16 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:50 - INFO - [9/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_19 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:50 - INFO - Read 2392211 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_21/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:50 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:51 - INFO - Read 2019832 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_22/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:51 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:51 - INFO - [10/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_18 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:52 - INFO - Read 2069475 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_24/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:52 - INFO - Read 2375774 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_23/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:52 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:52 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:52 - INFO - Read 1900921 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_26/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:52 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:52 - INFO - [11/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_2 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:12:53 - INFO - Read 2096814 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_27/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:53 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
+2026-07-24 17:12:53 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:53 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
+2026-07-24 17:12:53 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:12:55 - INFO - Read 2198161 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_28/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:12:55 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:00 - INFO - [12/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_20 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:03 - INFO - Read 2198900 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_29/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:03 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:03 - INFO - [13/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_22 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:03 - INFO - [14/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_24 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:05 - INFO - [15/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_21 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:05 - INFO - [16/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_26 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:05 - INFO - [17/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_23 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:05 - INFO - Read 1857395 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_3/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:05 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:06 - INFO - [18/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_27 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:06 - INFO - Read 2172190 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_4/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:06 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:07 - INFO - Read 1893032 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_6/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:07 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:08 - INFO - Read 2147051 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_9/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:08 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:08 - INFO - Read 2151391 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75/run_7/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:08 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:08 - INFO - [19/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_6 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:13:08 - INFO - [20/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_28 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:08 - INFO - Read 2435670 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_1.0/run_15/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:08 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:11 - INFO - Read 2031452 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_0/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:11 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:11 - INFO - Read 2346039 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.25_epitopeAcceptance_1.0/run_18/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:11 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:15 - INFO - [21/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_29 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:16 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
+2026-07-24 17:13:16 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
+2026-07-24 17:13:16 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
+2026-07-24 17:13:17 - INFO - [22/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_3 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:18 - INFO - Read 1991110 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_1/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:18 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:18 - INFO - [23/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_4 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:20 - INFO - Read 2341640 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_10/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:20 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:20 - INFO - [24/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_9 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:21 - INFO - Read 2276184 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_11/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:21 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:22 - INFO - Read 1924844 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_12/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:22 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:22 - INFO - [25/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75__run_7 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:23 - INFO - [26/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_1.0__run_15 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:23 - INFO - [27/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_0 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:25 - INFO - Read 2159498 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_14/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:25 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:25 - INFO - Read 1807025 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_13/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:25 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:26 - INFO - [28/51] nonEpitopeAcceptance_0.25_epitopeAcceptance_1.0__run_18 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:26 - INFO - [29/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_14 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:13:26 - INFO - Read 1940797 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_15/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:26 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:28 - INFO - Read 2425174 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_16/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:28 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:28 - INFO - Read 2255583 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_17/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:28 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:29 - INFO - [30/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_16 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:13:29 - INFO - [31/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_1 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:30 - WARNING - Skipping variant counts for missing/empty column: variant_phylo
+2026-07-24 17:13:30 - WARNING - Skipping NID for variant_ag vs variant_phylo: no rows with both labels present
+2026-07-24 17:13:30 - WARNING - Skipping NID for variant_tsne vs variant_phylo: no rows with both labels present
+2026-07-24 17:13:32 - INFO - Read 1980917 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_18/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:32 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:32 - INFO - Read 1922921 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_2/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:32 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:33 - INFO - [32/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_11 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:34 - INFO - [33/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_12 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:34 - INFO - [34/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_10 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:35 - INFO - Read 1662124 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_20/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:35 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:36 - INFO - [35/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_13 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:37 - INFO - Read 2090297 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_23/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:37 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:37 - INFO - Read 2029994 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_22/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:37 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:37 - INFO - [36/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_15 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:37 - INFO - [37/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_23 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:13:39 - INFO - Read 2412684 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_28/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:39 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:40 - INFO - Read 1919265 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_29/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:40 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:40 - INFO - Read 2257528 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_4/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:40 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:41 - INFO - [38/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_17 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:42 - INFO - Read 1706478 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_5/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:42 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:43 - INFO - [39/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_18 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:44 - INFO - [40/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_2 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:45 - INFO - [41/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_20 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:45 - INFO - Read 2067467 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_6/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:46 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:47 - INFO - Read 1760578 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75/run_8/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:47 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:48 - INFO - Read 2363813 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0/run_11/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:48 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:49 - INFO - [42/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_22 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:51 - INFO - [43/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_29 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:52 - INFO - [44/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_28 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:52 - INFO - Read 2846263 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0/run_17/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:52 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:53 - INFO - [45/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_4 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:53 - INFO - [46/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0__run_17 -> ok [counts,nid,variance,gr_scores,scores] (host_immunity_variance skipped: no raw histories)
+2026-07-24 17:13:53 - INFO - [47/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_5 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:54 - INFO - Read 2423780 raw history rows from ../antigen-experiments/experiments/2026-07-04-reviewer-runs/simulations/nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0/run_3/out.histories.raw.csv (30 timepoints).
+2026-07-24 17:13:54 - INFO - Selected 30 of 30 timepoints at delta_t=1.0 (native spacing 1.0).
+2026-07-24 17:13:58 - INFO - [48/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_8 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:13:58 - INFO - [49/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_0.75__run_6 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:14:01 - INFO - [50/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0__run_11 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:14:07 - INFO - [51/51] nonEpitopeAcceptance_0.2_epitopeAcceptance_1.0__run_3 -> ok [counts,nid,variance,host_variance,gr_scores,scores]
+2026-07-24 17:14:07 - INFO - Writing aggregated tables to results/aggregated/2026-07-04-reviewer-runs
+2026-07-24 17:14:07 - INFO -   variant_counts_over_time: wrote 4488 rows -> results/aggregated/2026-07-04-reviewer-runs/variant_counts_over_time.csv
+2026-07-24 17:14:07 - INFO -   method_agreement_nid: wrote 141 rows -> results/aggregated/2026-07-04-reviewer-runs/method_agreement_nid.csv
+2026-07-24 17:14:07 - INFO -   fitness_variance_over_time: wrote 4590 rows -> results/aggregated/2026-07-04-reviewer-runs/fitness_variance_over_time.csv
+2026-07-24 17:14:07 - INFO -   host_immunity_variance_over_time: wrote 3870 rows -> results/aggregated/2026-07-04-reviewer-runs/host_immunity_variance_over_time.csv
+2026-07-24 17:14:07 - INFO -   growth_rate_scores_all: wrote 13263 rows -> results/aggregated/2026-07-04-reviewer-runs/growth_rate_scores_all.csv
+2026-07-24 17:14:07 - INFO -   scores_summary: wrote 55660 rows -> results/aggregated/2026-07-04-reviewer-runs/scores_summary.csv
+2026-07-24 17:14:07 - INFO - Done: 51 processed, 0 skipped, 96.8s elapsed.

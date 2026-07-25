@@ -105,7 +105,14 @@ cat > "$SBATCH_SCRIPT" <<EOF
 
 set -euo pipefail
 
+# sbatch runs non-interactively, so the rc file that defines the mamba shell
+# function is never sourced; load the hook explicitly first. set -u must be off
+# while activating: conda-forge compiler packages ship activate.d hooks that
+# reference unset variables and would abort the job under set -euo pipefail.
+set +u
+eval "\$("\${MAMBA_EXE:-mamba}" shell hook --shell bash)"
 mamba activate ${CONDA_ENV}
+set -u
 
 cd "${PROJECT_ROOT}"
 

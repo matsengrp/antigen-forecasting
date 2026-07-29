@@ -17,8 +17,12 @@
 # Figure rendering is a SEPARATE, local step (scripts/render_figures.sh), run
 # where the ../antigen-tex paper repo is checked out — not part of this driver.
 #
+# Stage 1 re-aggregates sim_stats from the live simulations/ tree by default
+# (--refresh) so candidate screening never misses a newly finished sim; pass
+# --no-refresh to reuse the cached sim_stats.csv when nothing new has completed.
+#
 # Usage:
-#   scripts/reproduce_batch.sh <experiment> [max_concurrent] [--host-immunity] [--submit]
+#   scripts/reproduce_batch.sh <experiment> [max_concurrent] [--host-immunity] [--no-refresh] [--submit]
 #
 # Examples:
 #   scripts/reproduce_batch.sh 2026-07-04-reviewer-runs
@@ -52,10 +56,16 @@ SLURM_CONFIG="$REPO_ROOT/configs/slurm_config.yaml"
 MAX_CONCURRENT=""
 HOST_IMMUNITY=""
 SUBMIT=""
+# Candidate screening reuses a cached sim_stats.csv unless refreshed, so by
+# default we re-aggregate it from the live simulations/ tree; otherwise newly
+# finished sims are silently missed from candidate_runs.csv. Pass --no-refresh
+# to reuse the cache when you know no new sims have completed.
+REFRESH="--refresh"
 for arg in "$@"; do
     case "$arg" in
         --host-immunity) HOST_IMMUNITY="--host-immunity" ;;
         --submit) SUBMIT=1 ;;
+        --no-refresh) REFRESH="" ;;
         ''|*[!0-9]*) echo "Unrecognized argument: $arg" >&2; exit 1 ;;
         *) MAX_CONCURRENT="$arg" ;;
     esac
@@ -64,9 +74,9 @@ done
 # Run from the repo root so relative paths inside the subscripts resolve.
 cd "$REPO_ROOT"
 
-echo "==> Stage 1/3: find candidate runs"
+echo "==> Stage 1/3: find candidate runs${REFRESH:+ (refreshing sim_stats from the live tree)}"
 python scripts/find_candidate_runs.py "$EXPERIMENT" -j 8 \
-    --experiments-root "$EXPERIMENTS_ROOT"
+    --experiments-root "$EXPERIMENTS_ROOT" ${REFRESH:+$REFRESH}
 
 echo
 echo "==> Stage 2/3: stage per-run pipeline array (skips already-complete runs)"

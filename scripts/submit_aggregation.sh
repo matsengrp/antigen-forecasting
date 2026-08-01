@@ -106,11 +106,12 @@ cat > "$SBATCH_SCRIPT" <<EOF
 set -euo pipefail
 
 # sbatch runs non-interactively, so neither mamba's shell function nor conda's
-# base bin/ is on PATH (`mamba activate` needs `mamba init`; `source activate`
-# fails with "activate: No such file"). Source conda's profile explicitly from
-# the configured base, then `conda activate`. set -u must be off while
-# activating: conda-forge activate.d hooks reference unset variables and would
-# abort the job under set -euo pipefail.
+# base bin/ is on PATH (mamba activate needs mamba init; source activate fails
+# with "activate: No such file"). Source conda's profile explicitly from the
+# configured base, then conda activate. NOTE: no backticks in this heredoc --
+# the delimiter is unquoted (variables must expand) so backticks would run as
+# commands at staging. set -u must be off while activating: conda-forge
+# activate.d hooks reference unset variables and would abort under set -e.
 set +u
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
 conda activate ${CONDA_ENV}

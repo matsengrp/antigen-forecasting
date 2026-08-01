@@ -13,6 +13,11 @@ slurm:
   cpus_per_task: 16
   max_concurrent: 20  # max simultaneous array tasks (%N suffix in --array)
   conda_env: antigen
+  # Conda/mamba base install that contains etc/profile.d/conda.sh. Non-interactive
+  # SLURM jobs have neither mamba's shell function nor conda's bin/ on PATH, so the
+  # aggregation sbatch sources this explicitly before `conda activate`. Update to
+  # your own base, e.g. /home/<yourname>/miniforge3.
+  conda_base: /home/zthornto/miniforge3
   log_dir: logs/slurm/  # relative to project_root; created automatically by SLURM
   # Absolute path to the antigen-forecasting repo on the cluster.
   # Update this to match your own cluster home directory before submitting jobs,

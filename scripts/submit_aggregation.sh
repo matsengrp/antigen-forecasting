@@ -67,14 +67,14 @@ fi
 # Pull only the cluster-identity keys from the shared config. Fail loudly on a
 # missing key rather than silently substituting a default that points at someone
 # else's filesystem.
-read -r PARTITION CONDA_ENV PROJECT_ROOT LOG_DIR PYTHON_BIN <<EOF
+read -r PARTITION CONDA_ENV PROJECT_ROOT LOG_DIR PYTHON_BIN CONDA_BASE <<EOF
 $(python - "$SLURM_CONFIG" <<'PY'
 import sys
 import yaml
 
 with open(sys.argv[1]) as handle:
     cfg = yaml.safe_load(handle)["slurm"]
-required = ("partition", "conda_env", "project_root", "log_dir", "python_bin")
+required = ("partition", "conda_env", "project_root", "log_dir", "python_bin", "conda_base")
 missing = [k for k in required if k not in cfg]
 if missing:
     sys.exit(f"slurm_config.yaml missing required key(s): {missing}")
@@ -105,14 +105,15 @@ cat > "$SBATCH_SCRIPT" <<EOF
 
 set -euo pipefail
 
-# sbatch runs non-interactively, so mamba's shell function is never defined
-# (`mamba activate` errors with "Run 'mamba init'..."). Use `source activate`,
-# the same method the per-run pipeline array (run_all_simulations.py) uses and
-# which activates reliably on this cluster. set -u must be off while activating:
-# conda-forge compiler packages ship activate.d hooks that reference unset
-# variables and would abort the job under set -euo pipefail.
+# sbatch runs non-interactively, so neither mamba's shell function nor conda's
+# base bin/ is on PATH (`mamba activate` needs `mamba init`; `source activate`
+# fails with "activate: No such file"). Source conda's profile explicitly from
+# the configured base, then `conda activate`. set -u must be off while
+# activating: conda-forge activate.d hooks reference unset variables and would
+# abort the job under set -euo pipefail.
 set +u
-source activate ${CONDA_ENV}
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
+conda activate ${CONDA_ENV}
 set -u
 
 cd "${PROJECT_ROOT}"

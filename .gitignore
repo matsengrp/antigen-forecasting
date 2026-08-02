@@ -78,4 +78,4 @@ results/**/aggregation_submission_*/
 # Local working specs/notes (not committed docs).
 specs/
 # Final figures are written to ../antigen-tex/figures/<batch>/, not committed here.
-figures/
+figures//browse_candidate_runs.pdf

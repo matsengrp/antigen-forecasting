@@ -78,4 +78,24 @@ results/**/aggregation_submission_*/
 # Local working specs/notes (not committed docs).
 specs/
 # Final figures are written to ../antigen-tex/figures/<batch>/, not committed here.
-figures//browse_candidate_runs.pdf
+figures/
+# Regenerable candidate-run browser PDFs (scripts/browse_candidate_runs.py); large
+# and reproducible on demand, so kept out of git wherever they land.
+browse_candidate_runs*.pdf
+
+# Per-run sweep scratch (HPC). The pipeline writes a data tree and scoring artifacts
+# for every run of every config; only the aggregated CSVs (results/aggregated/) and
+# the per-run variant_growth_rates.tsv are committed. Everything else is regenerable
+# pipeline output and stays out of git. Per-run data trees (all configs):
+data/**/*__run_*/
+# Per-run scoring artifacts (filename-scoped so the tracked variant_growth_rates.tsv
+# is never masked):
+results/**/*__run_*/scores.tsv
+results/**/*__run_*/growth_rate_scores.tsv
+results/**/*__run_*/vi_convergence_diagnostics.tsv
+results/**/*__run_*/pipeline.log
+results/**/*__run_*/benchmark_config.yaml
+# Smoke-test scratch and SLURM logs.
+data/smoke-test/
+results/smoke-test/
+logs/

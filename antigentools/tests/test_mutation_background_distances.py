@@ -238,3 +238,141 @@ class TestLoadTipAntigenic:
         path.write_text("name,ag1,ag2\na,1.0,2.0\n")  # no epitopeMutationCount.
         with pytest.raises(AssertionError):
             mbd.load_tip_antigenic(path)
+
+
+class TestSubtreeIntervals:
+    def _recon(self, mbd):
+        """root -> a -> g, with b a second child of root (so b and a are siblings)."""
+        genes = _two_gene_layout(mbd, 3, 2)
+        nodes = {
+            "root": mbd.Node("root", ["a", "b"], None, []),
+            "a": mbd.Node("a", ["g"], "root", []),
+            "g": mbd.Node("g", [], "a", []),
+            "b": mbd.Node("b", [], "root", []),
+        }
+        return mbd.Reconstruction(
+            nodes=nodes, root="root", genes=genes, total_aa_length=5
+        )
+
+    def test_labels_every_node(self, mbd):
+        intervals = mbd.label_subtree_intervals(self._recon(mbd))
+        assert set(intervals) == {"root", "a", "g", "b"}
+
+    def test_descendant_ancestor_and_unrelated(self, mbd):
+        intervals = mbd.label_subtree_intervals(self._recon(mbd))
+        # g sits below a, which sits below root.
+        assert mbd.is_strict_descendant(intervals, "g", "a")
+        assert mbd.is_strict_descendant(intervals, "g", "root")
+        assert mbd.is_strict_descendant(intervals, "a", "root")
+        # The relation is directional, and siblings are unrelated either way.
+        assert not mbd.is_strict_descendant(intervals, "a", "g")
+        assert not mbd.is_strict_descendant(intervals, "b", "a")
+        assert not mbd.is_strict_descendant(intervals, "a", "b")
+
+    def test_node_is_not_its_own_descendant(self, mbd):
+        intervals = mbd.label_subtree_intervals(self._recon(mbd))
+        for name in ("root", "a", "g", "b"):
+            assert not mbd.is_strict_descendant(intervals, name, name)
+
+    def test_detects_disconnected_tree(self, mbd):
+        recon = self._recon(mbd)
+        # An orphan unreachable from the root must be caught rather than ignored.
+        recon.nodes["orphan"] = mbd.Node("orphan", [], None, [])
+        with pytest.raises(AssertionError):
+            mbd.label_subtree_intervals(recon)
+
+
+class TestReversions:
+    def _recon(self, mbd):
+        """A tree holding one true lineage cycle and one sibling-only reversal.
+
+        HA1 site 1: A->C on ``a`` and C->A on ``g``, which is strictly below ``a``,
+        so this is a genuine gain-then-loss along one lineage. HA2 site 1: M->V on
+        ``b`` and V->M on ``c``, which are siblings, so the reverse exists on the
+        tree but never below its forward origin.
+        """
+        genes = _two_gene_layout(mbd, 3, 2)
+        nodes = {
+            "root": mbd.Node("root", ["a", "b", "c"], None, []),
+            "a": mbd.Node("a", ["g"], "root", [("HA1", 1, "A", "C")]),
+            "g": mbd.Node("g", [], "a", [("HA1", 1, "C", "A")]),
+            "b": mbd.Node("b", [], "root", [("HA2", 1, "M", "V")]),
+            "c": mbd.Node("c", [], "root", [("HA2", 1, "V", "M")]),
+        }
+        return mbd.Reconstruction(
+            nodes=nodes, root="root", genes=genes, total_aa_length=5
+        )
+
+    def test_finds_only_the_lineage_cycle(self, mbd):
+        recon = self._recon(mbd)
+        pairs = mbd.find_reversion_pairs(recon, mbd.index_origins(recon))
+        assert pairs == [(("HA1", 1, "A", "C"), "a", "g")]
+
+    def test_sibling_reversal_counts_only_toward_upper_bound(self, mbd):
+        recon = self._recon(mbd)
+        counts = mbd.summarize_reversions(recon, mbd.index_origins(recon), {1})
+        # All four substitutions have their reverse somewhere on the tree.
+        assert counts["n_reverse_anywhere_epitope"] == 2  # HA1:A1C and HA1:C1A.
+        assert counts["n_reverse_anywhere_non_epitope"] == 2  # HA2:M1V and HA2:V1M.
+        # Only the HA1 forward origin has its reverse strictly below it.
+        assert counts["n_lineage_cycle_epitope"] == 1
+        assert counts["n_lineage_cycle_non_epitope"] == 0
+        assert counts["n_lineage_cycle_origin_pairs"] == 1
+
+    def test_directed_and_unordered_counts_differ(self, mbd):
+        recon = self._recon(mbd)
+        counts = mbd.summarize_reversions(recon, mbd.index_origins(recon), {1})
+        # Four directed substitutions have a reverse, but they are only two
+        # distinct reversible pairs: HA1 {A1C, C1A} and HA2 {M1V, V1M}. Quoting a
+        # directed count against an unordered denominator would double the rate.
+        directed = (
+            counts["n_reverse_anywhere_epitope"]
+            + counts["n_reverse_anywhere_non_epitope"]
+        )
+        assert directed == 4
+        assert counts["n_reverse_anywhere_unordered_pairs"] == 2
+        # Only HA1:A1C cycles, so one directed key and one unordered pair.
+        assert counts["n_lineage_cycle_unordered_pairs"] == 1
+
+    def test_epitope_split_is_ha1_only(self, mbd):
+        recon = self._recon(mbd)
+        origins = mbd.index_origins(recon)
+        # HA2 site 1 must not be called an epitope just because 1 is an epitope
+        # site in HA1 numbering.
+        counts = mbd.summarize_reversions(recon, origins, {1})
+        assert counts["n_reverse_anywhere_non_epitope"] == 2
+        # With no epitope sites configured, every substitution is non-epitope.
+        counts = mbd.summarize_reversions(recon, origins, set())
+        assert counts["n_reverse_anywhere_epitope"] == 0
+        assert counts["n_reverse_anywhere_non_epitope"] == 4
+        assert counts["n_lineage_cycle_epitope"] == 0
+        assert counts["n_lineage_cycle_non_epitope"] == 1
+
+    def test_counts_reverse_further_down_the_lineage(self, mbd):
+        genes = _two_gene_layout(mbd, 3, 2)
+        nodes = {
+            "root": mbd.Node("root", ["a"], None, [("HA1", 1, "A", "C")]),
+            "a": mbd.Node("a", ["g"], "root", []),
+            "g": mbd.Node("g", [], "a", [("HA1", 1, "C", "A")]),
+        }
+        recon = mbd.Reconstruction(
+            nodes=nodes, root="root", genes=genes, total_aa_length=5
+        )
+        pairs = mbd.find_reversion_pairs(recon, mbd.index_origins(recon))
+        # The reverse is two branches below the forward origin, not adjacent.
+        assert pairs == [(("HA1", 1, "A", "C"), "root", "g")]
+
+    def test_no_reverse_gives_zero_counts(self, mbd):
+        genes = _two_gene_layout(mbd, 3, 2)
+        nodes = {
+            "root": mbd.Node("root", ["a"], None, []),
+            "a": mbd.Node("a", ["g"], "root", [("HA1", 1, "A", "C")]),
+            "g": mbd.Node("g", [], "a", [("HA2", 1, "M", "V")]),
+        }
+        recon = mbd.Reconstruction(
+            nodes=nodes, root="root", genes=genes, total_aa_length=5
+        )
+        origins = mbd.index_origins(recon)
+        assert mbd.find_reversion_pairs(recon, origins) == []
+        counts = mbd.summarize_reversions(recon, origins, {1})
+        assert set(counts.values()) == {0}

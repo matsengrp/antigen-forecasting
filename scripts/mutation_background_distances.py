@@ -55,6 +55,13 @@ REFERENCE_TIP = "seq0"
 # Number of HA1 residues; epitope sites are defined in HA1 numbering.
 HA1_LENGTH = 345
 
+# Origins whose descendant clades are sampled within this many years of each
+# other are treated as near-simultaneous: the signature of one real mutation
+# split across nearby branches by phylogenetic inference rather than a genuine
+# second independent origin. Defined here rather than in the plotting script so
+# the tables and the figures cannot drift apart on what "near-simultaneous" means.
+NEAR_SIMULTANEOUS_YEARS = 0.05
+
 
 @dataclass
 class Node:
@@ -325,6 +332,142 @@ def index_origins(
     return origins
 
 
+def is_epitope_mutation(gene: str, position: int, epitope_sites: set[int]) -> bool:
+    """Report whether a mutation falls at an epitope site.
+
+    Epitope sites are defined in HA1 numbering, so only HA1 positions qualify.
+    """
+    return gene == "HA1" and position in epitope_sites
+
+
+def label_subtree_intervals(recon: Reconstruction) -> dict[str, tuple[int, int]]:
+    """Label every node with the pre-order interval spanned by its subtree.
+
+    Node ``a`` is a strict descendant of node ``b`` exactly when
+    ``enter[b] < enter[a] <= exit[b]``, which turns an ancestry test into two
+    integer comparisons instead of a walk up the tree. The traversal is iterative
+    because simulated trees are deep enough to exhaust the recursion limit.
+    """
+    intervals: dict[str, tuple[int, int]] = {}
+    entered: dict[str, int] = {}
+    counter = 0
+    # Each entry is (node name, whether its children have already been queued).
+    stack: list[tuple[str, bool]] = [(recon.root, False)]
+    while stack:
+        name, expanded = stack.pop()
+        if expanded:
+            # Every descendant has been entered by now, so the last number handed
+            # out is the high end of this subtree's interval.
+            intervals[name] = (entered[name], counter - 1)
+            continue
+        entered[name] = counter
+        counter += 1
+        stack.append((name, True))
+        for child in reversed(recon.nodes[name].children):
+            stack.append((child, False))
+    assert len(intervals) == len(recon.nodes), (
+        f"labelled {len(intervals)} nodes but the tree holds {len(recon.nodes)}; "
+        "the tree is not fully connected to its root"
+    )
+    return intervals
+
+
+def is_strict_descendant(
+    intervals: dict[str, tuple[int, int]], candidate: str, ancestor: str
+) -> bool:
+    """Report whether ``candidate`` lies strictly below ``ancestor``."""
+    candidate_enter, _ = intervals[candidate]
+    ancestor_enter, ancestor_exit = intervals[ancestor]
+    return ancestor_enter < candidate_enter <= ancestor_exit
+
+
+def find_reversion_pairs(
+    recon: Reconstruction,
+    origins: dict[tuple[str, int, str, str], list[str]],
+) -> list[tuple[tuple[str, int, str, str], str, str]]:
+    """Find every gain-then-loss of the same substitution along a single lineage.
+
+    Returns ``(substitution, forward origin, reverse origin)`` triples where the
+    reverse substitution arises on a branch strictly below the branch carrying the
+    forward substitution. This is the case Reviewer 1 raised: because
+    ``antigen-prime`` draws a fresh antigenic vector per mutation event, acquiring
+    a mutation and then losing it does not return the virus to its starting
+    antigenic position. Reverse substitutions that merely occur somewhere else on
+    the tree are a weaker, more common pattern and are counted separately by
+    :func:`summarize_reversions`.
+    """
+    intervals = label_subtree_intervals(recon)
+    pairs: list[tuple[tuple[str, int, str, str], str, str]] = []
+    for substitution, forward_nodes in origins.items():
+        gene, position, from_aa, to_aa = substitution
+        reverse_nodes = origins.get((gene, position, to_aa, from_aa))
+        if reverse_nodes is None:
+            continue
+        for forward in forward_nodes:
+            for reverse in reverse_nodes:
+                if is_strict_descendant(intervals, reverse, forward):
+                    pairs.append((substitution, forward, reverse))
+    return pairs
+
+
+def summarize_reversions(
+    recon: Reconstruction,
+    origins: dict[tuple[str, int, str, str], list[str]],
+    epitope_sites: set[int],
+) -> dict[str, int]:
+    """Count reversions two ways, split by site class.
+
+    ``reverse_anywhere`` counts substitutions whose exact reverse occurs anywhere
+    on the tree, which is an upper bound. ``lineage_cycle`` counts only those with
+    a reverse origin strictly below a forward origin, which is the actual
+    acquire-then-lose case.
+
+    Counts are reported both *directed* and *unordered*, because they differ and
+    the distinction is easy to misquote. A substitution and its reverse are two
+    directed keys but one unordered pair, so on ``flu-final`` the 54 directed
+    reverse-present substitutions are 27 distinct reversible pairs. Directed
+    counts share a denominator with the directed substitution total; unordered
+    counts do not, so mixing them would overstate the rate twofold.
+    """
+    pairs = find_reversion_pairs(recon, origins)
+    cycle_substitutions = {substitution for substitution, _, _ in pairs}
+
+    def unordered(keys: set[tuple[str, int, str, str]]) -> int:
+        return len(
+            {
+                frozenset(
+                    [(gene, position, from_aa, to_aa), (gene, position, to_aa, from_aa)]
+                )
+                for gene, position, from_aa, to_aa in keys
+            }
+        )
+
+    reverse_present = {
+        key for key in origins if (key[0], key[1], key[3], key[2]) in origins
+    }
+    counts = {
+        "n_reverse_anywhere_epitope": 0,
+        "n_reverse_anywhere_non_epitope": 0,
+        "n_lineage_cycle_epitope": 0,
+        "n_lineage_cycle_non_epitope": 0,
+        "n_reverse_anywhere_unordered_pairs": unordered(reverse_present),
+        "n_lineage_cycle_unordered_pairs": unordered(cycle_substitutions),
+        "n_lineage_cycle_origin_pairs": len(pairs),
+    }
+    for substitution in origins:
+        gene, position, from_aa, to_aa = substitution
+        if (gene, position, to_aa, from_aa) not in origins:
+            continue
+        if is_epitope_mutation(gene, position, epitope_sites):
+            suffix = "epitope"
+        else:
+            suffix = "non_epitope"
+        counts[f"n_reverse_anywhere_{suffix}"] += 1
+        if substitution in cycle_substitutions:
+            counts[f"n_lineage_cycle_{suffix}"] += 1
+    return counts
+
+
 def filter_origins_by_progeny(
     recon: Reconstruction,
     origins: dict[tuple[str, int, str, str], list[str]],
@@ -346,10 +489,14 @@ def filter_origins_by_progeny(
     return filtered
 
 
-def mean_pairwise_background_distance(
+def origin_background_distances(
     recon: Reconstruction, origin_nodes: list[str]
-) -> float:
-    """Mean amino-acid Hamming distance between the origins' parent sequences."""
+) -> list[int]:
+    """Amino-acid Hamming distance between every pair of origin backgrounds.
+
+    The background of an origin is its parent node's reconstructed sequence: the
+    genetic context the mutation arose in.
+    """
     backgrounds = []
     for origin in origin_nodes:
         parent = recon.nodes[origin].parent
@@ -357,8 +504,31 @@ def mean_pairwise_background_distance(
         background = recon.nodes[parent].aa
         assert background is not None, f"background of {origin} was not reconstructed"
         backgrounds.append(background)
-    distances = [int(np.count_nonzero(a != b)) for a, b in combinations(backgrounds, 2)]
-    return float(np.mean(distances))
+    return [int(np.count_nonzero(a != b)) for a, b in combinations(backgrounds, 2)]
+
+
+def mean_pairwise_background_distance(
+    recon: Reconstruction, origin_nodes: list[str]
+) -> float:
+    """Mean amino-acid Hamming distance between the origins' parent sequences."""
+    return float(np.mean(origin_background_distances(recon, origin_nodes)))
+
+
+def min_pairwise_background_distance(
+    recon: Reconstruction, origin_nodes: list[str]
+) -> float:
+    """Smallest amino-acid Hamming distance between any two origin backgrounds.
+
+    Reported alongside the mean because the two answer different questions and
+    disagree sharply. "Did this mutation ever arise twice in near-identical
+    backgrounds?" is the minimum, and on ``flu-final`` the minimum is far more
+    permissive than the mean (33.5% of recurrent epitope substitutions have two
+    origins within 1 residue, versus 1.1% by the mean). Every one of those cases
+    involves an origin with almost no surviving progeny, so the two statistics
+    must be read together with the progeny filter rather than one being chosen
+    silently.
+    """
+    return float(np.min(origin_background_distances(recon, origin_nodes)))
 
 
 def mean_pairwise_hamming(
@@ -411,14 +581,21 @@ def build_rows(
     records: list[dict[str, object]] = []
     for (gene, position, from_aa, to_aa), origin_nodes in origins.items():
         gi = recon.global_index(gene, position)
-        is_epitope = gene == "HA1" and position in epitope_sites
+        is_epitope = is_epitope_mutation(gene, position, epitope_sites)
         n_origins = len(origin_nodes)
         progenies = [recon.nodes[o].progeny for o in origin_nodes]
 
+        # The mean and the minimum answer different questions -- "how different
+        # are the backgrounds this mutation arises in?" versus "did it ever arise
+        # twice in near-identical backgrounds?" -- and disagree sharply, so both
+        # are carried rather than one being picked here.
         if n_origins >= 2:
-            origin_distance = mean_pairwise_background_distance(recon, origin_nodes)
+            pairwise = origin_background_distances(recon, origin_nodes)
+            origin_distance = float(np.mean(pairwise))
+            min_origin_distance = float(np.min(pairwise))
         else:
             origin_distance = np.nan
+            min_origin_distance = np.nan
 
         # Per-mutation antigenic scalar: mean pairwise distance between the
         # origins' antigenic positions (see build_origin_pairs for the primary,
@@ -474,6 +651,7 @@ def build_rows(
                 "total_progeny": int(sum(progenies)),
                 "max_progeny": int(max(progenies)),
                 "mean_origin_background_distance_aa": origin_distance,
+                "min_origin_background_distance_aa": min_origin_distance,
                 "mean_carrier_tip_distance_aa": carrier_distance,
                 "mean_origin_antigenic_distance": antigenic_distance,
                 "min_time_between_origins": min_time_between_origins,
@@ -635,7 +813,7 @@ def build_origin_pairs(
     """
     records: list[dict[str, object]] = []
     for (gene, position, from_aa, to_aa), origin_nodes in origins.items():
-        if not (gene == "HA1" and position in epitope_sites):
+        if not is_epitope_mutation(gene, position, epitope_sites):
             continue
         label = f"{gene}:{from_aa}{position}{to_aa}"
         described = describe_origins(
@@ -684,7 +862,7 @@ def sample_null_antigenic_distances(
     pool_bg: list[np.ndarray] = []
     pool_count: list[int] = []
     for (gene, position, from_aa, to_aa), origin_nodes in origins.items():
-        if not (gene == "HA1" and position in epitope_sites):
+        if not is_epitope_mutation(gene, position, epitope_sites):
             continue
         for origin in origin_nodes:
             result = origin_antigenic_position(

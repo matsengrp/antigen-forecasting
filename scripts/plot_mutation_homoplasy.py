@@ -18,6 +18,7 @@ comment 1a):
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -25,11 +26,9 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-# Origins whose descendant clades are sampled within this many years of each
-# other are treated as near-simultaneous: the signature of one real mutation
-# split across nearby branches by phylogenetic inference rather than a genuine
-# second independent origin.
-NEAR_SIMULTANEOUS_YEARS = 0.05
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from mutation_background_distances import NEAR_SIMULTANEOUS_YEARS  # noqa: E402
 
 EPITOPE_COLOR = "#B30000"
 NON_EPITOPE_COLOR = "#3498db"
@@ -291,6 +290,202 @@ def build_antigenic_figure(pairs: pd.DataFrame, null: pd.DataFrame) -> plt.Figur
     return fig
 
 
+# ---------------------------------------------------------------------------
+# Across-run panels, built from scripts/sweep_mutation_homoplasy.py output.
+# ---------------------------------------------------------------------------
+
+CLASS_COLORS = {"epitope": EPITOPE_COLOR, "non_epitope": NON_EPITOPE_COLOR}
+CLASS_LABELS = {"epitope": "epitope", "non_epitope": "non-epitope"}
+
+# The statistic the figure reports. Restricting to substitutions with exactly two
+# independent origins leaves one pairwise distance, so there is no
+# minimum-selection effect and the matched null degenerates to the plain
+# single-pair null. See specs/mutation_homoplasy.md.
+HEADLINE_STATISTIC = "two_origins"
+
+
+def _rate_per_run(
+    summary: pd.DataFrame, numerator: str, denominator: str
+) -> pd.DataFrame:
+    """Long-form per-run rate for both site classes, ready for a categorical plot."""
+    frames = []
+    for site_class in ("epitope", "non_epitope"):
+        rate = (
+            summary[f"{numerator}_{site_class}"]
+            / summary[f"{denominator}_{site_class}"]
+        )
+        frames.append(
+            pd.DataFrame(
+                {
+                    "site_class": CLASS_LABELS[site_class],
+                    "rate": rate.to_numpy(),
+                }
+            )
+        )
+    return pd.concat(frames, ignore_index=True).dropna()
+
+
+def _strip_panel(ax: plt.Axes, data: pd.DataFrame, ylabel: str, title: str) -> None:
+    """Box plus per-run points, matching the idiom used by the other aggregates."""
+    order = [CLASS_LABELS["epitope"], CLASS_LABELS["non_epitope"]]
+    palette = {CLASS_LABELS[k]: v for k, v in CLASS_COLORS.items()}
+    sns.boxplot(
+        data=data,
+        x="site_class",
+        y="rate",
+        order=order,
+        ax=ax,
+        color="0.85",
+        fliersize=0,
+        width=0.55,
+    )
+    sns.stripplot(
+        data=data,
+        x="site_class",
+        y="rate",
+        order=order,
+        hue="site_class",
+        palette=palette,
+        ax=ax,
+        size=4.5,
+        alpha=0.6,
+        jitter=0.22,
+        legend=False,
+    )
+    ax.set_xlabel("")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=10)
+    ax.set_ylim(bottom=0)
+
+
+def panel_recurrence_rate(ax: plt.Axes, summary: pd.DataFrame) -> None:
+    """Fraction of substitutions arising independently two or more times, per run."""
+    data = _rate_per_run(summary, "n_recurrent", "n_substitutions")
+    _strip_panel(
+        ax, data, "Fraction of substitutions recurring", "Independent recurrence"
+    )
+
+
+def panel_reversion_rate(ax: plt.Axes, summary: pd.DataFrame) -> None:
+    """Fraction of substitutions in a gain-then-loss cycle on one lineage, per run."""
+    data = _rate_per_run(summary, "n_lineage_cycle", "n_substitutions")
+    _strip_panel(ax, data, "Fraction in a gain-then-loss cycle", "Lineage reversion")
+
+
+def panel_similar_background(ax: plt.Axes, similar: pd.DataFrame) -> None:
+    """Similar-background recurrence rate versus radius, against the matched null.
+
+    One faint line per run per class, with the across-run median drawn bold and
+    the matched null in grey. The null is what makes the observed rate readable:
+    a class tracking or sitting below its null shows no tendency to recur in
+    similar backgrounds.
+    """
+    subset = similar[similar["statistic"] == HEADLINE_STATISTIC]
+    assert not subset.empty, f"no rows with statistic == {HEADLINE_STATISTIC!r}"
+
+    for site_class, color in CLASS_COLORS.items():
+        rows = subset[subset["site_class"] == site_class].copy()
+        rows["rate"] = rows["n_within_k"] / rows["n_total"]
+        for _, run_rows in rows.groupby(["config", "run"]):
+            line = ax.plot(
+                run_rows["k"],
+                run_rows["rate"],
+                color=color,
+                lw=0.6,
+                alpha=0.15,
+                zorder=1,
+            )[0]
+            line.set_rasterized(True)
+        median = rows.groupby("k")["rate"].median()
+        ax.plot(
+            median.index,
+            median.to_numpy(),
+            color=color,
+            lw=2.6,
+            marker="o",
+            ms=4,
+            zorder=3,
+            label=CLASS_LABELS[site_class],
+        )
+
+    null_rows = subset.copy()
+    null_rows["rate"] = null_rows["n_null_within_k"] / null_rows["n_null_total"]
+    null_median = null_rows.groupby("k")["rate"].median()
+    ax.plot(
+        null_median.index,
+        null_median.to_numpy(),
+        color=NULL_COLOR,
+        lw=2.0,
+        ls="--",
+        marker="s",
+        ms=4,
+        zorder=2,
+        label="matched null",
+    )
+
+    ax.set_xlabel("Background similarity radius $k$ (AA)")
+    ax.set_ylabel("Fraction recurring within $k$")
+    ax.set_title("Similar-background recurrence vs. matched null", fontsize=10)
+    ax.set_ylim(bottom=0)
+    ax.legend(loc="upper left")
+
+
+def panel_observed_vs_null_distance(ax: plt.Axes, summary: pd.DataFrame) -> None:
+    """Median same-mutation origin distance against the null, one point per run."""
+    observed = summary["median_same_mutation_bg_distance"]
+    null = summary["median_null_bg_distance"]
+    valid = observed.notna() & null.notna()
+    ax.scatter(
+        null[valid],
+        observed[valid],
+        s=26,
+        c=EPITOPE_COLOR,
+        alpha=0.65,
+        linewidths=0,
+        label="simulation run",
+    )
+    # Bracket the data rather than forcing the origin: every run sits far from
+    # zero, so anchoring at zero would squeeze the points into one corner and
+    # hide how they fall relative to the diagonal, which is the whole point.
+    low = float(np.nanmin([observed[valid].min(), null[valid].min()]))
+    high = float(np.nanmax([observed[valid].max(), null[valid].max()]))
+    pad = max((high - low) * 0.15, 0.5)
+    limits = [low - pad, high + pad]
+    ax.plot(limits, limits, color=NULL_COLOR, ls="--", lw=1.4, label="equal distance")
+    ax.set_xlim(limits)
+    ax.set_ylim(limits)
+    ax.set_aspect("equal")
+    ax.set_xlabel("Median distance, random origin pairs (AA)")
+    ax.set_ylabel("Median distance, same-mutation origins (AA)")
+    ax.set_title("Origin distance vs. null, per run", fontsize=10)
+    ax.legend(loc="upper left")
+
+
+def build_across_run_figure(summary: pd.DataFrame, similar: pd.DataFrame) -> plt.Figure:
+    """Assemble the four-panel across-run homoplasy and reversion figure.
+
+    Each panel is a distribution over every swept simulation rather than a single
+    build, which is what removes the cherry-picking objection the single-build
+    version invited.
+    """
+    assert not summary.empty, "per-run summary is empty"
+    fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.6))
+    panel_recurrence_rate(axes[0, 0], summary)
+    panel_reversion_rate(axes[0, 1], summary)
+    panel_similar_background(axes[1, 0], similar)
+    panel_observed_vs_null_distance(axes[1, 1], summary)
+    for label, ax in zip("ABCD", axes.flat):
+        # The centred title must be cleared first: matplotlib keeps a separate
+        # text object per location, so setting a left title leaves the centred
+        # one in place and the two overlap.
+        title = ax.get_title()
+        ax.set_title("")
+        ax.set_title(f"{label}. {title}", fontweight="bold", loc="left", fontsize=10)
+        sns.despine(ax=ax)
+    fig.tight_layout()
+    return fig
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mutations-csv", type=Path, required=True)
@@ -299,12 +494,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-prefix",
         type=str,
-        default="figureS5_mutation_homoplasy_distance",
+        default="figureS3_mutation_homoplasy_distance",
     )
     parser.add_argument(
         "--occurrence-prefix",
         type=str,
-        default="figureS5_mutation_occurrence_counts",
+        default="figureS3_mutation_occurrence_counts",
     )
     parser.add_argument(
         "--pairs-csv",
@@ -321,7 +516,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--antigenic-prefix",
         type=str,
-        default="figureS5_mutation_antigenic_distance",
+        default="figureS3_mutation_antigenic_distance",
     )
     return parser.parse_args()
 

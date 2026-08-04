@@ -14,6 +14,7 @@ from itertools import combinations
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 SCRIPT_PATH = (
@@ -238,6 +239,121 @@ class TestLoadTipAntigenic:
         path.write_text("name,ag1,ag2\na,1.0,2.0\n")  # no epitopeMutationCount.
         with pytest.raises(AssertionError):
             mbd.load_tip_antigenic(path)
+
+
+class TestGenotypeAntigenic:
+    """Cover the genotype-to-antigenic comparison behind figure S3 panels C and D."""
+
+    def _recon(self, mbd):
+        """A two-gene layout is all these functions need from the tree."""
+        genes = _two_gene_layout(mbd, 3, 2)
+        return mbd.Reconstruction(nodes={}, root="root", genes=genes, total_aa_length=5)
+
+    def _codons(self, protein: str) -> str:
+        """Back-translate a protein to one fixed codon per residue."""
+        table = {"A": "GCT", "C": "TGT", "M": "ATG", "V": "GTT", "G": "GGT"}
+        return "".join(table[aa] for aa in protein)
+
+    def test_pairs_match_brute_force(self, mbd):
+        recon = self._recon(mbd)
+        proteins = {"a": "AAAMM", "b": "AAAMV", "c": "CCAMM"}
+        tip_nt = {name: self._codons(p) for name, p in proteins.items()}
+        tip_ag = {
+            "a": np.array([0.0, 0.0]),
+            "b": np.array([3.0, 4.0]),
+            "c": np.array([0.0, 1.0]),
+        }
+        pairs = mbd.sample_genotype_antigenic_pairs(recon, tip_nt, tip_ag, 10, 100, 0)
+        assert len(pairs) == 3  # Three tips give three unordered pairs.
+        got = {
+            (int(g), round(float(a), 6))
+            for g, a in zip(pairs["genetic_distance_aa"], pairs["antigenic_distance"])
+        }
+        # a-b differ at one residue and are 5 apart; a-c differ at two and are 1
+        # apart; b-c differ at three.
+        assert got == {(1, 5.0), (2, 1.0), (3, round(float(np.hypot(3, 3)), 6))}
+
+    def test_respects_tip_and_pair_caps(self, mbd):
+        recon = self._recon(mbd)
+        proteins = {f"t{i}": "AAAMM" for i in range(20)}
+        tip_nt = {name: self._codons(p) for name, p in proteins.items()}
+        tip_ag = {name: np.array([float(i), 0.0]) for i, name in enumerate(tip_nt)}
+        capped = mbd.sample_genotype_antigenic_pairs(recon, tip_nt, tip_ag, 5, 100, 0)
+        # Five tips can yield at most ten pairs regardless of the pair cap.
+        assert len(capped) == 10
+        assert (
+            len(mbd.sample_genotype_antigenic_pairs(recon, tip_nt, tip_ag, 20, 7, 0))
+            == 7
+        )
+
+    def test_requires_two_usable_tips(self, mbd):
+        recon = self._recon(mbd)
+        tip_nt = {"a": self._codons("AAAMM"), "b": self._codons("AAAMV")}
+        with pytest.raises(AssertionError):
+            # Only "a" has an antigenic position, so no pair can be formed.
+            mbd.sample_genotype_antigenic_pairs(
+                recon, tip_nt, {"a": np.array([0.0, 0.0])}, 10, 10, 0
+            )
+
+    def test_spread_is_zero_for_colocated_identical_sequences(self, mbd):
+        recon = self._recon(mbd)
+        same = self._codons("AAAMM")
+        tips = pd.DataFrame(
+            {
+                "nucleotideSequence": [same, same],
+                "ag1": [2.0, 2.0],
+                "ag2": [5.0, 5.0],
+            }
+        )
+        spread = mbd.identical_sequence_antigenic_spread(recon, tips)
+        assert len(spread) == 1
+        assert spread.loc[0, "n_tips"] == 2
+        assert spread.loc[0, "max_pairwise_spread"] == pytest.approx(0.0)
+
+    def test_spread_measures_group_diameter(self, mbd):
+        recon = self._recon(mbd)
+        same = self._codons("AAAMM")
+        tips = pd.DataFrame(
+            {
+                "nucleotideSequence": [same, same],
+                "ag1": [0.0, 3.0],
+                "ag2": [0.0, 4.0],
+            }
+        )
+        spread = mbd.identical_sequence_antigenic_spread(recon, tips)
+        assert spread.loc[0, "max_pairwise_spread"] == pytest.approx(5.0)
+
+    def test_synonymous_sequences_group_together(self, mbd):
+        """Different codons for the same protein must land in one group."""
+        recon = self._recon(mbd)
+        # TGT and TGC both encode C, so these two tips share a protein.
+        tips = pd.DataFrame(
+            {
+                "nucleotideSequence": ["TGTGCTGCTATGATG", "TGCGCTGCTATGATG"],
+                "ag1": [0.0, 1.0],
+                "ag2": [0.0, 0.0],
+            }
+        )
+        spread = mbd.identical_sequence_antigenic_spread(recon, tips)
+        assert len(spread) == 1
+        assert spread.loc[0, "max_pairwise_spread"] == pytest.approx(1.0)
+
+    def test_singleton_sequences_are_excluded(self, mbd):
+        recon = self._recon(mbd)
+        tips = pd.DataFrame(
+            {
+                "nucleotideSequence": [self._codons("AAAMM"), self._codons("AAAMV")],
+                "ag1": [0.0, 9.0],
+                "ag2": [0.0, 9.0],
+            }
+        )
+        assert mbd.identical_sequence_antigenic_spread(recon, tips).empty
+
+    def test_rejects_tip_table_missing_columns(self, mbd):
+        recon = self._recon(mbd)
+        tips = pd.DataFrame({"nucleotideSequence": [self._codons("AAAMM")]})
+        with pytest.raises(AssertionError):
+            mbd.identical_sequence_antigenic_spread(recon, tips)
 
 
 class TestSubtreeIntervals:

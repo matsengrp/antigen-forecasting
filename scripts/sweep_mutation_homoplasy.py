@@ -66,12 +66,15 @@ from mutation_background_distances import (  # noqa: E402
     NEAR_SIMULTANEOUS_YEARS,
     Reconstruction,
     compute_tables,
+    identical_sequence_antigenic_spread,
     index_origins,
     is_epitope_mutation,
     load_epitope_sites,
     load_gene_layouts,
+    load_tip_antigenic,
     load_tip_sequences,
     load_tree,
+    sample_genotype_antigenic_pairs,
     summarize_reversions,
 )
 
@@ -99,9 +102,27 @@ NULL_REPLICATE_FLOOR = 5000
 TREE_SUFFIX = Path("variant-assignment") / "phylogenetic" / "auspice.json"
 FASTA_SUFFIX = Path("antigen-outputs") / "unique_sequences.fasta"
 TIPS_SUFFIX = Path("antigen-outputs") / "unique_tips.csv"
+# The full, non-deduplicated tip table. Needed only by the identical-sequence
+# spread test, which measures repeat structure that unique_tips.csv collapses.
+TIPS_FULL_SUFFIX = Path("antigen-outputs") / "tips.csv"
 
 SUMMARY_NAME = "mutation_homoplasy_by_run.csv"
 SIMILAR_NAME = "mutation_homoplasy_similar_background_by_k.csv"
+GENOTYPE_NAME = "genotype_antigenic_by_distance.csv"
+
+# Genetic-distance bins (amino acids, inclusive) for the genotype-to-antigenic
+# curve. The top bin is open-ended so no pair is silently dropped.
+GENETIC_DISTANCE_BINS = ((0, 2), (3, 5), (6, 10), (11, 20), (21, 40), (41, 10_000))
+
+# Tip and pair subsampling for the genotype-antigenic comparison. Pair count grows
+# quadratically in tips, so tips are capped first and pairs sampled from those.
+GENOTYPE_MAX_TIPS = 1200
+GENOTYPE_N_PAIRS = 200_000
+
+# Antigenic units below which a group of identical sequences counts as occupying
+# one position. Comparing against exactly zero would count floating-point noise
+# and report 31.5% of groups as spreading where the true figure is 7.1%.
+SPREAD_TOLERANCE = 0.01
 
 
 def setup_logging(verbose: bool, log_file: Path | None) -> None:
@@ -422,6 +443,144 @@ def sequence_stats(
     return summary, similar_rows
 
 
+IDENTICAL_SEQUENCE_COLUMNS = (
+    "n_identical_sequence_groups",
+    "n_tips_in_shared_sequences",
+    "n_tips_total",
+    "frac_shared_sequences_spreading",
+    "frac_tips_in_spreading_group",
+    "identical_seq_spread_median",
+    "identical_seq_spread_p90",
+    "identical_seq_spread_max",
+    "identical_seq_spread_median_when_spreading",
+)
+
+
+def identical_sequence_columns(
+    recon: Reconstruction, full_tips_csv: Path | None
+) -> dict[str, Any]:
+    """Summarise antigenic spread among tips sharing an amino-acid sequence.
+
+    Two rates are emitted because the choice of denominator changes the headline
+    number roughly sixfold. ``frac_shared_sequences_spreading`` counts sequences,
+    which is the rate that matters for benchmark fairness: the assignment methods
+    are handed ``unique_tips.csv`` (``assign_all_variants.py`` asserts this), so a
+    method encounters each distinct sequence exactly once. The tip-weighted
+    ``frac_tips_in_spreading_group`` is reported alongside it because the spreading
+    sequences tend to be the common ones, and hiding that behind a denominator
+    choice would be misleading.
+
+    Args:
+        recon: Parsed tree, for the gene layout used in translation.
+        full_tips_csv: Full, non-deduplicated tip table, or None when absent.
+
+    Returns:
+        The columns in ``IDENTICAL_SEQUENCE_COLUMNS``, all NaN when unavailable.
+    """
+    if full_tips_csv is None or not full_tips_csv.is_file():
+        return dict.fromkeys(IDENTICAL_SEQUENCE_COLUMNS, np.nan)
+
+    tips = pd.read_csv(
+        full_tips_csv, usecols=["nucleotideSequence", "ag1", "ag2"]
+    ).dropna()
+    spread = identical_sequence_antigenic_spread(recon, tips)
+    if spread.empty:
+        return dict.fromkeys(IDENTICAL_SEQUENCE_COLUMNS, np.nan)
+
+    spreading = spread[spread["max_pairwise_spread"] > SPREAD_TOLERANCE]
+    return {
+        "n_identical_sequence_groups": int(len(spread)),
+        "n_tips_in_shared_sequences": int(spread["n_tips"].sum()),
+        "n_tips_total": int(len(tips)),
+        "frac_shared_sequences_spreading": float(len(spreading) / len(spread)),
+        "frac_tips_in_spreading_group": float(spreading["n_tips"].sum() / len(tips)),
+        # Most groups sit at exactly one position, so the median and p90 of the
+        # full distribution are both essentially zero; the informative numbers are
+        # the maximum and the median among groups that actually spread.
+        "identical_seq_spread_median": float(spread["max_pairwise_spread"].median()),
+        "identical_seq_spread_p90": float(spread["max_pairwise_spread"].quantile(0.9)),
+        "identical_seq_spread_max": float(spread["max_pairwise_spread"].max()),
+        "identical_seq_spread_median_when_spreading": (
+            float(spreading["max_pairwise_spread"].median())
+            if len(spreading)
+            else np.nan
+        ),
+    }
+
+
+def genotype_antigenic_stats(
+    recon: Reconstruction,
+    tip_nt: dict[str, str],
+    tips_csv: Path,
+    full_tips_csv: Path | None,
+    seed: int,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Measure how tightly genotype predicts antigenic position in one run.
+
+    This addresses the reviewer's concern in its operational form -- whether
+    genetically similar viruses can sit anywhere in antigenic space -- rather than
+    in terms of a single mutation's marginal effect.
+
+    The two halves deliberately read different files. The correlation samples the
+    *unique* tips so each distinct genotype contributes one point and no single
+    large clade dominates. The identical-sequence spread needs the *full* tip
+    table, since deduplication collapses exactly the repeat structure it measures.
+
+    Args:
+        recon: Parsed tree, for the gene layout used in translation.
+        tip_nt: Tip name to nucleotide sequence, from the unique-sequence FASTA.
+        tips_csv: Unique-tip metadata carrying ``ag1``/``ag2``.
+        full_tips_csv: Full tip table, or None when the run retained no such file.
+        seed: Seed for tip and pair subsampling.
+
+    Returns:
+        ``(summary_columns, binned_rows)``.
+    """
+    tip_antigenic, _ = load_tip_antigenic(tips_csv)
+    pairs = sample_genotype_antigenic_pairs(
+        recon, tip_nt, tip_antigenic, GENOTYPE_MAX_TIPS, GENOTYPE_N_PAIRS, seed
+    )
+
+    summary: dict[str, Any] = {
+        "genotype_antigenic_pearson": float(
+            pairs["genetic_distance_aa"].corr(pairs["antigenic_distance"])
+        ),
+        "genotype_antigenic_spearman": float(
+            pairs["genetic_distance_aa"].corr(
+                pairs["antigenic_distance"], method="spearman"
+            )
+        ),
+        "antigenic_span": float(pairs["antigenic_distance"].max()),
+    }
+    summary.update(identical_sequence_columns(recon, full_tips_csv))
+
+    binned: list[dict[str, Any]] = []
+    for low, high in GENETIC_DISTANCE_BINS:
+        window = pairs[
+            (pairs["genetic_distance_aa"] >= low)
+            & (pairs["genetic_distance_aa"] <= high)
+        ]
+        if window.empty:
+            continue
+        binned.append(
+            {
+                "genetic_bin_low": low,
+                "genetic_bin_high": high,
+                "n_pairs": int(len(window)),
+                "median_antigenic_distance": float(
+                    window["antigenic_distance"].median()
+                ),
+                "q25_antigenic_distance": float(
+                    window["antigenic_distance"].quantile(0.25)
+                ),
+                "q75_antigenic_distance": float(
+                    window["antigenic_distance"].quantile(0.75)
+                ),
+            }
+        )
+    return summary, binned
+
+
 def process_run(
     auspice: Path,
     config: str,
@@ -433,8 +592,8 @@ def process_run(
     progeny_thresholds: Sequence[int],
     null_samples: int,
     seed: int,
-) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Reduce one run to its summary row and similar-background rows.
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Reduce one run to its summary row and its two long-form tables.
 
     Tier 1 is unguarded: if the tree cannot be walked there is nothing to salvage.
     Tier 2 is guarded so a missing or malformed FASTA leaves the tree-only numbers
@@ -493,11 +652,28 @@ def process_run(
             if index == 0:
                 row.update(summary)
             similar_rows.extend(dict(identity, **entry) for entry in rows)
+
+        genes = load_gene_layouts(ref_genbank)
+        recon = load_tree(auspice, genes)
+        tip_nt = load_tip_sequences(sequences_fasta)
+        # The identical-sequence test needs the full tip table; not every run is
+        # guaranteed to have retained one, so its absence degrades that statistic
+        # rather than failing the whole sequence tier.
+        full_tips_csv: Path | None = run_dir / TIPS_FULL_SUFFIX
+        if full_tips_csv is not None and not full_tips_csv.is_file():
+            notes.append("no full tips.csv; identical-sequence spread skipped")
+            full_tips_csv = None
+        geno_summary, geno_rows = genotype_antigenic_stats(
+            recon, tip_nt, tips_csv, full_tips_csv, seed
+        )
+        row.update(geno_summary)
+        genotype_rows = [dict(identity, **entry) for entry in geno_rows]
     except Exception as error:  # noqa: BLE001 - one bad run must not stop the sweep.
         notes.append(f"sequence stats failed: {error}")
-        # Discard any partial per-threshold rows so the long table never holds a
+        # Discard any partial per-threshold rows so the long tables never hold a
         # run at some thresholds but not others.
         similar_rows = []
+        genotype_rows = []
         row.update(
             {
                 "anchor_tip": None,
@@ -506,11 +682,15 @@ def process_run(
                 "median_same_mutation_bg_distance": np.nan,
                 "median_min_same_mutation_bg_distance": np.nan,
                 "median_null_bg_distance": np.nan,
+                "genotype_antigenic_pearson": np.nan,
+                "genotype_antigenic_spearman": np.nan,
+                "antigenic_span": np.nan,
+                **dict.fromkeys(IDENTICAL_SEQUENCE_COLUMNS, np.nan),
             }
         )
 
     row["notes"] = ";".join(notes)
-    return row, similar_rows
+    return row, similar_rows, genotype_rows
 
 
 def _write(frame: pd.DataFrame, output_path: Path, label: str) -> None:
@@ -580,11 +760,16 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     summary_rows: list[dict[str, Any]] = []
     similar_rows: list[dict[str, Any]] = []
+    genotype_rows: list[dict[str, Any]] = []
 
-    def record(index: int, result: tuple[dict[str, Any], list[dict[str, Any]]]) -> None:
-        row, rows = result
+    def record(
+        index: int,
+        result: tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]],
+    ) -> None:
+        row, rows, geno = result
         summary_rows.append(row)
         similar_rows.extend(rows)
+        genotype_rows.extend(geno)
         status = "ok" if not row["notes"] else f"partial ({row['notes']})"
         logger.info(
             "[%d/%d] %s__run_%s -> %s",
@@ -631,14 +816,32 @@ def main(argv: Sequence[str] | None = None) -> None:
             ["config", "run", "min_origin_progeny", "statistic", "site_class", "k"]
         )
 
+    genotype = pd.DataFrame(genotype_rows)
+    if not genotype.empty:
+        genotype = genotype.sort_values(["config", "run", "genetic_bin_low"])
+
     _write(summary, output_dir / SUMMARY_NAME, "per-run summary")
     _write(similar, output_dir / SIMILAR_NAME, "similar-background counts")
+    _write(genotype, output_dir / GENOTYPE_NAME, "genotype-antigenic curve")
 
-    partial = int((summary["notes"] != "").sum())
-    if partial:
+    # Report the two degradations separately. A run missing its FASTA falls all
+    # the way back to tree-only numbers; a run that merely lacks the full tip
+    # table still has everything except the identical-sequence spread, and
+    # conflating the two overstates how much was lost.
+    notes = summary["notes"].fillna("")
+    tree_only = int(notes.str.contains("sequence stats failed").sum())
+    no_full_tips = int(notes.str.contains("no full tips.csv").sum())
+    if tree_only:
         logger.warning(
-            "%d/%d runs have tree-only statistics because the sequence tier failed",
-            partial,
+            "%d/%d runs fell back to tree-only statistics (no usable FASTA)",
+            tree_only,
+            len(summary),
+        )
+    if no_full_tips:
+        logger.warning(
+            "%d/%d runs have no full tips.csv, so the identical-sequence spread "
+            "is missing for them (all other statistics are present)",
+            no_full_tips,
             len(summary),
         )
 

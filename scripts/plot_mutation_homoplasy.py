@@ -461,19 +461,150 @@ def panel_observed_vs_null_distance(ax: plt.Axes, summary: pd.DataFrame) -> None
     ax.legend(loc="upper left")
 
 
-def build_across_run_figure(summary: pd.DataFrame, similar: pd.DataFrame) -> plt.Figure:
-    """Assemble the four-panel across-run homoplasy and reversion figure.
+def _bin_label(low: int, high: int) -> str:
+    """Readable label for a genetic-distance bin, with the top bin left open."""
+    return f"{low}+" if high >= 1000 else f"{low}–{high}"
+
+
+def panel_genotype_antigenic(
+    ax: plt.Axes, summary: pd.DataFrame, genotype: pd.DataFrame
+) -> None:
+    """Antigenic distance against genetic distance, one line per simulation.
+
+    The direct answer to the reviewer's operational concern. Antigenic position is
+    the cumulative sum of every mutation along a lineage, so genetically similar
+    viruses share nearly all of their displacement; the per-event random direction
+    perturbs a single step rather than decoupling genotype from phenotype.
+    """
+    assert not genotype.empty, "genotype-antigenic table is empty"
+    bins = (
+        genotype[["genetic_bin_low", "genetic_bin_high"]]
+        .drop_duplicates()
+        .sort_values("genetic_bin_low")
+    )
+    labels = [_bin_label(int(lo), int(hi)) for lo, hi in bins.to_numpy()]
+    positions = {int(lo): i for i, lo in enumerate(bins["genetic_bin_low"])}
+
+    for _, run_rows in genotype.groupby(["config", "run"]):
+        ordered = run_rows.sort_values("genetic_bin_low")
+        line = ax.plot(
+            [positions[int(lo)] for lo in ordered["genetic_bin_low"]],
+            ordered["median_antigenic_distance"],
+            color=EPITOPE_COLOR,
+            lw=0.6,
+            alpha=0.15,
+            zorder=1,
+        )[0]
+        line.set_rasterized(True)
+
+    median = genotype.groupby("genetic_bin_low")["median_antigenic_distance"].median()
+    ax.plot(
+        [positions[int(lo)] for lo in median.index],
+        median.to_numpy(),
+        color=EPITOPE_COLOR,
+        lw=2.6,
+        marker="o",
+        ms=5,
+        zorder=3,
+        label="across-simulation median",
+    )
+
+    correlations = summary["genotype_antigenic_pearson"].dropna()
+    if len(correlations):
+        ax.annotate(
+            f"Pearson $r$ = {correlations.median():.2f}\n"
+            f"(median of {len(correlations)} simulations)",
+            xy=(0.04, 0.93),
+            xycoords="axes fraction",
+            va="top",
+            fontsize=9,
+        )
+
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels)
+    ax.set_xlabel("Genetic distance between viruses (AA)")
+    ax.set_ylabel("Median antigenic distance")
+    ax.set_title("Genotype predicts antigenic position", fontsize=10)
+    ax.set_ylim(bottom=0)
+    ax.legend(loc="lower right")
+
+
+def panel_identical_sequence_spread(ax: plt.Axes, summary: pd.DataFrame) -> None:
+    """Fraction of shared protein sequences occupying a single antigenic position.
+
+    The sharpest form of the concern: if the random per-event direction decoupled
+    genotype from phenotype, viruses with an identical protein would still be
+    scattered. Reported as a rate rather than as spread magnitudes, because the
+    magnitudes span orders of magnitude -- most groups sit at exactly one position
+    while a few reach several units -- and a linear axis over them buries the
+    result under its own outliers. The magnitude is annotated instead.
+
+    The denominator is sequences, not tips: ``assign_all_variants.py`` is handed
+    the deduplicated tip table, so a method encounters each distinct sequence once,
+    and weighting by tip abundance would over-count the common ones.
+    """
+    assert "frac_shared_sequences_spreading" in summary, (
+        "summary lacks identical-sequence columns; rerun the sweep against runs "
+        "that retain a full tips.csv"
+    )
+    spreading = summary["frac_shared_sequences_spreading"].dropna()
+    assert not spreading.empty, "no simulation has identical-sequence spread data"
+    single_position = 1.0 - spreading
+
+    data = pd.DataFrame({"x": "", "fraction": single_position.to_numpy()})
+    sns.boxplot(
+        data=data, x="x", y="fraction", ax=ax, color="0.85", fliersize=0, width=0.35
+    )
+    sns.stripplot(
+        data=data,
+        x="x",
+        y="fraction",
+        ax=ax,
+        color=EPITOPE_COLOR,
+        size=5,
+        alpha=0.6,
+        jitter=0.18,
+    )
+
+    magnitude = summary.get("identical_seq_spread_median_when_spreading")
+    if magnitude is not None and magnitude.notna().any():
+        ax.annotate(
+            "Where they do differ, the median\n"
+            f"separation is {magnitude.median():.1f} of a ~40 unit span",
+            xy=(0.5, 0.06),
+            xycoords="axes fraction",
+            ha="center",
+            fontsize=9,
+        )
+
+    n = len(single_position)
+    ax.set_xlabel(f"{n} simulation{'' if n == 1 else 's'}")
+    ax.set_ylabel("Fraction of shared sequences at one position")
+    ax.set_title("Identical sequences share a position", fontsize=10)
+    ax.set_ylim(0, 1.02)
+
+
+def build_across_run_figure(
+    summary: pd.DataFrame, genotype: pd.DataFrame
+) -> plt.Figure:
+    """Assemble the four-panel across-run figure for Reviewer 1, comment 1a.
 
     Each panel is a distribution over every swept simulation rather than a single
-    build, which is what removes the cherry-picking objection the single-build
-    version invited.
+    build, which removes the cherry-picking objection the single-build version
+    invited. A and B characterise the simulation's mutational behaviour;
+    C and D answer the reviewer's operational concern directly, by showing that
+    genotype predicts antigenic position despite the per-event random direction.
+
+    ``panel_similar_background`` and ``panel_observed_vs_null_distance`` are
+    retained in this module because they still back the response letter, but they
+    no longer earn a panel: C and D make the argument more directly.
     """
     assert not summary.empty, "per-run summary is empty"
     fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.6))
     panel_recurrence_rate(axes[0, 0], summary)
     panel_reversion_rate(axes[0, 1], summary)
-    panel_similar_background(axes[1, 0], similar)
-    panel_observed_vs_null_distance(axes[1, 1], summary)
+    panel_genotype_antigenic(axes[1, 0], summary, genotype)
+    panel_identical_sequence_spread(axes[1, 1], summary)
     for label, ax in zip("ABCD", axes.flat):
         # The centred title must be cleared first: matplotlib keeps a separate
         # text object per location, so setting a left title leaves the centred

@@ -332,6 +332,109 @@ def index_origins(
     return origins
 
 
+def sample_genotype_antigenic_pairs(
+    recon: Reconstruction,
+    tip_nt: dict[str, str],
+    tip_antigenic: dict[str, np.ndarray],
+    max_tips: int,
+    n_pairs: int,
+    seed: int,
+) -> pd.DataFrame:
+    """Pair up sampled tips and measure genetic against antigenic distance.
+
+    This is the direct test of the reviewer's operational concern, that similar
+    viruses might sit anywhere in antigenic space. Antigenic position is the
+    cumulative sum of every mutation along a lineage, so two genetically similar
+    viruses share nearly all of their displacement regardless of the per-event
+    random direction; the randomness perturbs one step rather than decoupling
+    genotype from phenotype. Tips are subsampled before pairing because the pair
+    count grows quadratically.
+
+    Args:
+        recon: Parsed tree, used only for its gene layout when translating.
+        tip_nt: Tip name to nucleotide sequence.
+        tip_antigenic: Tip name to ``(ag1, ag2)`` position.
+        max_tips: Subsample this many tips before forming pairs.
+        n_pairs: Number of distinct tip pairs to sample.
+        seed: Seed for both subsampling steps.
+
+    Returns:
+        One row per sampled pair with ``genetic_distance_aa`` and
+        ``antigenic_distance``.
+    """
+    shared = sorted(set(tip_nt) & set(tip_antigenic))
+    assert len(shared) >= 2, "need at least two tips with sequence and antigenic data"
+    rng = np.random.default_rng(seed)
+    if len(shared) > max_tips:
+        shared = [shared[i] for i in rng.choice(len(shared), max_tips, replace=False)]
+
+    aa = np.stack([translate_tip(tip_nt[name], recon) for name in shared])
+    ag = np.stack([tip_antigenic[name] for name in shared])
+
+    rows, cols = np.triu_indices(len(shared), k=1)
+    if len(rows) > n_pairs:
+        keep = rng.choice(len(rows), n_pairs, replace=False)
+        rows, cols = rows[keep], cols[keep]
+    return pd.DataFrame(
+        {
+            "genetic_distance_aa": (aa[rows] != aa[cols]).sum(axis=1),
+            "antigenic_distance": np.linalg.norm(ag[rows] - ag[cols], axis=1),
+        }
+    )
+
+
+def identical_sequence_antigenic_spread(
+    recon: Reconstruction, tips: pd.DataFrame
+) -> pd.DataFrame:
+    """Antigenic spread among tips that share an identical amino-acid sequence.
+
+    The sharpest form of the reviewer's concern: if the random per-event direction
+    genuinely decoupled genotype from antigenic phenotype, viruses with the *same*
+    protein sequence would still be scattered in antigenic space.
+
+    This must be given the **full** per-run ``tips.csv``, not ``unique_tips.csv``.
+    The latter is deduplicated by sequence, so it collapses precisely the repeat
+    structure being measured; running it there would instead compare synonymous
+    variants of the same protein, which answers a different question. Both files
+    contain the same set of distinct sequences, so nothing is lost by reading the
+    larger one.
+
+    Translation is done once per distinct nucleotide sequence rather than once per
+    tip, which is roughly a twentyfold saving on a full tip table.
+
+    Args:
+        recon: Parsed tree, used only for its gene layout when translating.
+        tips: Tip table with ``nucleotideSequence``, ``ag1``, and ``ag2`` columns.
+
+    Returns:
+        One row per amino-acid sequence carried by two or more tips, with
+        ``n_tips`` and ``max_pairwise_spread`` (the group's diameter).
+    """
+    required = {"nucleotideSequence", "ag1", "ag2"}
+    missing = required - set(tips.columns)
+    assert not missing, f"tip table is missing column(s): {sorted(missing)}"
+    usable = tips.dropna(subset=["nucleotideSequence", "ag1", "ag2"])
+    assert not usable.empty, "no tips with both a sequence and an antigenic position"
+
+    # Translate each distinct nucleotide sequence once, then group by the protein.
+    translations = {
+        sequence: translate_tip(sequence, recon).tobytes()
+        for sequence in usable["nucleotideSequence"].unique()
+    }
+    keys = usable["nucleotideSequence"].map(translations)
+
+    records = []
+    for _, group in usable.groupby(keys, sort=False):
+        if len(group) < 2:
+            continue
+        positions = group[["ag1", "ag2"]].to_numpy()
+        # Diameter of the group, via the largest deviation from its centroid.
+        centroid = positions.mean(axis=0)
+        spread = float(np.linalg.norm(positions - centroid, axis=1).max() * 2)
+        records.append({"n_tips": len(group), "max_pairwise_spread": spread})
+    return pd.DataFrame(records, columns=["n_tips", "max_pairwise_spread"])
+
+
 def is_epitope_mutation(gene: str, position: int, epitope_sites: set[int]) -> bool:
     """Report whether a mutation falls at an epitope site.
 

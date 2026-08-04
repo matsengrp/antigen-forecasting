@@ -88,6 +88,29 @@ LOG_DIR="${LOG_DIR%/}"
 EPITOPE_SITES="$(dirname "$PROJECT_ROOT")/antigen-prime/src/main/resources/epitopeSites.txt"
 REF_GENBANK="data/flu-final/auspice/ref_HA.gb"
 
+# Fail at STAGING time rather than minutes into the job. Both inputs live outside
+# the batch -- one in a sibling repo that may not be checked out on the cluster,
+# one in the flu-final build -- and without the epitope list there is no
+# epitope/non-epitope split, which is half the result. Checked against
+# PROJECT_ROOT because the job cds there before resolving the relative path.
+for shared_input in "$EPITOPE_SITES" "$PROJECT_ROOT/$REF_GENBANK"; do
+    if [ ! -f "$shared_input" ]; then
+        echo "ERROR: missing shared input: $shared_input" >&2
+        echo "  (checked from staging; the job resolves it under $PROJECT_ROOT)" >&2
+        exit 1
+    fi
+done
+
+# Warn early if no run has a tree yet: the sweep would abort on an empty batch.
+TREE_COUNT=$(find "$PROJECT_ROOT/data/$BATCH_NAME" -maxdepth 4 \
+    -path "*__run_*/variant-assignment/phylogenetic/auspice.json" 2>/dev/null | wc -l | tr -d ' ')
+if [ "$TREE_COUNT" -eq 0 ]; then
+    echo "WARNING: no per-run auspice.json found under $PROJECT_ROOT/data/$BATCH_NAME" >&2
+    echo "  The sweep will fail unless variant assignment has completed." >&2
+else
+    echo "Found $TREE_COUNT run(s) with a tree."
+fi
+
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 SUBMIT_DIR="$REPO_ROOT/results/$BATCH_NAME/homoplasy_submission_$STAMP"
 mkdir -p "$SUBMIT_DIR"

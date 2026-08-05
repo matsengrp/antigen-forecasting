@@ -24,10 +24,14 @@
 # Usage:
 #   scripts/make_figureS3.sh [--build BUILD] [--output-dir DIR] [--work-dir DIR]
 #
-# Defaults: BUILD=flu-final, output-dir=../antigen-tex/figures (the paper repo).
+# Defaults: BUILD=flu-final, output-dir=results/diagnostics/mutation-homoplasy.
+# These are diagnostics, not manuscript figures, so the default deliberately does
+# NOT point at the paper repo -- an earlier default of
+# ../antigen-tex/reviews/round1/figures is how three now-retired panels ended up
+# committed there unreferenced. Pass --output-dir to aim it somewhere else.
 # Examples:
-#   scripts/make_figureS3.sh                             # writes into ../antigen-tex/figures
-#   scripts/make_figureS3.sh --output-dir /tmp/figS5     # dry validation into a scratch dir
+#   scripts/make_figureS3.sh                                 # -> results/diagnostics/...
+#   scripts/make_figureS3.sh --output-dir /tmp/figS3         # somewhere disposable
 
 set -euo pipefail
 
@@ -35,7 +39,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 BUILD="flu-final"
-OUTPUT_DIR="$REPO_ROOT/../antigen-tex/reviews/round1/figures"
+OUTPUT_DIR="$REPO_ROOT/results/diagnostics/mutation-homoplasy"
 WORK_DIR=""
 # Anchor tip seeds the amino-acid reconstruction; it must be a leaf present in both
 # the tree and the FASTA. The default is flu-final's; other builds have different tip

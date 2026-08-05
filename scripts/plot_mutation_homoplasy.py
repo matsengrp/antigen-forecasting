@@ -30,20 +30,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from mutation_background_distances import NEAR_SIMULTANEOUS_YEARS  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from antigentools.supplement_style import (  # noqa: E402
+    SUPPLEMENT_RC,
+    add_panel_letters,
+    style_panel,
+)
+
 EPITOPE_COLOR = "#B30000"
 NON_EPITOPE_COLOR = "#3498db"
 NULL_COLOR = "#7f7f7f"
 
-RC_PARAMS = {
-    "font.family": "DejaVu Sans",
-    "font.size": 10,
-    "axes.linewidth": 0.8,
-    "axes.labelsize": 11,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "legend.fontsize": 8,
-    "legend.frameon": False,
-}
+# The supplement convention lives in antigentools.supplement_style so this
+# figure cannot drift from S4/S5 again. Retained under the old name because
+# the notebook and main() both reference it.
+RC_PARAMS = SUPPLEMENT_RC
 
 
 def _label(is_epitope: bool) -> str:
@@ -325,7 +327,7 @@ def _rate_per_run(
     return pd.concat(frames, ignore_index=True).dropna()
 
 
-def _strip_panel(ax: plt.Axes, data: pd.DataFrame, ylabel: str, title: str) -> None:
+def _strip_panel(ax: plt.Axes, data: pd.DataFrame, ylabel: str) -> None:
     """Box plus per-run points, matching the idiom used by the other aggregates."""
     order = [CLASS_LABELS["epitope"], CLASS_LABELS["non_epitope"]]
     palette = {CLASS_LABELS[k]: v for k, v in CLASS_COLORS.items()}
@@ -354,22 +356,19 @@ def _strip_panel(ax: plt.Axes, data: pd.DataFrame, ylabel: str, title: str) -> N
     )
     ax.set_xlabel("")
     ax.set_ylabel(ylabel)
-    ax.set_title(title, fontsize=10)
     ax.set_ylim(bottom=0)
 
 
 def panel_recurrence_rate(ax: plt.Axes, summary: pd.DataFrame) -> None:
     """Fraction of substitutions arising independently two or more times, per run."""
     data = _rate_per_run(summary, "n_recurrent", "n_substitutions")
-    _strip_panel(
-        ax, data, "Fraction of substitutions recurring", "Independent recurrence"
-    )
+    _strip_panel(ax, data, "Fraction of substitutions recurring")
 
 
 def panel_reversion_rate(ax: plt.Axes, summary: pd.DataFrame) -> None:
     """Fraction of substitutions in a gain-then-loss cycle on one lineage, per run."""
     data = _rate_per_run(summary, "n_lineage_cycle", "n_substitutions")
-    _strip_panel(ax, data, "Fraction in a gain-then-loss cycle", "Lineage reversion")
+    _strip_panel(ax, data, "Fraction in a gain-then-loss cycle")
 
 
 def panel_similar_background(ax: plt.Axes, similar: pd.DataFrame) -> None:
@@ -461,13 +460,19 @@ def panel_observed_vs_null_distance(ax: plt.Axes, summary: pd.DataFrame) -> None
     ax.legend(loc="upper left")
 
 
+REPRESENTATIVE_RUN = ("nonEpitopeAcceptance_0.25_epitopeAcceptance_0.75", 14)
+
+
 def _bin_label(low: int, high: int) -> str:
     """Readable label for a genetic-distance bin, with the top bin left open."""
-    return f"{low}+" if high >= 1000 else f"{low}–{high}"
+    return f"{low}+" if high >= 1000 else f"{low}\u2013{high}"
 
 
 def panel_genotype_antigenic(
-    ax: plt.Axes, summary: pd.DataFrame, genotype: pd.DataFrame
+    ax: plt.Axes,
+    summary: pd.DataFrame,
+    genotype: pd.DataFrame,
+    representative_run: tuple[str, int],
 ) -> None:
     """Antigenic distance against genetic distance, one line per simulation.
 
@@ -475,6 +480,11 @@ def panel_genotype_antigenic(
     the cumulative sum of every mutation along a lineage, so genetically similar
     viruses share nearly all of their displacement; the per-event random direction
     perturbs a single step rather than decoupling genotype from phenotype.
+
+    The bold line is the representative simulation rather than the across-run
+    median, matching the ECDF panel of figure S5: the representative run carries
+    the main-text detailed analysis, so showing where it sits inside the ensemble
+    is more useful than a median no individual simulation produced.
     """
     assert not genotype.empty, "genotype-antigenic table is empty"
     bins = (
@@ -485,8 +495,12 @@ def panel_genotype_antigenic(
     labels = [_bin_label(int(lo), int(hi)) for lo, hi in bins.to_numpy()]
     positions = {int(lo): i for i, lo in enumerate(bins["genetic_bin_low"])}
 
-    for _, run_rows in genotype.groupby(["config", "run"]):
+    representative = None
+    for (config, run), run_rows in genotype.groupby(["config", "run"]):
         ordered = run_rows.sort_values("genetic_bin_low")
+        if (config, int(run)) == representative_run:
+            representative = ordered
+            continue
         line = ax.plot(
             [positions[int(lo)] for lo in ordered["genetic_bin_low"]],
             ordered["median_antigenic_distance"],
@@ -497,36 +511,24 @@ def panel_genotype_antigenic(
         )[0]
         line.set_rasterized(True)
 
-    median = genotype.groupby("genetic_bin_low")["median_antigenic_distance"].median()
-    ax.plot(
-        [positions[int(lo)] for lo in median.index],
-        median.to_numpy(),
-        color=EPITOPE_COLOR,
-        lw=2.6,
-        marker="o",
-        ms=5,
-        zorder=3,
-        label="across-simulation median",
-    )
-
-    correlations = summary["genotype_antigenic_pearson"].dropna()
-    if len(correlations):
-        ax.annotate(
-            f"Pearson $r$ = {correlations.median():.2f}\n"
-            f"(median of {len(correlations)} simulations)",
-            xy=(0.04, 0.93),
-            xycoords="axes fraction",
-            va="top",
-            fontsize=9,
+    if representative is not None:
+        ax.plot(
+            [positions[int(lo)] for lo in representative["genetic_bin_low"]],
+            representative["median_antigenic_distance"],
+            color=EPITOPE_COLOR,
+            lw=2.8,
+            marker="o",
+            ms=5,
+            zorder=3,
+            label="representative simulation",
         )
+        ax.legend(loc="upper left")
 
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels)
     ax.set_xlabel("Genetic distance between viruses (AA)")
     ax.set_ylabel("Median antigenic distance")
-    ax.set_title("Genotype predicts antigenic position", fontsize=10)
     ax.set_ylim(bottom=0)
-    ax.legend(loc="lower right")
 
 
 def panel_identical_sequence_spread(ax: plt.Axes, summary: pd.DataFrame) -> None:
@@ -537,7 +539,7 @@ def panel_identical_sequence_spread(ax: plt.Axes, summary: pd.DataFrame) -> None
     scattered. Reported as a rate rather than as spread magnitudes, because the
     magnitudes span orders of magnitude -- most groups sit at exactly one position
     while a few reach several units -- and a linear axis over them buries the
-    result under its own outliers. The magnitude is annotated instead.
+    result under its own outliers. The magnitude belongs in the caption.
 
     The denominator is sequences, not tips: ``assign_all_variants.py`` is handed
     the deduplicated tip table, so a method encounters each distinct sequence once,
@@ -565,55 +567,43 @@ def panel_identical_sequence_spread(ax: plt.Axes, summary: pd.DataFrame) -> None
         alpha=0.6,
         jitter=0.18,
     )
-
-    magnitude = summary.get("identical_seq_spread_median_when_spreading")
-    if magnitude is not None and magnitude.notna().any():
-        ax.annotate(
-            "Where they do differ, the median\n"
-            f"separation is {magnitude.median():.1f} of a ~40 unit span",
-            xy=(0.5, 0.06),
-            xycoords="axes fraction",
-            ha="center",
-            fontsize=9,
-        )
-
     n = len(single_position)
     ax.set_xlabel(f"{n} simulation{'' if n == 1 else 's'}")
     ax.set_ylabel("Fraction of shared sequences at one position")
-    ax.set_title("Identical sequences share a position", fontsize=10)
     ax.set_ylim(0, 1.02)
 
 
 def build_across_run_figure(
-    summary: pd.DataFrame, genotype: pd.DataFrame
+    summary: pd.DataFrame, genotype: pd.DataFrame, representative_run: tuple[str, int]
 ) -> plt.Figure:
     """Assemble the four-panel across-run figure for Reviewer 1, comment 1a.
 
     Each panel is a distribution over every swept simulation rather than a single
     build, which removes the cherry-picking objection the single-build version
-    invited. A and B characterise the simulation's mutational behaviour;
-    C and D answer the reviewer's operational concern directly, by showing that
-    genotype predicts antigenic position despite the per-event random direction.
+    invited. A and B characterise the simulation's mutational behaviour; C and D
+    answer the reviewer's operational concern directly, by showing that genotype
+    predicts antigenic position despite the per-event random direction.
+
+    Styling and panel-letter placement come from ``antigentools.supplement_style``
+    so this figure matches S4 and S5 rather than inventing a third convention.
 
     ``panel_similar_background`` and ``panel_observed_vs_null_distance`` are
     retained in this module because they still back the response letter, but they
     no longer earn a panel: C and D make the argument more directly.
     """
     assert not summary.empty, "per-run summary is empty"
-    fig, axes = plt.subplots(2, 2, figsize=(11.0, 8.6))
+    fig, axes = plt.subplots(2, 2, figsize=(12.0, 9.5))
     panel_recurrence_rate(axes[0, 0], summary)
     panel_reversion_rate(axes[0, 1], summary)
-    panel_genotype_antigenic(axes[1, 0], summary, genotype)
+    panel_genotype_antigenic(axes[1, 0], summary, genotype, representative_run)
     panel_identical_sequence_spread(axes[1, 1], summary)
-    for label, ax in zip("ABCD", axes.flat):
-        # The centred title must be cleared first: matplotlib keeps a separate
-        # text object per location, so setting a left title leaves the centred
-        # one in place and the two overlap.
-        title = ax.get_title()
-        ax.set_title("")
-        ax.set_title(f"{label}. {title}", fontweight="bold", loc="left", fontsize=10)
-        sns.despine(ax=ax)
-    fig.tight_layout()
+    for ax in axes.flat:
+        style_panel(ax)
+    # h_pad opens a gap between the rows for the lower panel letters, which are
+    # drawn just above each row and would otherwise land on the row above's tick
+    # labels. S4 and S5 are single-row figures and never needed this.
+    fig.tight_layout(h_pad=4.0)
+    add_panel_letters(fig, axes, "ABCD")
     return fig
 
 

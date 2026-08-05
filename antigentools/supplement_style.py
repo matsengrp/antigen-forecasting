@@ -101,8 +101,38 @@ def add_panel_letters(
         fontsize: Panel-letter size.
     """
     flat = list(axes.flat) if hasattr(axes, "flat") else list(axes)
-    assert len(flat) == len(letters), (
-        f"{len(flat)} axes but {len(letters)} panel letters"
+    add_split_panel_letters(fig, flat, flat, letters, fontsize)
+
+
+def add_split_panel_letters(
+    fig: Figure,
+    label_axes,
+    top_axes,
+    letters: str,
+    fontsize: int = PANEL_LETTER_FONTSIZE,
+) -> None:
+    """Place panel letters when the y-label and the top edge are on different axes.
+
+    A panel with a broken y-axis is built from two stacked axes: the data sits on
+    the lower one, which carries the y-label, while the upper one holds the
+    off-scale reference line and owns the panel's top edge. Letters therefore need
+    the horizontal anchor from one axes and the vertical anchor from another.
+
+    :func:`add_panel_letters` is the ordinary case and simply passes the same axes
+    for both.
+
+    Args:
+        fig: The figure being annotated.
+        label_axes: Per letter, the axes whose y-label sets the horizontal anchor.
+        top_axes: Per letter, the axes whose top edge sets the vertical anchor.
+        letters: One character per panel, e.g. ``"ABCD"``.
+        fontsize: Panel-letter size.
+    """
+    label_axes = list(label_axes)
+    top_axes = list(top_axes)
+    assert len(label_axes) == len(top_axes) == len(letters), (
+        f"{len(label_axes)} label axes, {len(top_axes)} top axes, "
+        f"{len(letters)} letters"
     )
     fig.canvas.draw()
     inverse = fig.transFigure.inverted()
@@ -112,14 +142,13 @@ def add_panel_letters(
     # the lower letters of a grid into the gap already occupied by the row
     # above's tick labels; how bad the collision looked then depended on the
     # figure's height, so it kept reappearing after resizes.
-    for index, ax in enumerate(flat):
-        label_extent = ax.yaxis.get_label().get_window_extent()
-        axes_extent = ax.get_window_extent()
+    for index, (label_ax, top_ax) in enumerate(zip(label_axes, top_axes)):
+        label_extent = label_ax.yaxis.get_label().get_window_extent()
         # Horizontally: centred on the y-axis label, matching S4 and S5.
         x_fig, _ = inverse.transform((0.5 * (label_extent.x0 + label_extent.x1), 0))
         # Vertically: pinned to this panel's own top edge, so the spacing between
         # rows is the only thing that has to be large enough.
-        _, y_fig = inverse.transform((0, axes_extent.y1))
+        _, y_fig = inverse.transform((0, top_ax.get_window_extent().y1))
         fig.text(
             x_fig,
             y_fig + 0.008,

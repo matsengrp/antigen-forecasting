@@ -31,10 +31,13 @@ from antigentools.analysis import get_filtered_growth_rates_df
 from antigentools.plot import get_analysis_window
 from antigentools.supplement_style import (
     LABEL_FONTSIZE,
-    LEGEND_FONTSIZE,
     PANEL_LETTER_FONTSIZE,
     TICK_FONTSIZE,
 )
+
+# Size of the per-variant key drawn beneath each zoom-in column. The text itself
+# renders two points smaller than this.
+VARIANT_KEY_FONTSIZE = 16
 
 # Font sizes are the shared supplement constants, used as-is. These figures are
 # drawn on a large canvas but as a grid of many small panels, so each panel is
@@ -45,7 +48,12 @@ from antigentools.supplement_style import (
 DEFAULT_SIZES = {
     "label": LABEL_FONTSIZE,
     "tick": TICK_FONTSIZE,
-    "legend": LEGEND_FONTSIZE,
+    # NOT the shared LEGEND_FONTSIZE. What this figure calls a legend is not a
+    # matplotlib legend but the hand-drawn variant key under each column, which
+    # carries each variant's log-MAE and is drawn at ``legend_fontsize - 2``. The
+    # shared value of 12 renders it at 10pt, too small to read once the figure is
+    # scaled into the column; 16 gives the 14pt the figures were drawn with.
+    "legend": VARIANT_KEY_FONTSIZE,
     "panel_letter": PANEL_LETTER_FONTSIZE,
 }
 

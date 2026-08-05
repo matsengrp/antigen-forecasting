@@ -102,7 +102,9 @@ class TestFigureCriticalConstants:
         assert grp.DEFAULT_SIZES == {
             "label": supplement_style.LABEL_FONTSIZE,
             "tick": supplement_style.TICK_FONTSIZE,
-            "legend": supplement_style.LEGEND_FONTSIZE,
+            # Deliberately not supplement_style.LEGEND_FONTSIZE -- see the
+            # module comment; this "legend" is the hand-drawn variant key.
+            "legend": grp.VARIANT_KEY_FONTSIZE,
             "panel_letter": supplement_style.PANEL_LETTER_FONTSIZE,
         }
 
@@ -117,6 +119,9 @@ class TestFigureCriticalConstants:
         """
         assert grp.DEFAULT_SIZES["label"] <= 16
         assert grp.DEFAULT_SIZES["tick"] <= 14
+        # The variant key is drawn two points below this and must stay legible
+        # once the figure is scaled into the column.
+        assert grp.DEFAULT_SIZES["legend"] - 2 >= 14
         assert not hasattr(supplement_style, "scale_for_canvas")
 
     def test_deme_palette_matches_the_other_figures(self):

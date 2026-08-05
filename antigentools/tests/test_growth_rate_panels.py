@@ -24,11 +24,9 @@ from __future__ import annotations
 
 import inspect
 
-import pytest
-
 from antigentools import growth_rate_panels as grp
 from antigentools import plot as legacy_plot
-from antigentools.supplement_style import scale_for_canvas
+from antigentools import supplement_style
 
 
 class TestPublicSurface:
@@ -101,8 +99,25 @@ class TestFigureCriticalConstants:
 
     def test_font_sizes_come_from_the_shared_convention(self):
         """Sizes must track supplement_style, not drift back to literals."""
-        assert grp.DEFAULT_CANVAS_WIDTH_IN == 30.0
-        assert grp.DEFAULT_SIZES == scale_for_canvas(30.0)
+        assert grp.DEFAULT_SIZES == {
+            "label": supplement_style.LABEL_FONTSIZE,
+            "tick": supplement_style.TICK_FONTSIZE,
+            "legend": supplement_style.LEGEND_FONTSIZE,
+            "panel_letter": supplement_style.PANEL_LETTER_FONTSIZE,
+        }
+
+    def test_font_sizes_are_not_scaled_by_canvas(self):
+        """Regression: scaling these by figure width broke figures 4 and S6.
+
+        Those figures are large canvases holding a grid of many small panels, so
+        each panel is about the size of one panel on a 12-inch figure and wants
+        the same type size. Scaling by canvas width tripled the fonts and made
+        titles, tick labels and legends overlap. The sizes must stay close to the
+        14/12 the figures were originally drawn with.
+        """
+        assert grp.DEFAULT_SIZES["label"] <= 16
+        assert grp.DEFAULT_SIZES["tick"] <= 14
+        assert not hasattr(supplement_style, "scale_for_canvas")
 
     def test_deme_palette_matches_the_other_figures(self):
         assert grp.DEME_PALETTE == {
@@ -127,18 +142,3 @@ class TestDriverDefaults:
         assert params["label_fontsize"].default == grp.DEFAULT_SIZES["label"]
         assert params["tick_fontsize"].default == grp.DEFAULT_SIZES["tick"]
         assert params["panel_label_size"].default == grp.DEFAULT_SIZES["panel_letter"]
-
-
-@pytest.mark.parametrize(
-    "canvas,expected_label",
-    [(11.0, 14), (12.0, 15), (30.0, 38)],
-)
-def test_canvas_scaling_reproduces_the_hardcoded_sizes(canvas, expected_label):
-    """The canvases in use land on the sizes the notebooks had hardcoded.
-
-    ``variant-zoom-in-finder`` draws at 11 inches and used 14; the aggregated
-    supplement figures use the 12-inch reference and 15; figure 4 and S6 draw at
-    30 inches. This is what let the notebooks adopt the shared scaling without
-    any of them changing appearance.
-    """
-    assert scale_for_canvas(canvas)["label"] == expected_label

@@ -11,6 +11,14 @@ This module holds the numbers once so both styles agree. Figures that set style
 globally call :func:`apply_supplement_style`; functions that take explicit font
 sizes default to the constants below.
 
+There is deliberately no canvas-scaling helper here. An earlier version scaled
+these sizes by figure width, on the theory that a 30-inch figure needs larger
+type than a 12-inch one to survive being scaled into the column. That is wrong:
+the 30-inch figures are grids of *many small* panels, each about the size of one
+panel on a 12-inch figure, so they want the same type size. Applying the scaling
+tripled the fonts on figures 4 and S6 and made their titles, tick labels and
+legends overlap.
+
 The values match ``manuscript-figure-S5-growth-rate-benchmark-aggregated.ipynb``
 exactly, so adopting this module does not change how S4 or S5 render.
 """
@@ -38,39 +46,6 @@ SUPPLEMENT_RC = {
     "legend.fontsize": LEGEND_FONTSIZE,
     "legend.title_fontsize": LEGEND_TITLE_FONTSIZE,
 }
-
-
-# Canvas width the font sizes above are calibrated for, in inches. Figures drawn
-# much wider than this are scaled down more aggressively when placed in the
-# document, so a literal copy of the sizes would render proportionally smaller.
-REFERENCE_CANVAS_WIDTH_IN = 12.0
-
-
-def scale_for_canvas(width_inches: float) -> dict[str, int]:
-    """Return the supplement font sizes rescaled for a canvas of this width.
-
-    Font sizes are only meaningful relative to the canvas they sit on, because
-    the document scales every figure to the column. The zoom-in figures are drawn
-    30 inches wide against roughly 12 for the aggregated panels, so copying the
-    raw sizes across would leave their labels reaching the page at about 3 points
-    where the others reach 8. Scaling by canvas width keeps the *rendered* size
-    consistent, which is the thing a reader actually sees.
-
-    Args:
-        width_inches: Width of the figure this styling is for.
-
-    Returns:
-        Keys ``label``, ``tick``, ``legend``, ``legend_title``, ``panel_letter``.
-    """
-    assert width_inches > 0, f"canvas width must be positive, got {width_inches}"
-    factor = width_inches / REFERENCE_CANVAS_WIDTH_IN
-    return {
-        "label": round(LABEL_FONTSIZE * factor),
-        "tick": round(TICK_FONTSIZE * factor),
-        "legend": round(LEGEND_FONTSIZE * factor),
-        "legend_title": round(LEGEND_TITLE_FONTSIZE * factor),
-        "panel_letter": round(PANEL_LETTER_FONTSIZE * factor),
-    }
 
 
 def apply_supplement_style() -> None:

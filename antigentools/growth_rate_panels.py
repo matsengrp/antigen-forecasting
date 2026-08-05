@@ -29,12 +29,25 @@ import seaborn as sns
 
 from antigentools.analysis import get_filtered_growth_rates_df
 from antigentools.plot import get_analysis_window
-from antigentools.supplement_style import scale_for_canvas
+from antigentools.supplement_style import (
+    LABEL_FONTSIZE,
+    LEGEND_FONTSIZE,
+    PANEL_LETTER_FONTSIZE,
+    TICK_FONTSIZE,
+)
 
-# Both consumers draw on a 30-inch canvas, so the defaults are scaled once here
-# rather than recomputed per notebook.
-DEFAULT_CANVAS_WIDTH_IN = 30.0
-DEFAULT_SIZES = scale_for_canvas(DEFAULT_CANVAS_WIDTH_IN)
+# Font sizes are the shared supplement constants, used as-is. These figures are
+# drawn on a large canvas but as a grid of many small panels, so each panel is
+# about the size of one panel on a 12-inch figure and wants the same type size --
+# scaling by canvas width tripled these and made the titles and tick labels
+# overlap. The values also sit within a point of what the figures originally used
+# (label 14, tick 12).
+DEFAULT_SIZES = {
+    "label": LABEL_FONTSIZE,
+    "tick": TICK_FONTSIZE,
+    "legend": LEGEND_FONTSIZE,
+    "panel_letter": PANEL_LETTER_FONTSIZE,
+}
 
 # Variant-inclusion thresholds. These were free variables in the notebooks, and
 # they are deliberately NOT left to get_filtered_growth_rates_df's own defaults

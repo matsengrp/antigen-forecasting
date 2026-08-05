@@ -362,13 +362,13 @@ def _strip_panel(ax: plt.Axes, data: pd.DataFrame, ylabel: str) -> None:
 def panel_recurrence_rate(ax: plt.Axes, summary: pd.DataFrame) -> None:
     """Fraction of substitutions arising independently two or more times, per run."""
     data = _rate_per_run(summary, "n_recurrent", "n_substitutions")
-    _strip_panel(ax, data, "Fraction of substitutions recurring")
+    _strip_panel(ax, data, "Fraction recurring")
 
 
 def panel_reversion_rate(ax: plt.Axes, summary: pd.DataFrame) -> None:
     """Fraction of substitutions in a gain-then-loss cycle on one lineage, per run."""
     data = _rate_per_run(summary, "n_lineage_cycle", "n_substitutions")
-    _strip_panel(ax, data, "Fraction in a gain-then-loss cycle")
+    _strip_panel(ax, data, "Fraction in a reversion cycle")
 
 
 def panel_similar_background(ax: plt.Axes, similar: pd.DataFrame) -> None:
@@ -569,7 +569,7 @@ def panel_identical_sequence_spread(ax: plt.Axes, summary: pd.DataFrame) -> None
     )
     n = len(single_position)
     ax.set_xlabel(f"{n} simulation{'' if n == 1 else 's'}")
-    ax.set_ylabel("Fraction of shared sequences at one position")
+    ax.set_ylabel("Fraction at one position")
     ax.set_ylim(0, 1.02)
 
 
@@ -592,7 +592,9 @@ def build_across_run_figure(
     no longer earn a panel: C and D make the argument more directly.
     """
     assert not summary.empty, "per-run summary is empty"
-    fig, axes = plt.subplots(2, 2, figsize=(12.0, 9.5))
+    # Wide and comparatively short: the figure is placed at 1.3\\textwidth, so a
+    # taller aspect pushes the caption off the bottom of the page.
+    fig, axes = plt.subplots(2, 2, figsize=(13.0, 7.9))
     panel_recurrence_rate(axes[0, 0], summary)
     panel_reversion_rate(axes[0, 1], summary)
     panel_genotype_antigenic(axes[1, 0], summary, genotype, representative_run)
@@ -601,8 +603,9 @@ def build_across_run_figure(
         style_panel(ax)
     # h_pad opens a gap between the rows for the lower panel letters, which are
     # drawn just above each row and would otherwise land on the row above's tick
-    # labels. S4 and S5 are single-row figures and never needed this.
-    fig.tight_layout(h_pad=4.0)
+    # labels. S4 and S5 are single-row figures and never needed this, so the
+    # value is tuned here rather than in the shared helper.
+    fig.tight_layout(h_pad=3.0)
     add_panel_letters(fig, axes, "ABCD")
     return fig
 

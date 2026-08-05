@@ -116,29 +116,25 @@ def add_panel_letters(
     fig.canvas.draw()
     inverse = fig.transFigure.inverted()
 
-    # Group axes into rows by their vertical extent so each row's letters sit
-    # just above that row rather than above the whole figure.
-    rows: dict[float, list[int]] = {}
+    # Anchor each letter to its own panel rather than to the top of a row. An
+    # earlier version measured the row and offset upward from there, which put
+    # the lower letters of a grid into the gap already occupied by the row
+    # above's tick labels; how bad the collision looked then depended on the
+    # figure's height, so it kept reappearing after resizes.
     for index, ax in enumerate(flat):
-        top = round(ax.get_window_extent().y1, 1)
-        match = next((key for key in rows if abs(key - top) < 5.0), top)
-        rows.setdefault(match, []).append(index)
-
-    for row_top, indices in rows.items():
-        extents = [flat[i].yaxis.get_label().get_window_extent() for i in indices]
-        top_display = max(
-            [extent.y1 for extent in extents]
-            + [flat[i].get_window_extent().y1 for i in indices]
+        label_extent = ax.yaxis.get_label().get_window_extent()
+        axes_extent = ax.get_window_extent()
+        # Horizontally: centred on the y-axis label, matching S4 and S5.
+        x_fig, _ = inverse.transform((0.5 * (label_extent.x0 + label_extent.x1), 0))
+        # Vertically: pinned to this panel's own top edge, so the spacing between
+        # rows is the only thing that has to be large enough.
+        _, y_fig = inverse.transform((0, axes_extent.y1))
+        fig.text(
+            x_fig,
+            y_fig + 0.008,
+            letters[index],
+            fontsize=fontsize,
+            fontweight="bold",
+            ha="center",
+            va="bottom",
         )
-        _, y_fig = inverse.transform((0, top_display))
-        for index, extent in zip(indices, extents):
-            x_fig, _ = inverse.transform((0.5 * (extent.x0 + extent.x1), 0))
-            fig.text(
-                x_fig,
-                y_fig + 0.012,
-                letters[index],
-                fontsize=fontsize,
-                fontweight="bold",
-                ha="center",
-                va="bottom",
-            )

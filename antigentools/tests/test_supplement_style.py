@@ -96,6 +96,44 @@ class TestPanelStyling:
         plt.close(fig)
 
 
+class TestPanelLetterPad:
+    """The gap above a panel letter must not depend on canvas height."""
+
+    def _letter_gap_pt(self, figheight):
+        fig, axes = plt.subplots(1, 2, figsize=(10, figheight))
+        for ax in axes:
+            ax.plot([0, 1], [0, 1])
+            ax.set_ylabel("y")
+        fig.tight_layout()
+        supplement_style.add_panel_letters(fig, axes, "AB")
+        fig.canvas.draw()
+        texts = [t for t in fig.texts if t.get_text() in "AB"]
+        assert len(texts) == 2
+        gap = min(
+            t.get_position()[1] * figheight * 72.0
+            - axes[i].get_window_extent().y1 / fig.dpi * 72.0
+            for i, t in enumerate(texts)
+        )
+        plt.close(fig)
+        return gap
+
+    def test_gap_is_the_same_on_short_and_tall_canvases(self):
+        """Regression: as a figure fraction this was 2.1pt on S1 and 10.4pt on
+        figure 4, and the short figures' letters collided with their tick labels.
+        """
+        short = self._letter_gap_pt(4.0)
+        tall = self._letter_gap_pt(16.0)
+        assert abs(short - tall) < 0.5, f"short={short:.2f}pt tall={tall:.2f}pt"
+
+    def test_gap_matches_the_declared_pad(self):
+        assert (
+            abs(self._letter_gap_pt(6.0) - supplement_style.PANEL_LETTER_PAD_PT) < 0.5
+        )
+
+    def test_pad_is_large_enough_to_clear_tick_labels(self):
+        assert supplement_style.PANEL_LETTER_PAD_PT >= 6.0
+
+
 class TestJitterSeed:
     def test_seed_is_the_documented_value(self):
         """Changing this moves every point in every strip overlay."""

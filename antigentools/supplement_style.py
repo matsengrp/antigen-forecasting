@@ -43,6 +43,17 @@ LEGEND_FONTSIZE = 12
 LEGEND_TITLE_FONTSIZE = 13
 PANEL_LETTER_FONTSIZE = 18
 
+# Gap between a panel's top edge and its letter, in points. This was a figure
+# fraction (0.008), which made the gap depend on canvas height rather than on
+# type size: 2.1pt on S1's 3.6in canvas against 10.4pt on figure 4's 18in one.
+# The short figures were the ones whose letters collided with their tick labels.
+#
+# 6pt rather than 8: the figures are saved with bbox_inches="tight", so raising
+# the letters also raises the saved bounding box. At 8pt the supplement figures
+# grew by 3-5pt each and the manuscript gained a page; 6pt clears every tick
+# label and leaves the page count unchanged.
+PANEL_LETTER_PAD_PT = 6.0
+
 # The base matplotlib style the supplement figures build on.
 BASE_STYLE = "seaborn-v0_8-paper"
 
@@ -173,6 +184,9 @@ def add_split_panel_letters(
     )
     fig.canvas.draw()
     inverse = fig.transFigure.inverted()
+    # Convert the pad from points to a figure fraction, so the gap is the same
+    # physical size whatever the canvas height.
+    pad = PANEL_LETTER_PAD_PT / (72.0 * fig.get_figheight())
 
     # Anchor each letter to its own panel rather than to the top of a row. An
     # earlier version measured the row and offset upward from there, which put
@@ -188,7 +202,7 @@ def add_split_panel_letters(
         _, y_fig = inverse.transform((0, top_ax.get_window_extent().y1))
         fig.text(
             x_fig,
-            y_fig + 0.008,
+            y_fig + pad,
             letters[index],
             fontsize=fontsize,
             fontweight="bold",

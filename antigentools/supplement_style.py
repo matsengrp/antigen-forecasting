@@ -71,12 +71,18 @@ def seed_jitter() -> None:
 
 
 def style_panel(ax: Axes) -> None:
-    """Apply the shared per-axes treatment: light grid behind the data, despined.
+    """Apply the shared per-axes treatment: light y-grid behind the data, despined.
 
     Panels carry no title; the figure's panel letter and the caption identify
     them, which is what keeps a multi-panel supplement figure readable.
+
+    The grid is horizontal only. Gridlines were inconsistent across the figure set
+    -- some panels had both axes, some only y, some none at all, and S5 differed
+    between its own two panels. Horizontal lines earn their keep by letting a
+    reader carry a value across a panel; vertical ones over a categorical axis are
+    just texture, so they are off everywhere.
     """
-    ax.grid(True, alpha=0.3, linewidth=0.5)
+    ax.grid(True, axis="y", alpha=0.3, linewidth=0.5)
     ax.set_axisbelow(True)
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)

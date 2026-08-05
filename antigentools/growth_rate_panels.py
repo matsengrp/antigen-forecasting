@@ -34,6 +34,7 @@ from antigentools.supplement_style import (
     PANEL_LETTER_FONTSIZE,
     TICK_FONTSIZE,
     seed_jitter,
+    style_panel,
 )
 
 # Size of the per-variant key drawn beneath each zoom-in column. The text itself
@@ -750,9 +751,7 @@ def plot_combined_growth_rate_figure(
         axis="both", which="major", labelsize=tick_fontsize + 8, width=1.2, length=4
     )
 
-    # Enhanced despine and grid
-    sns.despine(ax=ax_boxplot, offset=5, trim=False)
-    ax_boxplot.grid(True, axis="y", alpha=0.3, linestyle="-", linewidth=0.5)
+    style_panel(ax_boxplot)
     ax_boxplot.set_axisbelow(True)
 
     # Add panel label A for boxplot - adjusted positioning
@@ -920,10 +919,9 @@ def plot_combined_growth_rate_figure(
 
         window_log_mae.append(current_log_mae)
 
-        # Remove top and right spines from all panels
+        # Shared per-axes treatment: light horizontal grid, despined.
         for ax in axes:
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
+            style_panel(ax)
 
         # Remove y-axis labels from all except leftmost column
         if col_idx > 0:

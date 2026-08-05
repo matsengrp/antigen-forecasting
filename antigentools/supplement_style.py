@@ -26,8 +26,15 @@ exactly, so adopting this module does not change how S4 or S5 render.
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+
+# Seaborn's stripplot jitters points using the global numpy RNG and exposes no
+# seed of its own, so without this every render moved ~0.7% of the pixels in any
+# figure carrying a strip overlay -- a figure could not be regenerated to match
+# what was submitted. Seed immediately before each stripplot call.
+JITTER_SEED = 5
 
 # Font sizes, for callers that pass them explicitly rather than via rcParams.
 LABEL_FONTSIZE = 15
@@ -52,6 +59,15 @@ def apply_supplement_style() -> None:
     """Set the supplement look globally, as the S4 and S5 notebooks do."""
     plt.style.use(BASE_STYLE)
     plt.rcParams.update(SUPPLEMENT_RC)
+
+
+def seed_jitter() -> None:
+    """Make the next seaborn strip/swarm plot's jitter reproducible.
+
+    Call immediately before the plotting call. Seeding once at import would not
+    work: any RNG use in between would shift the draw.
+    """
+    np.random.seed(JITTER_SEED)
 
 
 def style_panel(ax: Axes) -> None:

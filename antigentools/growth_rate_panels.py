@@ -33,6 +33,7 @@ from antigentools.supplement_style import (
     LABEL_FONTSIZE,
     PANEL_LETTER_FONTSIZE,
     TICK_FONTSIZE,
+    seed_jitter,
 )
 
 # Size of the per-variant key drawn beneath each zoom-in column. The text itself
@@ -650,7 +651,9 @@ def plot_combined_growth_rate_figure(
     # Style the boxplot lines (whiskers, medians, etc.)
     plt.setp(boxplot.lines, linewidth=1.5)
 
-    # Add refined stripplot overlay and store for highlighting
+    # Add refined stripplot overlay and store for highlighting. Seeded so the
+    # jitter is reproducible; seaborn takes no seed of its own.
+    seed_jitter()
     stripplot = sns.stripplot(
         data=garw_data,
         x="location",

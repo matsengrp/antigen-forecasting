@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from antigentools.supplement_style import (  # noqa: E402
     SUPPLEMENT_RC,
     add_panel_letters,
+    hollow_boxes,
     seed_jitter,
     style_panel,
 )
@@ -337,11 +338,16 @@ def _strip_panel(ax: plt.Axes, data: pd.DataFrame, ylabel: str) -> None:
         x="site_class",
         y="rate",
         order=order,
+        hue="site_class",
+        hue_order=order,
+        palette=palette,
         ax=ax,
-        color="0.85",
         fliersize=0,
         width=0.55,
+        linewidth=1.5,
+        legend=False,
     )
+    hollow_boxes(ax)
     seed_jitter()
     sns.stripplot(
         data=data,
@@ -557,8 +563,16 @@ def panel_identical_sequence_spread(ax: plt.Axes, summary: pd.DataFrame) -> None
 
     data = pd.DataFrame({"x": "", "fraction": single_position.to_numpy()})
     sns.boxplot(
-        data=data, x="x", y="fraction", ax=ax, color="0.85", fliersize=0, width=0.35
+        data=data,
+        x="x",
+        y="fraction",
+        ax=ax,
+        color=EPITOPE_COLOR,
+        fliersize=0,
+        width=0.35,
+        linewidth=1.5,
     )
+    hollow_boxes(ax)
     seed_jitter()
     sns.stripplot(
         data=data,

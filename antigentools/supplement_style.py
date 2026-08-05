@@ -88,6 +88,37 @@ def style_panel(ax: Axes) -> None:
         ax.spines[side].set_visible(False)
 
 
+def hollow_boxes(ax: Axes, linewidth: float = 2.0) -> None:
+    """Knock out every box's face and move its colour to the edge.
+
+    The supplement's box-and-strip panels are drawn as a coloured box over a
+    matching point cloud. Filling the box hides the points inside the IQR, which
+    is where most of them are, so the fill is turned off and the palette colour
+    becomes the outline instead. This is the look S5 panel A and figure 4/S6
+    panel A settled on.
+
+    Draw the boxplot with a palette (not ``color="0.85"``) and call this
+    immediately afterwards. Boxes drawn as a flat grey do work here, but they
+    come out uniformly grey-outlined, which defeats the point.
+
+    Args:
+        ax: The axes holding the boxplot patches.
+        linewidth: Outline width for the boxes.
+    """
+    for patch in ax.patches:
+        face = patch.get_facecolor()
+        # Skip a box that has already been hollowed. Without this the second call
+        # copies the cleared (fully transparent) face onto the edge and the
+        # outline disappears, which is easy to trigger now that five figures
+        # share this helper and a panel builder may be applied twice.
+        if face[3] == 0.0:
+            continue
+        patch.set_edgecolor(face)
+        patch.set_facecolor("none")
+        patch.set_linewidth(linewidth)
+    plt.setp(ax.lines, linewidth=1.5)
+
+
 def add_panel_letters(
     fig: Figure, axes, letters: str, fontsize: int = PANEL_LETTER_FONTSIZE
 ) -> None:

@@ -33,6 +33,7 @@ from antigentools.supplement_style import (
     LABEL_FONTSIZE,
     PANEL_LETTER_FONTSIZE,
     TICK_FONTSIZE,
+    hollow_boxes,
     seed_jitter,
     style_panel,
 )
@@ -628,7 +629,7 @@ def plot_combined_growth_rate_figure(
     ]
 
     # Create enhanced boxplot (from manuscript-figure-5 code) - GARW only
-    boxplot = sns.boxplot(
+    sns.boxplot(
         data=garw_data,
         x="location",  # Use location as x-axis since we only have GARW
         y="log_mae",
@@ -640,17 +641,8 @@ def plot_combined_growth_rate_figure(
         fliersize=0,
     )
 
-    # Convert boxplots to outlined style for cleaner look
-    for patch in boxplot.patches:
-        # Get the current face color for edge color
-        edge_color = patch.get_facecolor()
-        # Make boxes transparent with colored edges
-        patch.set_facecolor("none")
-        patch.set_edgecolor(edge_color)
-        patch.set_linewidth(2)
-
-    # Style the boxplot lines (whiskers, medians, etc.)
-    plt.setp(boxplot.lines, linewidth=1.5)
+    # Coloured outline, no fill, so the point cloud inside the IQR stays visible.
+    hollow_boxes(ax_boxplot)
 
     # Add refined stripplot overlay and store for highlighting. Seeded so the
     # jitter is reproducible; seaborn takes no seed of its own.

@@ -530,7 +530,8 @@ def panel_genotype_antigenic(
             zorder=3,
             label="representative simulation",
         )
-        ax.legend(loc="upper left")
+        # Frameless, matching the bottom legends on S4 and S5.
+        ax.legend(loc="upper left", frameon=False)
 
     ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels)

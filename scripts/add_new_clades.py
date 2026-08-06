@@ -133,6 +133,29 @@ def calc_phylo_scale(T):
     return scoreatpercentile(values,80)
 
 
+def coerce_site_weight_keys(weights):
+    '''Convert per-site weight keys from JSON strings to ints.
+
+    JSON object keys are always strings, but `score` looks a site up by its
+    integer position. Without this coercion `pos in w` never matches, every
+    mutation silently falls through to the per-CDS default, and the site
+    weighting is inert -- which is exactly what happened before this was added.
+    The "default" key is left alone.
+    '''
+    coerced = {}
+    for cds, sites in weights.items():
+        out = {}
+        for key, value in sites.items():
+            if key == "default":
+                out[key] = value
+                continue
+            assert str(key).isdigit(), \
+                f"weights[{cds!r}] key {key!r} is neither 'default' nor a site number"
+            out[int(key)] = value
+        coerced[cds] = out
+    return coerced
+
+
 def score(n, weights=None, bushiness_scale=1, ignore_backbone=False,
           proteins=None, branch_length_scale=4):
     '''
@@ -366,6 +389,15 @@ if __name__=="__main__":
 
     with open(args.weights) as fh:
         weights = json.load(fh)
+    weights = {lineage: coerce_site_weight_keys(cds_weights)
+               for lineage, cds_weights in weights.items()}
+    # Report the weighting actually in force. An all-default line here means the
+    # site weights are doing nothing, which is silent otherwise.
+    for cds in proteins:
+        w = weights[args.lineage].get(cds, {})
+        n_sites = sum(1 for k in w if k != "default")
+        print(f"site weights {cds}: {n_sites} weighted sites, "
+              f"default {w.get('default', 0)}")
 
     data, T, hierarchy = get_tree(args.input, max_date=max_date, min_date=min_date,
                             add_to_existing=args.add_to_existing,

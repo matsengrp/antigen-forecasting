@@ -105,3 +105,6 @@ results/**/*__run_*/benchmark_config.yaml
 data/smoke-test/
 results/smoke-test/
 logs/
+
+# local scratch space, never tracked
+scratchpad/

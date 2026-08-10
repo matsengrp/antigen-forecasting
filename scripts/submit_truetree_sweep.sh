@@ -104,8 +104,10 @@ for shared_input in "$EPITOPE_SITES" "$PROJECT_ROOT/$REF_GENBANK"; do
 done
 
 # Warn early if no run has a branches file yet: the sweep would produce empty
-# tables. The branches files are raw antigen outputs on the experiments side.
-BRANCH_COUNT=$(find "$EXPERIMENTS_ROOT/$BATCH_NAME/simulations" -maxdepth 3 \
+# tables. The branches files are raw antigen outputs on the experiments side,
+# four levels below simulations/ (<config>/run_N/output/run-out.branches), so the
+# depth must reach 4 -- an earlier -maxdepth 3 found nothing and warned falsely.
+BRANCH_COUNT=$(find "$EXPERIMENTS_ROOT/$BATCH_NAME/simulations" -maxdepth 4 \
     -path "*/run_*/output/run-out.branches" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$BRANCH_COUNT" -eq 0 ]; then
     echo "WARNING: no run-out.branches found under $EXPERIMENTS_ROOT/$BATCH_NAME" >&2

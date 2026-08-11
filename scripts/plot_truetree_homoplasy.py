@@ -53,6 +53,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from antigentools.supplement_style import (  # noqa: E402
     SUPPLEMENT_RC,
     add_panel_letters,
+    hollow_boxes,
+    seed_jitter,
     style_panel,
 )
 
@@ -99,19 +101,21 @@ ESTABLISHED_PROGENY = 50
 # --------------------------------------------------------------------------- #
 # Parsing the true genealogy.
 # --------------------------------------------------------------------------- #
-def parse_record(record: str) -> tuple[str, bool, str]:
-    """Return (name, is_tip, nucleotide_sequence) from one ``{...}`` node record.
+def parse_record(record: str) -> tuple[str, bool, str, float]:
+    """Return (name, is_tip, nucleotide_sequence, birth) from one ``{...}`` record.
 
     Field order from ``VirusTree.printBranches``: name, birth, fitness, trunk,
     tip, marked, deme, layout, then the phenotype (sequence, ag1, ag2, ...). The
     nucleotide sequence carries no commas, so a plain split is unambiguous through
-    field 8.
+    field 8. ``birth`` is ``v.getBirth()`` in simulation years; antigen has no
+    separate sampling time, so a tip's isolation date is this same value.
     """
     fields = record[1:-1].split(",")  # Strip the braces.
     name = fields[0].strip().strip('"')
+    birth = float(fields[1])
     is_tip = fields[4] == "1"
     nt_seq = fields[8]
-    return name, is_tip, nt_seq
+    return name, is_tip, nt_seq, birth
 
 
 def codon_substitutions(parent_nt: str, child_nt: str, genes: dict[str, GeneLayout]):
@@ -208,7 +212,7 @@ def stream_branches(branches_path: Path, genes, seq_to_variant):
             is_tip.append(False)
         return i
 
-    origins: list[tuple] = []  # (sub_key, origin_id, background_aa).
+    origins: list[tuple] = []  # (sub_key, origin_id, background_aa, birth).
     origins_by_sub: dict[tuple, int] = defaultdict(int)
     n_edges = n_changed = n_tips = n_tip_missing = 0
 
@@ -217,8 +221,8 @@ def stream_branches(branches_path: Path, genes, seq_to_variant):
             parts = line.rstrip("\n").split("\t")
             if len(parts) < 2:
                 continue
-            child_name, child_is_tip, child_nt = parse_record(parts[0])
-            parent_name, _, parent_nt = parse_record(parts[1])
+            child_name, child_is_tip, child_nt, child_birth = parse_record(parts[0])
+            parent_name, _, parent_nt, _ = parse_record(parts[1])
             cid, pid = gid(child_name), gid(parent_name)
             parent[cid] = pid
             n_children[pid] += 1
@@ -242,7 +246,9 @@ def stream_branches(branches_path: Path, genes, seq_to_variant):
                 continue
             background = translate_full(parent_nt, genes)
             for sub in subs:
-                origins.append((sub, cid, background))
+                # The origin is the child node; its birth is when the
+                # mutation-carrying lineage arose.
+                origins.append((sub, cid, background, child_birth))
                 origins_by_sub[sub] += 1
 
     stats = {
@@ -355,11 +361,16 @@ def compute_truetree_tables(
     # substitutions left with no such origin drop out.
     prog = descendant_tip_counts(tree)
     occ_rows = []
+    spread_rows = []
     for thr in PROGENY_THRESHOLDS:
         by_sub: dict[tuple, int] = defaultdict(int)
-        for sub, oid, _bg in origins:
+        # For the spread panels: the established origins of each substitution, as
+        # (background, birth), so we can take the closest pair.
+        established: dict[tuple, list] = defaultdict(list)
+        for sub, oid, bg, birth in origins:
             if prog[oid] >= thr:
                 by_sub[sub] += 1
+                established[sub].append((bg, birth))
         for (gene, pos, _f, _t), n in by_sub.items():
             occ_rows.append(
                 {
@@ -368,16 +379,36 @@ def compute_truetree_tables(
                     "min_progeny": thr,
                 }
             )
+        for sub, recs in established.items():
+            if len(recs) < 2:
+                continue
+            min_bg = min(
+                int(np.count_nonzero(a[0] != b[0]))
+                for a, b in combinations(recs, 2)
+            )
+            min_gap = min(
+                abs(a[1] - b[1]) for a, b in combinations(recs, 2)
+            )
+            spread_rows.append(
+                {
+                    "min_progeny": thr,
+                    "is_epitope": is_epitope_mutation(sub[0], sub[1], epitope_sites),
+                    "min_background_distance_aa": min_bg,
+                    "min_birthtime_gap_years": float(min_gap),
+                }
+            )
     occurrence = pd.DataFrame(occ_rows)
+    spread = pd.DataFrame(spread_rows)
 
     pairs = pd.DataFrame()
     if seq_to_variant:
-        origin_ids = {oid for _sub, oid, _bg in origins}
+        origin_ids = {oid for _sub, oid, _bg, _birth in origins}
         modal = postorder_modal(tree, tip_variant, origin_ids)
         pairs = build_pairs(origins, modal, epitope_sites)
 
     return {
         "occurrence": occurrence,
+        "spread": spread,
         "pairs": pairs,
         "stats": stats,
     }
@@ -386,7 +417,7 @@ def compute_truetree_tables(
 def build_pairs(origins, modal, epitope_sites) -> pd.DataFrame:
     """Same-substitution origin pairs and a matched different-substitution null."""
     by_sub: dict[tuple, list] = defaultdict(list)
-    for sub, oid, bg in origins:
+    for sub, oid, bg, _birth in origins:
         by_sub[sub].append((oid, bg))
 
     rows = []
@@ -588,33 +619,32 @@ def _is_representative(config, run, representative_run) -> bool:
 def panel_occurrence_pooled(
     ax, origin_counts: pd.DataFrame, representative_run, min_progeny: int
 ) -> None:
-    """Pooled panel A: one faint origin-count ECDF per run and site class.
+    """Pooled panel A: origin-count ECDF for epitope substitutions.
 
-    Restricted to origins with at least ``min_progeny`` sampled infections. The
-    representative run is drawn bold, matching ``panel_genotype_antigenic`` in the
-    inferred-tree figure; the faint lines show the spread across simulations.
+    Restricted to epitope origins with at least ``min_progeny`` sampled
+    infections. One faint gray curve per simulation with the representative run in
+    bold black; non-epitope and the legend are dropped -- the whole figure is
+    about epitope mutations.
     """
-    occ = origin_counts[origin_counts["min_progeny"] == min_progeny]
-    assert not occ.empty, f"no origin-count rows at min_progeny={min_progeny}"
-    classes = [("epitope", EPITOPE_COLOR), ("non_epitope", NON_EPITOPE_COLOR)]
+    occ = origin_counts[
+        (origin_counts["min_progeny"] == min_progeny)
+        & (origin_counts["site_class"] == "epitope")
+    ]
+    assert not occ.empty, f"no epitope origin-count rows at min_progeny={min_progeny}"
     for (config, run), run_df in occ.groupby(["config", "run"]):
-        rep = _is_representative(config, run, representative_run)
-        for name, color in classes:
-            sub = run_df[run_df["site_class"] == name].sort_values("x")
-            if sub.empty:
-                continue
-            x = sub["x"].to_numpy()
-            y = sub["cumulative_fraction"].to_numpy()
-            if rep:
-                ax.step(
-                    x, y, where="post", color=color, lw=2.6, marker="o", ms=4,
-                    zorder=3, label=name.replace("_", "-"),
-                )
-            else:
-                line = ax.step(
-                    x, y, where="post", color=color, lw=0.6, alpha=0.15, zorder=1
-                )[0]
-                line.set_rasterized(True)
+        sub = run_df.sort_values("x")
+        x = sub["x"].to_numpy()
+        y = sub["cumulative_fraction"].to_numpy()
+        if _is_representative(config, run, representative_run):
+            ax.step(
+                x, y, where="post", color="black", lw=2.6, marker="o", ms=4,
+                zorder=3,
+            )
+        else:
+            line = ax.step(
+                x, y, where="post", color="0.6", lw=0.6, alpha=0.4, zorder=1
+            )[0]
+            line.set_rasterized(True)
     ax.set_xscale("log")
     ax.set_xticks([1, 2, 3, 5, 10, 20])
     ax.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
@@ -623,7 +653,6 @@ def panel_occurrence_pooled(
     ax.set_ylim(top=1.02)
     ax.set_xlabel(f"Independent origins with $\\geq${min_progeny} infections (X)")
     ax.set_ylabel("Fraction of substitutions $\\leq X$")
-    ax.legend(loc="lower right")
 
 
 def panel_difference_pooled(ax, confusability: pd.DataFrame, representative_run) -> None:
@@ -677,6 +706,106 @@ def build_pooled_figure(
         sns.despine(ax=ax)
     fig.tight_layout()
     add_panel_letters(fig, axes, "AB")
+    return fig
+
+
+def build_pooled_ecdf_figure(
+    origin_counts: pd.DataFrame,
+    representative_run,
+    min_progeny: int = ESTABLISHED_PROGENY,
+) -> plt.Figure:
+    """Single-panel pooled origin-count ECDF (confusability panel omitted)."""
+    assert not origin_counts.empty, "no origin-count rows to pool"
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 4.3))
+    panel_occurrence_pooled(ax, origin_counts, representative_run, min_progeny)
+    style_panel(ax)
+    sns.despine(ax=ax)
+    fig.tight_layout()
+    return fig
+
+
+def panel_spread_box(
+    ax,
+    spread: pd.DataFrame,
+    min_progeny: int,
+    representative_run,
+    value_col: str,
+    ylabel: str,
+) -> None:
+    """Box-and-strip of a per-substitution 'spread' value, epitope only.
+
+    ``spread`` holds one row per recurrent substitution: for the established
+    origins of that substitution, the minimum pairwise value in ``value_col``
+    (background AA distance or birth-time gap). One point per substitution.
+    The left box is the representative simulation, the right box pools every
+    flu-like candidate; both are epitope. Monochrome, reusing the box-and-strip
+    idiom of ``plot_mutation_homoplasy._strip_panel``.
+    """
+    data = spread[
+        (spread["min_progeny"] == min_progeny) & (spread["is_epitope"])
+    ].copy()
+    assert not data.empty, f"no epitope spread rows at min_progeny={min_progeny}"
+    rep = data[
+        data.apply(
+            lambda r: _is_representative(r["config"], r["run"], representative_run),
+            axis=1,
+        )
+    ].copy()
+    rep["group"] = "representative"
+    allsims = data.copy()
+    allsims["group"] = "all simulations"
+    combined = pd.concat([rep, allsims], ignore_index=True)
+
+    order = ["representative", "all simulations"]
+    counts = combined["group"].value_counts()
+    tick_labels = [f"{g}\n(n={int(counts.get(g, 0))})" for g in order]
+    sns.boxplot(
+        data=combined, x="group", y=value_col, order=order, hue="group",
+        hue_order=order, palette={"representative": "black", "all simulations": "black"},
+        ax=ax, fliersize=0, width=0.55, linewidth=1.5, legend=False,
+    )
+    hollow_boxes(ax)
+    seed_jitter()
+    sns.stripplot(
+        data=combined, x="group", y=value_col, order=order, ax=ax,
+        color="0.5", alpha=0.4, size=4.0, jitter=0.22, edgecolor="black",
+        linewidth=0.4,
+    )
+    ax.set_xlabel("")
+    ax.set_xticks(range(len(order)))
+    ax.set_xticklabels(tick_labels)
+    ax.set_ylabel(ylabel)
+    ax.set_ylim(bottom=0)
+
+
+def build_pooled_3panel(
+    origin_counts: pd.DataFrame,
+    spread: pd.DataFrame,
+    representative_run,
+    min_progeny: int = ESTABLISHED_PROGENY,
+) -> plt.Figure:
+    """1x3 row: origin-count ECDF (A) + min background distance (B) + min gap (C).
+
+    Panel A keeps the faint-per-run + bold-representative grammar; B and C are
+    pooled ECDFs over all recurrent substitutions (one minimum per substitution).
+    """
+    assert not origin_counts.empty, "no origin-count rows to pool"
+    assert not spread.empty, "no spread rows to pool"
+    fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.3))
+    panel_occurrence_pooled(axes[0], origin_counts, representative_run, min_progeny)
+    panel_spread_box(
+        axes[1], spread, min_progeny, representative_run,
+        "min_background_distance_aa", "Min background distance (AA)",
+    )
+    panel_spread_box(
+        axes[2], spread, min_progeny, representative_run,
+        "min_birthtime_gap_years", "Min time between origins (yr)",
+    )
+    for ax in axes:
+        style_panel(ax)
+        sns.despine(ax=ax)
+    fig.tight_layout()
+    add_panel_letters(fig, axes, "ABC")
     return fig
 
 

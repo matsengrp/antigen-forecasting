@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 RECURRENCE_NAME = "truetree_recurrence_by_run.csv"
 ORIGIN_COUNTS_NAME = "truetree_origin_counts_by_run.csv"
+SPREAD_NAME = "truetree_origin_spread_by_run.csv"
 CONFUSABILITY_NAME = "truetree_confusability_by_run.csv"
 
 # Per-run inputs, relative to their respective roots.
@@ -217,6 +218,23 @@ def _confusability_rows(config, run, pairs):
     return rows
 
 
+def _spread_rows(config, run, spread):
+    """Tag the per-substitution min-distance/min-gap spread rows with the run."""
+    rows = []
+    for r in spread.itertuples(index=False):
+        rows.append(
+            {
+                "config": config,
+                "run": run,
+                "min_progeny": int(r.min_progeny),
+                "is_epitope": bool(r.is_epitope),
+                "min_background_distance_aa": int(r.min_background_distance_aa),
+                "min_birthtime_gap_years": float(r.min_birthtime_gap_years),
+            }
+        )
+    return rows
+
+
 def process_run(
     config: str,
     run: int,
@@ -224,18 +242,18 @@ def process_run(
     tips_path: Path | None,
     ref_genbank: Path,
     epitope_sites_path: Path,
-) -> tuple[dict, list, list]:
-    """Reduce one run to its recurrence, origin-count, and confusability rows.
+) -> tuple[dict, list, list, list]:
+    """Reduce one run to its recurrence, origin-count, spread, and confusability rows.
 
     Loads the shared reference and epitope list inside the worker so the call is
     picklable for ``ProcessPoolExecutor``. A missing branches file is a tier-1
     failure recorded in ``notes``; a missing variant-label file drops only the
-    confusability rows.
+    confusability rows (recurrence, origin counts, and spread do not need labels).
     """
     notes: list[str] = []
     if not branches_path.is_file():
         empty = {"config": config, "run": run, "notes": "no run-out.branches"}
-        return empty, [], []
+        return empty, [], [], []
     if tips_path is None:
         notes.append("no tips_with_variants.tsv")
 
@@ -247,8 +265,9 @@ def process_run(
         config, run, tables["occurrence"], epitope_sites, tables["stats"], notes
     )
     origin_counts = _origin_count_rows(config, run, tables["occurrence"])
+    spread = _spread_rows(config, run, tables["spread"])
     confusability = _confusability_rows(config, run, tables["pairs"])
-    return recurrence, origin_counts, confusability
+    return recurrence, origin_counts, spread, confusability
 
 
 def _write(df: pd.DataFrame, path: Path, label: str) -> None:
@@ -301,12 +320,14 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     recurrence_rows: list[dict] = []
     origin_count_rows: list[dict] = []
+    spread_rows: list[dict] = []
     confusability_rows: list[dict] = []
 
-    def record(index: int, result: tuple[dict, list, list]) -> None:
-        rec, occ, conf = result
+    def record(index: int, result: tuple[dict, list, list, list]) -> None:
+        rec, occ, spr, conf = result
         recurrence_rows.append(rec)
         origin_count_rows.extend(occ)
+        spread_rows.extend(spr)
         confusability_rows.extend(conf)
         status = "ok" if not rec.get("notes") else f"partial ({rec['notes']})"
         logger.info(
@@ -337,6 +358,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         origin_counts = origin_counts.sort_values(
             ["config", "run", "min_progeny", "site_class", "x"]
         )
+    spread = pd.DataFrame(spread_rows)
+    if not spread.empty:
+        spread = spread.sort_values(["config", "run", "min_progeny", "is_epitope"])
     confusability = pd.DataFrame(confusability_rows)
     if not confusability.empty:
         confusability = confusability.sort_values(
@@ -345,6 +369,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     _write(recurrence, output_dir / RECURRENCE_NAME, "per-run recurrence")
     _write(origin_counts, output_dir / ORIGIN_COUNTS_NAME, "origin-count ECDF")
+    _write(spread, output_dir / SPREAD_NAME, "origin spread (min distance/gap)")
     _write(confusability, output_dir / CONFUSABILITY_NAME, "confusability")
 
 

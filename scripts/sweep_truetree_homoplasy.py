@@ -138,10 +138,12 @@ def discover_runs(
 
 def _recurrence_row(config, run, occurrence, epitope_sites, stats, notes):
     row: dict[str, Any] = {"config": config, "run": run}
+    # Report the unfiltered recurrence (min_progeny == 1); the established-lineage
+    # recurrence is derived downstream from the origin-count table, which carries
+    # every progeny threshold.
+    base = occurrence[occurrence["min_progeny"] == 1]
     for is_epi, name in SITE_CLASSES:
-        counts = occurrence[occurrence["is_epitope"] == is_epi][
-            "n_independent_origins"
-        ]
+        counts = base[base["is_epitope"] == is_epi]["n_independent_origins"]
         n = len(counts)
         row[f"{name}_n"] = n
         row[f"{name}_n_recurrent"] = int((counts >= 2).sum()) if n else 0
@@ -156,25 +158,31 @@ def _recurrence_row(config, run, occurrence, epitope_sites, stats, notes):
 
 
 def _origin_count_rows(config, run, occurrence):
+    """Long-form origin-count CDF, one block per progeny threshold and site class."""
     rows = []
-    for is_epi, name in SITE_CLASSES:
-        counts = occurrence[occurrence["is_epitope"] == is_epi][
-            "n_independent_origins"
-        ].to_numpy()
-        n = len(counts)
-        if n == 0:
-            continue
-        for x in range(1, int(counts.max()) + 1):
-            rows.append(
-                {
-                    "config": config,
-                    "run": run,
-                    "site_class": name,
-                    "x": x,
-                    "cumulative_fraction": float(np.count_nonzero(counts <= x) / n),
-                    "n_substitutions": n,
-                }
-            )
+    for thr in sorted(occurrence["min_progeny"].unique()):
+        at_thr = occurrence[occurrence["min_progeny"] == thr]
+        for is_epi, name in SITE_CLASSES:
+            counts = at_thr[at_thr["is_epitope"] == is_epi][
+                "n_independent_origins"
+            ].to_numpy()
+            n = len(counts)
+            if n == 0:
+                continue
+            for x in range(1, int(counts.max()) + 1):
+                rows.append(
+                    {
+                        "config": config,
+                        "run": run,
+                        "site_class": name,
+                        "min_progeny": int(thr),
+                        "x": x,
+                        "cumulative_fraction": float(
+                            np.count_nonzero(counts <= x) / n
+                        ),
+                        "n_substitutions": n,
+                    }
+                )
     return rows
 
 
@@ -327,7 +335,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     origin_counts = pd.DataFrame(origin_count_rows)
     if not origin_counts.empty:
         origin_counts = origin_counts.sort_values(
-            ["config", "run", "site_class", "x"]
+            ["config", "run", "min_progeny", "site_class", "x"]
         )
     confusability = pd.DataFrame(confusability_rows)
     if not confusability.empty:

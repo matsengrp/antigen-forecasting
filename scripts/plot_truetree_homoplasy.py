@@ -67,10 +67,12 @@ METHOD_LABELS = {
     "variant_tsne": "sequence $t$-SNE",
     "variant_phylo": "phylogenetic",
 }
+# Match the canonical method palette used by figures 3 and S4 so a reader can map
+# the methods across figures by color.
 METHOD_COLORS = {
-    "variant_ag": "#B30000",
-    "variant_tsne": "#3498db",
-    "variant_phylo": "#2e8b57",
+    "variant_ag": "#1f77b4",
+    "variant_tsne": "#ff7f0e",
+    "variant_phylo": "#2ca02c",
 }
 EPITOPE_COLOR = "#B30000"
 NON_EPITOPE_COLOR = "#3498db"
@@ -81,6 +83,17 @@ NULL_COLOR = "#7f7f7f"
 BINS = [0, 1, 2, 4, 8, 16, 32, 1000]
 N_NULL_PAIRS = 40000
 SEED = 0
+
+# Progeny thresholds (sampled descendant infections per origin) at which the
+# origin-count distribution is emitted, so the figure can restrict to lineages
+# that actually spread. 1 keeps every origin with at least one sampled descendant.
+PROGENY_THRESHOLDS = [1, 2, 5, 10, 20, 50, 100]
+# The threshold treated as "established" for the panel-A figure: lineages that
+# spread to at least this many sampled infections are the ones variant assignment
+# operates on, and among them independent recurrence is rare. Tunable; the sweep
+# emits every threshold in PROGENY_THRESHOLDS so this can be changed at render
+# time without re-running.
+ESTABLISHED_PROGENY = 50
 
 
 # --------------------------------------------------------------------------- #
@@ -290,6 +303,30 @@ def postorder_modal(tree, tip_variant, origin_ids: set[int]) -> dict[int, tuple]
     return modal
 
 
+def descendant_tip_counts(tree) -> list[int]:
+    """Number of sampled descendant tips (infections) per node, via one postorder.
+
+    An origin's progeny is the count for its child node: how many sampled
+    infections carry the mutation. Used to restrict the origin-count distribution
+    to lineages that actually spread.
+    """
+    parent = tree["parent"]
+    is_tip = tree["is_tip"]
+    n = len(parent)
+    prog = [1 if is_tip[i] else 0 for i in range(n)]
+    pending = tree["n_children"][:]
+    ready = [i for i in range(n) if pending[i] == 0]
+    while ready:
+        i = ready.pop()
+        p = parent[i]
+        if p != -1:
+            prog[p] += prog[i]
+            pending[p] -= 1
+            if pending[p] == 0:
+                ready.append(p)
+    return prog
+
+
 # --------------------------------------------------------------------------- #
 # Tables.
 # --------------------------------------------------------------------------- #
@@ -308,19 +345,29 @@ def compute_truetree_tables(
     seq_to_variant = (
         load_seq_to_variant(tips_variants_path) if tips_variants_path else {}
     )
-    origins, origins_by_sub, tree, tip_variant, stats = stream_branches(
+    origins, _origins_by_sub, tree, tip_variant, stats = stream_branches(
         branches_path, genes, seq_to_variant
     )
 
-    # Per-substitution origin counts -> the ECDF table.
+    # Per-substitution origin counts, at each progeny threshold, so panel A can
+    # restrict to established lineages. At threshold T a substitution's count is
+    # the number of its origins whose clade retains at least T sampled infections;
+    # substitutions left with no such origin drop out.
+    prog = descendant_tip_counts(tree)
     occ_rows = []
-    for (gene, pos, _f, _t), n in origins_by_sub.items():
-        occ_rows.append(
-            {
-                "n_independent_origins": n,
-                "is_epitope": is_epitope_mutation(gene, pos, epitope_sites),
-            }
-        )
+    for thr in PROGENY_THRESHOLDS:
+        by_sub: dict[tuple, int] = defaultdict(int)
+        for sub, oid, _bg in origins:
+            if prog[oid] >= thr:
+                by_sub[sub] += 1
+        for (gene, pos, _f, _t), n in by_sub.items():
+            occ_rows.append(
+                {
+                    "n_independent_origins": n,
+                    "is_epitope": is_epitope_mutation(gene, pos, epitope_sites),
+                    "min_progeny": thr,
+                }
+            )
     occurrence = pd.DataFrame(occ_rows)
 
     pairs = pd.DataFrame()
@@ -382,13 +429,18 @@ def build_pairs(origins, modal, epitope_sites) -> pd.DataFrame:
 # --------------------------------------------------------------------------- #
 # Panels.
 # --------------------------------------------------------------------------- #
-def panel_occurrence(ax, occurrence: pd.DataFrame) -> None:
-    """Panel A: cumulative fraction of substitutions with <= X independent origins."""
-    max_occ = int(occurrence["n_independent_origins"].max())
+def panel_occurrence(ax, occurrence: pd.DataFrame, min_progeny: int) -> None:
+    """Panel A: cumulative fraction of substitutions with <= X independent origins.
+
+    Restricted to origins whose clade retains at least ``min_progeny`` sampled
+    infections, so the panel describes the lineages that actually spread.
+    """
+    occ = occurrence[occurrence["min_progeny"] == min_progeny]
+    assert not occ.empty, f"no occurrence rows at min_progeny={min_progeny}"
+    max_occ = int(occ["n_independent_origins"].max())
     xs = np.arange(1, max_occ + 1)
     for is_epitope, color in [(True, EPITOPE_COLOR), (False, NON_EPITOPE_COLOR)]:
-        subset = occurrence[occurrence["is_epitope"] == is_epitope]
-        counts = subset["n_independent_origins"].to_numpy()
+        counts = occ[occ["is_epitope"] == is_epitope]["n_independent_origins"].to_numpy()
         n = len(counts)
         assert n > 0, f"no {'epitope' if is_epitope else 'non-epitope'} substitutions"
         frac = np.array([np.count_nonzero(counts <= x) / n for x in xs])
@@ -408,7 +460,7 @@ def panel_occurrence(ax, occurrence: pd.DataFrame) -> None:
     ax.get_xaxis().set_minor_formatter(mticker.NullFormatter())
     ax.set_xlim(left=1)
     ax.set_ylim(top=1.02)
-    ax.set_xlabel("Independent origins (X)")
+    ax.set_xlabel(f"Independent origins with $\\geq${min_progeny} infections (X)")
     ax.set_ylabel("Fraction of substitutions $\\leq X$")
     ax.legend(loc="lower right")
 
@@ -502,15 +554,21 @@ def panel_difference(ax, pairs: pd.DataFrame) -> None:
     ax.legend(loc="upper right", frameon=False, fontsize=9)
 
 
-def build_figure(occurrence: pd.DataFrame, pairs: pd.DataFrame) -> plt.Figure:
+def build_figure(
+    occurrence: pd.DataFrame,
+    pairs: pd.DataFrame,
+    min_progeny: int = ESTABLISHED_PROGENY,
+) -> plt.Figure:
     """The 1x2 row: origin-count ECDF plus the confusability difference panel.
 
-    ``panel_confusability`` remains available for the per-method overlay framing;
-    the committed figure uses the more compact difference panel.
+    Panel A is restricted to established origins (``min_progeny``); the
+    confusability panel is unfiltered. ``panel_confusability`` remains available
+    for the per-method overlay framing; the committed figure uses the difference
+    panel.
     """
     assert not pairs.empty, "the difference panel needs variant labels"
     fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.3))
-    panel_occurrence(axes[0], occurrence)
+    panel_occurrence(axes[0], occurrence, min_progeny)
     panel_difference(axes[1], pairs)
     for ax in axes:
         style_panel(ax)
@@ -527,14 +585,19 @@ def _is_representative(config, run, representative_run) -> bool:
     return (config == representative_run[0]) and (int(run) == representative_run[1])
 
 
-def panel_occurrence_pooled(ax, origin_counts: pd.DataFrame, representative_run) -> None:
+def panel_occurrence_pooled(
+    ax, origin_counts: pd.DataFrame, representative_run, min_progeny: int
+) -> None:
     """Pooled panel A: one faint origin-count ECDF per run and site class.
 
-    The representative run is drawn bold, matching ``panel_genotype_antigenic`` in
-    the inferred-tree figure; the faint lines show the spread across simulations.
+    Restricted to origins with at least ``min_progeny`` sampled infections. The
+    representative run is drawn bold, matching ``panel_genotype_antigenic`` in the
+    inferred-tree figure; the faint lines show the spread across simulations.
     """
+    occ = origin_counts[origin_counts["min_progeny"] == min_progeny]
+    assert not occ.empty, f"no origin-count rows at min_progeny={min_progeny}"
     classes = [("epitope", EPITOPE_COLOR), ("non_epitope", NON_EPITOPE_COLOR)]
-    for (config, run), run_df in origin_counts.groupby(["config", "run"]):
+    for (config, run), run_df in occ.groupby(["config", "run"]):
         rep = _is_representative(config, run, representative_run)
         for name, color in classes:
             sub = run_df[run_df["site_class"] == name].sort_values("x")
@@ -558,7 +621,7 @@ def panel_occurrence_pooled(ax, origin_counts: pd.DataFrame, representative_run)
     ax.get_xaxis().set_minor_formatter(mticker.NullFormatter())
     ax.set_xlim(left=1)
     ax.set_ylim(top=1.02)
-    ax.set_xlabel("Independent origins (X)")
+    ax.set_xlabel(f"Independent origins with $\\geq${min_progeny} infections (X)")
     ax.set_ylabel("Fraction of substitutions $\\leq X$")
     ax.legend(loc="lower right")
 
@@ -594,13 +657,20 @@ def panel_difference_pooled(ax, confusability: pd.DataFrame, representative_run)
 
 
 def build_pooled_figure(
-    origin_counts: pd.DataFrame, confusability: pd.DataFrame, representative_run
+    origin_counts: pd.DataFrame,
+    confusability: pd.DataFrame,
+    representative_run,
+    min_progeny: int = ESTABLISHED_PROGENY,
 ) -> plt.Figure:
-    """The across-run version of the S7 figure, rendered from the sweep tables."""
+    """The across-run version of the S7 figure, rendered from the sweep tables.
+
+    Panel A is restricted to established origins (``min_progeny``); panel B is
+    unfiltered.
+    """
     assert not origin_counts.empty, "no origin-count rows to pool"
     assert not confusability.empty, "no confusability rows to pool"
     fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.3))
-    panel_occurrence_pooled(axes[0], origin_counts, representative_run)
+    panel_occurrence_pooled(axes[0], origin_counts, representative_run, min_progeny)
     panel_difference_pooled(axes[1], confusability, representative_run)
     for ax in axes:
         style_panel(ax)
@@ -642,15 +712,21 @@ def main() -> None:
         f"AA-changing edges {stats['n_changed']:,}  "
         f"tips missing a variant label {stats['n_tip_missing']:,}"
     )
-    for is_epi, name in [(True, "epitope"), (False, "non-epitope")]:
-        counts = occurrence[occurrence["is_epitope"] == is_epi][
-            "n_independent_origins"
-        ]
-        rec = (counts >= 2).mean()
-        print(
-            f"  {name:12s} n={len(counts):5d}  recurrent={100 * rec:5.1f}%  "
-            f"max_origins={int(counts.max())}"
-        )
+    for thr in (1, ESTABLISHED_PROGENY):
+        print(f"  -- origins with >= {thr} sampled infections --")
+        for is_epi, name in [(True, "epitope"), (False, "non-epitope")]:
+            counts = occurrence[
+                (occurrence["is_epitope"] == is_epi)
+                & (occurrence["min_progeny"] == thr)
+            ]["n_independent_origins"]
+            if counts.empty:
+                print(f"    {name:12s} n=0")
+                continue
+            rec = (counts >= 2).mean()
+            print(
+                f"    {name:12s} n={len(counts):5d}  recurrent={100 * rec:5.1f}%  "
+                f"max_origins={int(counts.max())}"
+            )
     for m in METHODS:
         real = pairs[pairs["kind"] == "same substitution"]
         ident = real[real["background_distance_aa"] == 0][f"same_{m}"].mean()

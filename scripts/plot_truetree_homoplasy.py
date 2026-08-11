@@ -382,19 +382,25 @@ def compute_truetree_tables(
         for sub, recs in established.items():
             if len(recs) < 2:
                 continue
-            min_bg = min(
-                int(np.count_nonzero(a[0] != b[0]))
+            pairwise = [
+                (int(np.count_nonzero(a[0] != b[0])), abs(a[1] - b[1]))
                 for a, b in combinations(recs, 2)
-            )
-            min_gap = min(
-                abs(a[1] - b[1]) for a, b in combinations(recs, 2)
-            )
+            ]
+            min_bg = min(d for d, _t in pairwise)
+            min_gap = min(t for _d, t in pairwise)
+            # Time gap of the closest-background pair, so panel D pairs each
+            # substitution's minimum background distance with the time of that same
+            # pair rather than an independently-minimised gap. Ties in background
+            # distance break toward the largest gap, the most conservative case for
+            # the reviewer's concern (an identical background far apart in time).
+            closest_pair_gap = max(t for d, t in pairwise if d == min_bg)
             spread_rows.append(
                 {
                     "min_progeny": thr,
                     "is_epitope": is_epitope_mutation(sub[0], sub[1], epitope_sites),
                     "min_background_distance_aa": min_bg,
                     "min_birthtime_gap_years": float(min_gap),
+                    "closest_pair_birthtime_gap_years": float(closest_pair_gap),
                 }
             )
     occurrence = pd.DataFrame(occ_rows)
@@ -780,34 +786,71 @@ def panel_spread_box(
     ax.set_ylim(bottom=0)
 
 
-def build_pooled_3panel(
+def panel_spread_scatter(ax, spread: pd.DataFrame, min_progeny: int) -> None:
+    """Panel D: min background distance against the closest-background pair's gap.
+
+    One point per recurrent epitope substitution, pooled across candidates. Each
+    point pairs a substitution's minimum background distance with the time between
+    that same (closest-background) pair of origins, and a linear fit is drawn and
+    annotated in the style of Figure 2D. The two are tightly coupled, so
+    near-identical backgrounds recur only near-simultaneously.
+    """
+    data = spread[(spread["min_progeny"] == min_progeny) & (spread["is_epitope"])]
+    assert not data.empty, f"no epitope spread rows at min_progeny={min_progeny}"
+    x = data["closest_pair_birthtime_gap_years"].to_numpy()
+    y = data["min_background_distance_aa"].to_numpy()
+    ax.scatter(
+        x, y, s=16, facecolor=(0.5, 0.5, 0.5, 0.35), edgecolor="black",
+        linewidth=0.4, zorder=2,
+    )
+    slope, intercept = np.polyfit(x, y, 1)
+    pred = slope * x + intercept
+    r2 = 1 - np.sum((y - pred) ** 2) / np.sum((y - y.mean()) ** 2)
+    ax.axline((0.0, intercept), slope=slope, color="black", lw=1.6, zorder=3)
+    ax.text(
+        0.04, 0.96,
+        f"$y = {slope:.2f}x + {intercept:.2f}$\n$R^2 = {r2:.2f}$",
+        transform=ax.transAxes, va="top", ha="left", fontsize=10,
+    )
+    ax.set_xlabel("Time between closest-background origins (yr)")
+    ax.set_ylabel("Min background distance (AA)")
+    ax.set_xlim(left=-0.5)
+    ax.set_ylim(bottom=-0.5)
+
+
+def build_pooled_4panel(
     origin_counts: pd.DataFrame,
     spread: pd.DataFrame,
     representative_run,
     min_progeny: int = ESTABLISHED_PROGENY,
 ) -> plt.Figure:
-    """1x3 row: origin-count ECDF (A) + min background distance (B) + min gap (C).
+    """2x2 grid: origin-count ECDF (A), min background distance (B), min time (C),
+    and the background-distance vs time relationship (D).
 
     Panel A keeps the faint-per-run + bold-representative grammar; B and C are
-    pooled ECDFs over all recurrent substitutions (one minimum per substitution).
+    box-and-strip over all recurrent substitutions; D is the pooled scatter with a
+    linear fit.
     """
     assert not origin_counts.empty, "no origin-count rows to pool"
     assert not spread.empty, "no spread rows to pool"
-    fig, axes = plt.subplots(1, 3, figsize=(15.0, 4.3))
-    panel_occurrence_pooled(axes[0], origin_counts, representative_run, min_progeny)
+    fig, axes = plt.subplots(2, 2, figsize=(10.5, 8.6))
+    panel_occurrence_pooled(axes[0, 0], origin_counts, representative_run, min_progeny)
     panel_spread_box(
-        axes[1], spread, min_progeny, representative_run,
+        axes[0, 1], spread, min_progeny, representative_run,
         "min_background_distance_aa", "Min background distance (AA)",
     )
     panel_spread_box(
-        axes[2], spread, min_progeny, representative_run,
+        axes[1, 0], spread, min_progeny, representative_run,
         "min_birthtime_gap_years", "Min time between origins (yr)",
     )
-    for ax in axes:
+    panel_spread_scatter(axes[1, 1], spread, min_progeny)
+    for ax in axes.flat:
         style_panel(ax)
         sns.despine(ax=ax)
-    fig.tight_layout()
-    add_panel_letters(fig, axes, "ABC")
+    # Open a gap between rows so the lower panel letters clear the upper row's
+    # x-axis labels, matching the inferred-tree 2x2 figure's h_pad.
+    fig.tight_layout(h_pad=3.0)
+    add_panel_letters(fig, axes, "ABCD")
     return fig
 
 

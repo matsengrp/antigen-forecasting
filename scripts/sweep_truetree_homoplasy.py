@@ -230,6 +230,9 @@ def _spread_rows(config, run, spread):
                 "is_epitope": bool(r.is_epitope),
                 "min_background_distance_aa": int(r.min_background_distance_aa),
                 "min_birthtime_gap_years": float(r.min_birthtime_gap_years),
+                "closest_pair_birthtime_gap_years": float(
+                    r.closest_pair_birthtime_gap_years
+                ),
             }
         )
     return rows

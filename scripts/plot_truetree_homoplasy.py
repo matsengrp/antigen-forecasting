@@ -642,7 +642,7 @@ def panel_occurrence_pooled(
             )
         else:
             line = ax.step(
-                x, y, where="post", color="0.6", lw=0.6, alpha=0.4, zorder=1
+                x, y, where="post", color="0.6", lw=0.9, alpha=0.5, zorder=1
             )[0]
             line.set_rasterized(True)
     ax.set_xscale("log")
@@ -766,10 +766,12 @@ def panel_spread_box(
     )
     hollow_boxes(ax)
     seed_jitter()
+    # Transparency is carried in the fill's RGBA (not the alpha kwarg) so the
+    # black edge stays fully opaque while the gray fill is see-through.
     sns.stripplot(
         data=combined, x="group", y=value_col, order=order, ax=ax,
-        color="0.5", alpha=0.4, size=4.0, jitter=0.22, edgecolor="black",
-        linewidth=0.4,
+        color=(0.5, 0.5, 0.5, 0.4), size=4.0, jitter=0.22, edgecolor="black",
+        linewidth=0.6,
     )
     ax.set_xlabel("")
     ax.set_xticks(range(len(order)))

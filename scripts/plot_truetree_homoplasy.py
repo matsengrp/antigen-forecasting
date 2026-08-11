@@ -497,7 +497,9 @@ def panel_occurrence(ax, occurrence: pd.DataFrame, min_progeny: int) -> None:
     ax.get_xaxis().set_minor_formatter(mticker.NullFormatter())
     ax.set_xlim(left=1)
     ax.set_ylim(top=1.02)
-    ax.set_xlabel(f"Independent origins with $\\geq${min_progeny} infections (X)")
+    ax.set_xlabel(
+        f"Independent origins with $\\geq${min_progeny} infections (X)", fontsize=12
+    )
     ax.set_ylabel("Fraction of substitutions $\\leq X$")
     ax.legend(loc="lower right")
 
@@ -657,7 +659,9 @@ def panel_occurrence_pooled(
     ax.get_xaxis().set_minor_formatter(mticker.NullFormatter())
     ax.set_xlim(left=1)
     ax.set_ylim(top=1.02)
-    ax.set_xlabel(f"Independent origins with $\\geq${min_progeny} infections (X)")
+    ax.set_xlabel(
+        f"Independent origins with $\\geq${min_progeny} infections (X)", fontsize=12
+    )
     ax.set_ylabel("Fraction of substitutions $\\leq X$")
 
 
@@ -812,7 +816,7 @@ def panel_spread_scatter(ax, spread: pd.DataFrame, min_progeny: int) -> None:
         f"$y = {slope:.2f}x + {intercept:.2f}$\n$R^2 = {r2:.2f}$",
         transform=ax.transAxes, va="top", ha="left", fontsize=10,
     )
-    ax.set_xlabel("Time between closest-background origins (yr)")
+    ax.set_xlabel("Time between closest-background origins (yr)", fontsize=12)
     ax.set_ylabel("Min background distance (AA)")
     ax.set_xlim(left=-0.5)
     ax.set_ylim(bottom=-0.5)

@@ -75,11 +75,23 @@ results/diagnostics/
 # scores_summary.csv from scripts/aggregate_results.py).
 results/aggregated/**/scores_all.csv
 # Timestamped SLURM staging dirs written by run_all_simulations.py,
-# submit_aggregation.sh, and submit_homoplasy_sweep.sh; regenerated on every
-# submission.
+# submit_aggregation.sh, submit_homoplasy_sweep.sh, and submit_truetree_sweep.sh;
+# regenerated on every submission.
 results/**/slurm_submission_*/
 results/**/aggregation_submission_*/
 results/**/homoplasy_submission_*/
+results/**/truetree_submission_*/
+
+# Sweep/aggregation logs land beside the committable CSVs in results/aggregated/;
+# they are regenerable, so keep the aggregated dir to small CSVs only.
+results/aggregated/**/*.log
+
+# Manual result/data backups (e.g. *.pre-clade-weights-fix) and ad-hoc HPC
+# re-run scripts staged loosely under results/<batch>/.
+results/**/*.pre-*
+data/**/*.pre-*
+results/**/*.sbatch
+results/**/*_sims.txt
 
 # Local working specs/notes (not committed docs).
 specs/

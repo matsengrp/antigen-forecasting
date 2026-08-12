@@ -89,7 +89,7 @@ SEED = 0
 # Progeny thresholds (sampled descendant infections per origin) at which the
 # origin-count distribution is emitted, so the figure can restrict to lineages
 # that actually spread. 1 keeps every origin with at least one sampled descendant.
-PROGENY_THRESHOLDS = [1, 2, 5, 10, 20, 50, 100]
+PROGENY_THRESHOLDS = [1, 2, 5, 10, 15, 20, 50, 100]
 # The threshold treated as "established" for the panel-A figure: lineages that
 # spread to at least this many sampled infections are the ones variant assignment
 # operates on, and among them independent recurrence is rare. Tunable; the sweep

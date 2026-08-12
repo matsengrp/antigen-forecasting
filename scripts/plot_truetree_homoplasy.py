@@ -761,17 +761,17 @@ def panel_spread_box(
             axis=1,
         )
     ].copy()
-    rep["group"] = "representative"
+    rep["group"] = "selected run"
     allsims = data.copy()
     allsims["group"] = "all simulations"
     combined = pd.concat([rep, allsims], ignore_index=True)
 
-    order = ["representative", "all simulations"]
+    order = ["selected run", "all simulations"]
     counts = combined["group"].value_counts()
     tick_labels = [f"{g}\n(n={int(counts.get(g, 0))})" for g in order]
     sns.boxplot(
         data=combined, x="group", y=value_col, order=order, hue="group",
-        hue_order=order, palette={"representative": "black", "all simulations": "black"},
+        hue_order=order, palette={"selected run": "black", "all simulations": "black"},
         ax=ax, fliersize=0, width=0.55, linewidth=1.5, legend=False,
     )
     hollow_boxes(ax)
@@ -855,6 +855,99 @@ def build_pooled_4panel(
     # x-axis labels, matching the inferred-tree 2x2 figure's h_pad.
     fig.tight_layout(h_pad=3.0)
     add_panel_letters(fig, axes, "ABCD")
+    return fig
+
+
+def build_pooled_threshold_grid(
+    origin_counts: pd.DataFrame,
+    spread: pd.DataFrame,
+    representative_run,
+    thresholds,
+) -> plt.Figure:
+    """One row per progeny threshold: origin-count ECDF, min background distance,
+    and min time between origins.
+
+    Shows how raising the established-lineage cutoff sharpens the pattern:
+    recurrence becomes rarer (column 1) and the surviving recurrences fall on ever
+    more distant backgrounds and times (columns 2-3). Panels are lettered
+    row-major, so the first threshold is A-C, the next D-F, and so on.
+    """
+    assert not origin_counts.empty and not spread.empty, "nothing to pool"
+    nrows = len(thresholds)
+    last = nrows - 1
+    fig, axes = plt.subplots(nrows, 3, figsize=(15.0, 4.3 * nrows))
+    axes = np.atleast_2d(axes)
+    n_by_row = []
+    for i, thr in enumerate(thresholds):
+        panel_occurrence_pooled(axes[i, 0], origin_counts, representative_run, thr)
+        panel_spread_box(
+            axes[i, 1], spread, thr, representative_run,
+            "min_background_distance_aa", "Min background distance (AA)",
+        )
+        panel_spread_box(
+            axes[i, 2], spread, thr, representative_run,
+            "min_birthtime_gap_years", "Min time between origins (yr)",
+        )
+        # Both box columns draw the same substitutions, so one (selected, all)
+        # count pair serves the whole row.
+        est = spread[(spread["min_progeny"] == thr) & (spread["is_epitope"])]
+        n_sel = int(
+            est.apply(
+                lambda r: _is_representative(r["config"], r["run"], representative_run),
+                axis=1,
+            ).sum()
+        )
+        n_by_row.append((n_sel, len(est)))
+    for ax in axes.flat:
+        style_panel(ax)
+        sns.despine(ax=ax)
+    # Unify the two box columns so the upward shift across thresholds is directly
+    # comparable; leave the ECDF column to auto-scale so each starting height reads.
+    for col in (1, 2):
+        ymax = max(axes[i, col].get_ylim()[1] for i in range(nrows))
+        for i in range(nrows):
+            axes[i, col].set_ylim(0, ymax)
+
+    # Strip the per-panel labels the 3x3 layout makes redundant, and carry the
+    # shared information on the grid edges instead: a metric title over each
+    # column, the establishment threshold beside each row, one y-label per column
+    # (leftmost), and one x-label per column (bottom).
+    column_titles = (
+        "Recurrence",
+        "Min. background distance (AA)",
+        "Min. time between origins (yr)",
+    )
+    for col, title in enumerate(column_titles):
+        axes[0, col].set_title(title, fontsize=17, fontweight="bold", pad=12)
+    for i, thr in enumerate(thresholds):
+        noun = "infection" if thr == 1 else "infections"
+        axes[i, 0].text(
+            -0.34, 0.5, f"$\\geq$ {thr} {noun}", transform=axes[i, 0].transAxes,
+            rotation=90, ha="center", va="center", fontsize=17, fontweight="bold",
+        )
+        # Column 0 keeps its y-label; the box columns take their unit from the
+        # column title, so drop their repeated y-labels.
+        axes[i, 1].set_ylabel("")
+        axes[i, 2].set_ylabel("")
+        # ECDF x-axis: one label on the bottom panel, and no per-panel threshold
+        # text (the row label carries it now).
+        axes[i, 0].set_xlabel(
+            "Independent origins (X)" if i == last else "", fontsize=12
+        )
+        # Box columns: the group names appear once, on the bottom row; every panel
+        # still annotates its own sample sizes.
+        n_sel, n_all = n_by_row[i]
+        for col in (1, 2):
+            if i == last:
+                axes[i, col].set_xticklabels(
+                    [f"selected run\n(n={n_sel})", f"all simulations\n(n={n_all})"]
+                )
+            else:
+                axes[i, col].set_xticklabels([f"n={n_sel}", f"n={n_all}"])
+
+    fig.tight_layout(h_pad=3.0, w_pad=3.5)
+    letters = "".join(chr(ord("A") + k) for k in range(nrows * 3))
+    add_panel_letters(fig, axes, letters)
     return fig
 
 

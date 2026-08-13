@@ -43,6 +43,13 @@ data/**/pathogen-embed/sequences.alignment.log
 data/**/antigen-outputs/sequences.fasta
 # Keep: sequences.fasta.gz
 
+# Large raw simulator dumps under antigen-outputs (regenerable). run-out.branches
+# can reach several GB; tips.csv ~250M; the unique_* derivatives are 10M+.
+data/**/antigen-outputs/*.branches
+data/**/antigen-outputs/tips.csv
+data/**/antigen-outputs/unique_tips.csv
+data/**/antigen-outputs/unique_sequences.fasta
+
 # Large TSV files
 data/**/tips_forecasting.tsv
 

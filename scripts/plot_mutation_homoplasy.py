@@ -22,6 +22,7 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -43,6 +44,9 @@ from antigentools.supplement_style import (  # noqa: E402
 EPITOPE_COLOR = "#B30000"
 NON_EPITOPE_COLOR = "#3498db"
 NULL_COLOR = "#7f7f7f"
+# Used where a statistic pools epitope and non-epitope, so neither class color
+# would be honest.
+POOLED_COLOR = "#4a4a6a"
 
 # The supplement convention lives in antigentools.supplement_style so this
 # figure cannot drift from S4/S5 again. Retained under the old name because
@@ -54,12 +58,44 @@ def _label(is_epitope: bool) -> str:
     return "epitope" if is_epitope else "non-epitope"
 
 
-def panel_occurrence_counts(ax: plt.Axes, mutations: pd.DataFrame) -> None:
+def drop_near_simultaneous(mutations: pd.DataFrame) -> pd.DataFrame:
+    """Drop substitutions whose origins are too close in time to be independent.
+
+    A substitution placed on many sibling branches within hours of one another is
+    an unresolved polytomy, not repeated evolution: on the representative build
+    the worst case has 53 "origins" separated by under two hours, on backgrounds
+    averaging 0.68 amino acids apart. Removing them caps the epitope maximum at
+    12, in line with less densely sampled builds.
+
+    ``min_time_between_origins`` is the smallest gap between any two origins of a
+    substitution, and is NaN for single-origin substitutions, which are kept.
+
+    Only whole substitutions can be dropped, not individual origin pairs: the
+    per-origin times are not carried in the mutations table, so a count cannot be
+    corrected by collapsing just the offending pair.
+    """
+    gap = mutations["min_time_between_origins"]
+    assert gap.isna().equals(mutations["n_independent_origins"] == 1), (
+        "min_time_between_origins should be NaN exactly for single-origin "
+        "substitutions; the filter's treatment of NaN depends on it"
+    )
+    return mutations[gap.isna() | (gap >= NEAR_SIMULTANEOUS_YEARS)].copy()
+
+
+def panel_occurrence_counts(ax: plt.Axes, mutations: pd.DataFrame, log_x: bool) -> None:
     """Cumulative fraction of mutations with <= X independent origins, per class.
 
     Unlike the distance panels, this uses *all* mutations (including
     single-origin ones), so X starts at 1: the value at X=1 is the fraction of
     mutations that arise only once.
+
+    Args:
+        ax: Axes to draw on.
+        mutations: Per-mutation table with ``n_independent_origins`` and
+            ``is_epitope``.
+        log_x: Use a log x-axis. The origin count is heavy-tailed, so on builds
+            where a single mutation reaches several dozen origins a linear axis
+            compresses all the structure into the leftmost fifth of the panel.
     """
     max_occ = int(mutations["n_independent_origins"].max())
     xs = np.arange(1, max_occ + 1)
@@ -81,6 +117,11 @@ def panel_occurrence_counts(ax: plt.Axes, mutations: pd.DataFrame) -> None:
         )
     ax.set_xlabel("Independent origins (X)")
     ax.set_ylabel("Cumulative fraction of mutations $\\leq$ X")
+    if log_x:
+        ax.set_xscale("log")
+        ax.set_xticks([1, 2, 3, 5, 10, 20, 50])
+        ax.get_xaxis().set_major_formatter(mticker.ScalarFormatter())
+        ax.get_xaxis().set_minor_formatter(mticker.NullFormatter())
     ax.set_xlim(left=1)
     ax.set_ylim(top=1.02)
     ax.legend(loc="lower right")
@@ -277,7 +318,7 @@ def build_figure(mutations: pd.DataFrame, null: pd.DataFrame) -> plt.Figure:
 def build_occurrence_figure(mutations: pd.DataFrame) -> plt.Figure:
     """Single-panel CDF of independent-origin counts, per site class."""
     fig, ax = plt.subplots(1, 1, figsize=(5.0, 4.2))
-    panel_occurrence_counts(ax, mutations)
+    panel_occurrence_counts(ax, mutations, log_x=False)
     sns.despine(ax=ax)
     fig.tight_layout()
     return fig
@@ -438,7 +479,14 @@ def panel_similar_background(ax: plt.Axes, similar: pd.DataFrame) -> None:
 
 
 def panel_observed_vs_null_distance(ax: plt.Axes, summary: pd.DataFrame) -> None:
-    """Median same-mutation origin distance against the null, one point per run."""
+    """Median same-mutation origin distance against the null, one point per run.
+
+    ``median_same_mutation_bg_distance`` is taken over every recurrent
+    substitution, so this panel pools epitope and non-epitope. It is therefore
+    drawn in a neutral color: reusing the epitope red would imply an
+    epitope-only statistic and read as contradicting the epitope curve in
+    :func:`panel_similar_background`.
+    """
     observed = summary["median_same_mutation_bg_distance"]
     null = summary["median_null_bg_distance"]
     valid = observed.notna() & null.notna()
@@ -446,10 +494,10 @@ def panel_observed_vs_null_distance(ax: plt.Axes, summary: pd.DataFrame) -> None
         null[valid],
         observed[valid],
         s=26,
-        c=EPITOPE_COLOR,
+        c=POOLED_COLOR,
         alpha=0.65,
         linewidths=0,
-        label="simulation run",
+        label="simulation run (all substitutions)",
     )
     # Bracket the data rather than forcing the origin: every run sits far from
     # zero, so anchoring at zero would squeeze the points into one corner and
@@ -462,8 +510,10 @@ def panel_observed_vs_null_distance(ax: plt.Axes, summary: pd.DataFrame) -> None
     ax.set_xlim(limits)
     ax.set_ylim(limits)
     ax.set_aspect("equal")
-    ax.set_xlabel("Median distance, random origin pairs (AA)")
-    ax.set_ylabel("Median distance, same-mutation origins (AA)")
+    # Kept short: with an equal aspect the y-label spans the full panel height,
+    # and a longer string collides with the panel letter placed above it.
+    ax.set_xlabel("Random origin-pair distance (AA)")
+    ax.set_ylabel("Same-mutation origin distance (AA)")
     ax.set_title("Origin distance vs. null, per run", fontsize=10)
     ax.legend(loc="upper left")
 
@@ -598,7 +648,7 @@ def build_across_run_figure(
 
     Each panel is a distribution over every swept simulation rather than a single
     build, which removes the cherry-picking objection the single-build version
-    invited. A and B characterise the simulation's mutational behaviour; C and D
+    invited. A and B characterize the simulation's mutational behavior; C and D
     answer the reviewer's operational concern directly, by showing that genotype
     predicts antigenic position despite the per-event random direction.
 
@@ -608,6 +658,10 @@ def build_across_run_figure(
     ``panel_similar_background`` and ``panel_observed_vs_null_distance`` are
     retained in this module because they still back the response letter, but they
     no longer earn a panel: C and D make the argument more directly.
+
+    ``panel_occurrence_counts`` is likewise not used here; it is rendered on its
+    own as supplementary figure S7, the origin-count distribution for the
+    representative simulation.
     """
     assert not summary.empty, "per-run summary is empty"
     # Wide and comparatively short: the figure is placed at 1.3\\textwidth, so a
